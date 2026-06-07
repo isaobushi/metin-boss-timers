@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Lockfile is committed for reproducible CI builds (overrides a global ignore).
+!package-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
