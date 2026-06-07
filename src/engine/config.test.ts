@@ -12,6 +12,7 @@ import {
   renameBoss,
   renameSkill,
   setSkillDuration,
+  setSkillHotkey,
   type Config,
 } from "./config";
 
@@ -112,6 +113,34 @@ describe("skill edits", () => {
 
     expect(durOf(setSkillDuration(c, bid, sid, 0))).toBe(1_000); // floor
     expect(durOf(setSkillDuration(c, bid, sid, 5_000_000))).toBe(999_000); // ceiling
+  });
+});
+
+describe("hotkey binding", () => {
+  it("sets and clears a skill's hotkey", () => {
+    let c = makeConfig();
+    const bid = c.bosses[0].id;
+    const sid = c.bosses[0].skills[0].id;
+    const hkOf = (cc: Config) => bossById(cc, bid)!.skills[0].hotkey;
+
+    c = setSkillHotkey(c, bid, sid, "ctrl+shift+k");
+    expect(hkOf(c)).toBe("ctrl+shift+k");
+
+    // clearing removes the field entirely rather than leaving an empty string
+    c = setSkillHotkey(c, bid, sid, undefined);
+    expect(hkOf(c)).toBeUndefined();
+    expect("hotkey" in bossById(c, bid)!.skills[0]).toBe(false);
+  });
+
+  it("only touches the targeted skill", () => {
+    let c = makeConfig();
+    const bid = c.bosses[0].id;
+    const [s0, s1] = c.bosses[0].skills;
+    c = setSkillHotkey(c, bid, s0.id, "k");
+    const after = bossById(c, bid)!.skills;
+    expect(after[0].hotkey).toBe("k");
+    expect(after[1].hotkey).toBeUndefined();
+    expect(after[1].id).toBe(s1.id);
   });
 });
 

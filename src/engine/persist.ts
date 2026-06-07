@@ -86,5 +86,9 @@ function readBoss(b: unknown): Boss | null {
 
 function readSkill(s: unknown): SkillCfg | null {
   if (!isObj(s) || !isStr(s.id) || !isStr(s.label) || !isNum(s.durationMs) || !isNum(s.pitch)) return null;
-  return { id: s.id, label: s.label, durationMs: s.durationMs, pitch: s.pitch };
+  const skill: SkillCfg = { id: s.id, label: s.label, durationMs: s.durationMs, pitch: s.pitch };
+  // hotkey is optional; keep a valid string, drop anything else (rebuilds explicitly so
+  // unknown extra fields are stripped, matching readBoss).
+  if (isStr(s.hotkey)) skill.hotkey = s.hotkey;
+  return skill;
 }

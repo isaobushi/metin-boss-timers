@@ -191,8 +191,12 @@ body {
   flex: 1;
 }
 .skill-head__sec {
-  width: 46px;
+  width: 40px;
   text-align: right;
+}
+.skill-head__key {
+  width: 66px;
+  text-align: center;
 }
 .skill-head__x {
   width: 24px;
@@ -209,10 +213,35 @@ body {
   font-size: 12px;
 }
 .skill-sec {
-  width: 46px;
+  width: 40px;
   padding: 6px;
   font-size: 12px;
   text-align: right;
+}
+/* hotkey capture button: shows the bound combo (pretty), "…" while capturing */
+.skill-key {
+  width: 66px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #cfc8e0;
+  background: rgba(8, 6, 14, 0.6);
+  border: 1px solid #ffffff22;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skill-key:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+/* capturing: highlighted while it waits for the next keypress */
+.skill-key--capturing {
+  color: #ffd166;
+  border-color: #ffd166;
 }
 
 /* ---- timer screen header ---- */

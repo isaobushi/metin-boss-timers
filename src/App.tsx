@@ -1,7 +1,8 @@
 // v1 overlay — Slice 3: the pick-boss-first flow over a user-editable config.
 // Screen 1 SELECT BOSS → (⚙ per-boss SETTINGS) → Screen 2 TIMERS (that boss's chips).
 // Config lives in the pure model (src/engine/config.ts) behind the useConfig control
-// layer. Persistence (#5) and hotkeys (#6) are deliberately out of this slice.
+// layer, persisted to disk (#5); per-skill global hotkeys (#6) are bound in ⚙ settings
+// and registered while a boss's timer screen is active.
 import { useEffect, useState } from "react";
 import { BossSelect } from "./overlay/BossSelect";
 import { BossSettings } from "./overlay/BossSettings";
@@ -41,6 +42,7 @@ export default function App() {
         onAddSkill={() => cfg.createSkill(id)}
         onRenameSkill={(skillId, label) => cfg.editSkillName(id, skillId, label)}
         onSetDuration={(skillId, durationMs) => cfg.editSkillDuration(id, skillId, durationMs)}
+        onSetHotkey={(skillId, hotkey) => cfg.editSkillHotkey(id, skillId, hotkey)}
         onRemoveSkill={(skillId) => cfg.deleteSkill(id, skillId)}
       />
     );

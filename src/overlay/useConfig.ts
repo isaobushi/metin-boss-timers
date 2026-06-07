@@ -9,6 +9,7 @@ import {
   renameBoss,
   renameSkill,
   setSkillDuration,
+  setSkillHotkey,
   type Boss,
   type Config,
 } from "../engine/config";
@@ -19,7 +20,8 @@ import { loadPersisted, savePersisted } from "./configStore";
  * Thin React control layer over the pure config model. It holds the `Config` and the
  * active-boss selection in state and exposes edit actions; every action just runs the
  * matching pure transform. Persistence is wired here (load on mount, save on change,
- * reset-to-defaults); hotkeys remain out of scope (slice #6).
+ * reset-to-defaults), as is the hotkey binding (set/clear); OS registration of those
+ * bindings is the timer screen's job (overlay/hotkeys.ts).
  *
  * Edits go through functional `setConfig` updaters (always current, stable identity).
  * `createBoss` is the exception: it runs the transform on this render's `config` so it
@@ -78,6 +80,11 @@ export function useConfig() {
     (bossId: string, skillId: string) => setConfig((c) => removeSkill(c, bossId, skillId)),
     [],
   );
+  const editSkillHotkey = useCallback(
+    (bossId: string, skillId: string, hotkey: string | undefined) =>
+      setConfig((c) => setSkillHotkey(c, bossId, skillId, hotkey)),
+    [],
+  );
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
@@ -99,6 +106,7 @@ export function useConfig() {
     editSkillName,
     editSkillDuration,
     deleteSkill,
+    editSkillHotkey,
     selectBoss,
     resetConfig,
   };

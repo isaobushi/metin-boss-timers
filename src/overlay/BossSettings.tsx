@@ -1,5 +1,7 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { Boss } from "../engine/config";
+import { eventToCombo, prettyCombo } from "../engine/hotkey";
+import { inTextField } from "./hotkeys";
 
 type Props = {
   boss: Boss;
@@ -9,13 +11,16 @@ type Props = {
   onAddSkill: () => void;
   onRenameSkill: (skillId: string, label: string) => void;
   onSetDuration: (skillId: string, durationMs: number) => void;
+  onSetHotkey: (skillId: string, hotkey: string | undefined) => void;
   onRemoveSkill: (skillId: string) => void;
 };
 
 /**
  * Per-boss settings: rename or delete the boss, and edit its skills (rename, set
- * duration in whole seconds, remove, add). Durations are stored in ms; the input
- * shows/edits seconds. Hotkeys are intentionally absent — that's slice #6.
+ * duration in whole seconds, bind a hotkey, remove, add). Durations are stored in ms;
+ * the input shows/edits seconds. The hotkey button is a minimal capture affordance —
+ * click it, then press a combo to bind (Esc clears) — the full editing surface is the
+ * settings-window slice. The combo is stored canonical and shown pretty.
  */
 export function BossSettings({
   boss,
@@ -25,8 +30,30 @@ export function BossSettings({
   onAddSkill,
   onRenameSkill,
   onSetDuration,
+  onSetHotkey,
   onRemoveSkill,
 }: Props) {
+  // While a skill is "capturing", the next keypress becomes its binding (Esc clears).
+  const [capturing, setCapturing] = useState<string | null>(null);
+  useEffect(() => {
+    if (!capturing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (inTextField()) return; // don't hijack typing in a focused field
+      e.preventDefault();
+      if (e.key === "Escape") {
+        onSetHotkey(capturing, undefined);
+        setCapturing(null);
+        return;
+      }
+      const combo = eventToCombo(e);
+      if (!combo) return; // modifier-only so far — keep waiting for the real key
+      onSetHotkey(capturing, combo);
+      setCapturing(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [capturing, onSetHotkey]);
+
   return (
     <div className="panel boss-settings" style={{ "--accent": boss.accent } as CSSProperties}>
       <div className="settings-head">
@@ -47,6 +74,7 @@ export function BossSettings({
       <div className="skill-head">
         <span className="skill-head__name">SKILL</span>
         <span className="skill-head__sec">SEC</span>
+        <span className="skill-head__key">KEY</span>
         <span className="skill-head__x" />
       </div>
 
@@ -67,6 +95,13 @@ export function BossSettings({
             onChange={(e) => onSetDuration(s.id, Number(e.target.value) * 1000)}
             title="duration (seconds)"
           />
+          <button
+            className={`skill-key${capturing === s.id ? " skill-key--capturing" : ""}`}
+            onClick={() => setCapturing(capturing === s.id ? null : s.id)}
+            title="set hotkey (press a key; Esc clears)"
+          >
+            {capturing === s.id ? "…" : prettyCombo(s.hotkey)}
+          </button>
           <button className="icon-btn icon-btn--danger" onClick={() => onRemoveSkill(s.id)} title="remove skill">
             ✕
           </button>

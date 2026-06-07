@@ -6,6 +6,7 @@ import {
   reset as resetTimer,
   tick,
   toggle as toggleTimer,
+  trigger as triggerTimer,
   type Timer,
   type TimerInit,
 } from "../engine/timer";
@@ -99,6 +100,14 @@ export function useTimers(inits: TimerInit[]) {
     force((x) => x + 1);
   }, []);
 
+  // The hotkey action: reset-and-start from any state, so a fired shortcut always
+  // re-arms the skill (unlike onToggle). Stable, so the hotkey effect can depend on it.
+  const onTrigger = useCallback((id: string) => {
+    const t = timers.current.get(id);
+    if (t) timers.current.set(id, triggerTimer(t, Date.now()));
+    force((x) => x + 1);
+  }, []);
+
   // Derived from inits so a just-selected boss renders its chips immediately; the
   // running flag comes from the timer map (absent until the reconcile effect runs).
   const views: ChipView[] = inits.map((i) => ({
@@ -107,7 +116,7 @@ export function useTimers(inits: TimerInit[]) {
     running: timers.current.get(i.id)?.running ?? false,
   }));
 
-  return { views, register, onToggle, onReset };
+  return { views, register, onToggle, onReset, onTrigger };
 }
 
 function paint(e: ChipEls | undefined, t: Timer, now: number) {

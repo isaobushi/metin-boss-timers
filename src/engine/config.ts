@@ -6,10 +6,12 @@
 
 import type { TimerInit } from "./timer";
 
-// A skill is, structurally, exactly what the timer engine needs to make a timer
-// (`TimerInit` = { id; label; durationMs; pitch }), so a boss's `skills` can be fed
-// straight to `useTimers` with no mapping.
-export type SkillCfg = TimerInit;
+// A skill is everything the timer engine needs to make a timer (`TimerInit` =
+// { id; label; durationMs; pitch }) plus an optional global-hotkey binding. It stays a
+// superset of `TimerInit`, so a boss's `skills` feed straight into `useTimers` with no
+// mapping (the engine just ignores `hotkey`). The hotkey is a canonical combo string
+// (see engine/hotkey.ts); absent means unbound.
+export type SkillCfg = TimerInit & { hotkey?: string };
 
 export type Boss = {
   id: string;
@@ -139,6 +141,16 @@ export function renameSkill(c: Config, bossId: string, skillId: string, label: s
 export function setSkillDuration(c: Config, bossId: string, skillId: string, durationMs: number): Config {
   const d = Math.max(MIN_DURATION_MS, Math.min(MAX_DURATION_MS, Math.round(durationMs) || MIN_DURATION_MS));
   return editSkill(c, bossId, skillId, (s) => ({ ...s, durationMs: d }));
+}
+
+/** Set (or, with `undefined`, clear) a skill's hotkey binding. Combo is stored canonical. */
+export function setSkillHotkey(c: Config, bossId: string, skillId: string, hotkey: string | undefined): Config {
+  return editSkill(c, bossId, skillId, (s) => {
+    if (hotkey) return { ...s, hotkey };
+    const next = { ...s };
+    delete next.hotkey; // clear → drop the field entirely (not an empty string)
+    return next;
+  });
 }
 
 export function removeSkill(c: Config, bossId: string, skillId: string): Config {

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Boss } from "../engine/config";
 import { Chip } from "./Chip";
+import { useHotkeys } from "./hotkeys";
 import { useTimers } from "./useTimers";
 
 type Props = {
@@ -15,7 +16,10 @@ type Props = {
  * keeps "only the active boss runs" and "switching boss resets all timers" true.
  */
 export function TimerScreen({ boss, onChangeBoss }: Props) {
-  const { views, register, onToggle, onReset } = useTimers(boss.skills);
+  const { views, register, onToggle, onReset, onTrigger } = useTimers(boss.skills);
+  // Only mounted here, so only the active boss's bindings are registered; a fired key
+  // re-arms (reset + start) its timer. Re-registers when this boss's bindings change.
+  useHotkeys(boss.skills, onTrigger);
 
   return (
     <div className="panel timer-screen" style={{ "--accent": boss.accent } as CSSProperties}>

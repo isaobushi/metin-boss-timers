@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addBoss, addSkill, makeConfig, type Config } from "./config";
+import { addBoss, addSkill, makeConfig, setSkillHotkey, type Config } from "./config";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 
 // Persistence (de)serialization is pure: no disk, no clock. The store adapter just
@@ -21,6 +21,15 @@ describe("round-trip", () => {
 
     const restored = deserialize(throughDisk(c));
     expect(restored.bosses).toEqual(c.bosses);
+  });
+
+  it("preserves skill hotkey bindings through the disk hop", () => {
+    let c = makeConfig();
+    const bid = c.bosses[0].id;
+    c = setSkillHotkey(c, bid, c.bosses[0].skills[0].id, "ctrl+shift+k");
+
+    const restored = deserialize(throughDisk(c));
+    expect(restored.bosses[0].skills[0].hotkey).toBe("ctrl+shift+k");
   });
 });
 
