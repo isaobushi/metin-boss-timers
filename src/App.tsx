@@ -56,6 +56,7 @@ export default function App() {
         }}
         onSettings={(id) => setScreen({ name: "settings", bossId: id })}
         onAddBoss={() => setScreen({ name: "settings", bossId: cfg.createBoss() })}
+        onReset={cfg.resetConfig}
       />
     );
   }

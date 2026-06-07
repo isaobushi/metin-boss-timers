@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   addBoss,
   addSkill,
@@ -12,11 +12,14 @@ import {
   type Boss,
   type Config,
 } from "../engine/config";
+import { deserialize, serialize } from "../engine/persist";
+import { loadPersisted, savePersisted } from "./configStore";
 
 /**
  * Thin React control layer over the pure config model. It holds the `Config` and the
  * active-boss selection in state and exposes edit actions; every action just runs the
- * matching pure transform. No persistence (slice #5) and no hotkeys (slice #6) here.
+ * matching pure transform. Persistence is wired here (load on mount, save on change,
+ * reset-to-defaults); hotkeys remain out of scope (slice #6).
  *
  * Edits go through functional `setConfig` updaters (always current, stable identity).
  * `createBoss` is the exception: it runs the transform on this render's `config` so it
@@ -26,6 +29,26 @@ import {
 export function useConfig() {
   const [config, setConfig] = useState<Config>(makeConfig);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
+  // Gate saves until the on-disk config has been read, so the initial in-memory
+  // defaults can never clobber a stored config before it loads.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    loadPersisted().then((raw) => {
+      if (!alive) return;
+      setConfig(deserialize(raw)); // null/corrupt → shipped defaults; ids seeded past max
+      setHydrated(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void savePersisted(serialize(config));
+  }, [config, hydrated]);
 
   const createBoss = useCallback((): string => {
     const next = addBoss(config);
@@ -58,6 +81,12 @@ export function useConfig() {
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
+  // Wipe all customization back to the shipped defaults (persisted by the save effect).
+  const resetConfig = useCallback(() => {
+    setConfig(makeConfig());
+    setActiveBossId(null);
+  }, []);
+
   const activeBoss: Boss | undefined = bossById(config, activeBossId);
 
   return {
@@ -71,5 +100,6 @@ export function useConfig() {
     editSkillDuration,
     deleteSkill,
     selectBoss,
+    resetConfig,
   };
 }

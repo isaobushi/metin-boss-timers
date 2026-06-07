@@ -6,13 +6,14 @@ type Props = {
   onPick: (id: string) => void;
   onSettings: (id: string) => void;
   onAddBoss: () => void;
+  onReset: () => void;
 };
 
 /**
  * Screen 1 of the pick-boss-first flow: choose the active boss (→ its timers) or open
  * a boss's ⚙ settings. Each boss button carries its accent so bosses read distinctly.
  */
-export function BossSelect({ bosses, onPick, onSettings, onAddBoss }: Props) {
+export function BossSelect({ bosses, onPick, onSettings, onAddBoss, onReset }: Props) {
   return (
     <div className="panel boss-select">
       <div className="panel__title">SELECT BOSS</div>
@@ -29,6 +30,14 @@ export function BossSelect({ bosses, onPick, onSettings, onAddBoss }: Props) {
       {bosses.length === 0 && <div className="empty">no bosses yet</div>}
       <button className="btn-dashed" onClick={onAddBoss}>
         + ADD BOSS
+      </button>
+      <button
+        className="btn-link"
+        onClick={() => {
+          if (window.confirm("Reset all bosses and skills to defaults?")) onReset();
+        }}
+      >
+        reset to defaults
       </button>
     </div>
   );

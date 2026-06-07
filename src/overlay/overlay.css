@@ -73,6 +73,21 @@ body {
 .btn-dashed:hover {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
+.btn-link {
+  align-self: center;
+  margin-top: 2px;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #9a93ad;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.btn-link:hover {
+  color: #ff7b96;
+}
 .icon-btn {
   display: flex;
   align-items: center;
