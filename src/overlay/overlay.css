@@ -1,0 +1,94 @@
+/* v1 overlay base. The window is frameless + transparent (Tauri), so the page
+   background MUST stay transparent — only the chips paint. */
+:root {
+  font-family: "Orbitron", "Rajdhani", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: transparent;
+  color: #f5f3ff;
+  overflow: hidden;
+  user-select: none;
+}
+
+.overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+/* ---- chip ---- */
+.chip {
+  width: 288px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(12, 10, 20, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  cursor: pointer; /* left-click toggles, right-click resets */
+}
+/* a stopped timer reads as inert — dimmed, no glow */
+.chip--stopped {
+  opacity: 0.45;
+}
+.chip--stopped .chip__glow {
+  display: none;
+}
+.chip__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.chip__label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.chip__count {
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* track is a FIXED 268px so the fill's scaleX / glow translateX math stays exact */
+.chip__track {
+  position: relative;
+  width: 268px;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.chip__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background-color: #00d6ff;
+  transform-origin: left center;
+  transform: scaleX(1);
+  /* NO css transition — the rAF loop drives every frame via transform */
+}
+.chip__glow {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: 100%;
+  border-radius: 6px;
+  background: currentColor;
+  color: #00d6ff;
+  filter: blur(3px);
+  transform: translateX(268px);
+}
