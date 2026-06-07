@@ -49,6 +49,14 @@ body {
   opacity: 0.6;
   text-align: center;
 }
+
+/* drag handles (frameless overlay has no title bar): grab a header to move the window */
+[data-tauri-drag-region] {
+  cursor: grab;
+}
+[data-tauri-drag-region]:active {
+  cursor: grabbing;
+}
 .empty {
   font-size: 11px;
   opacity: 0.5;

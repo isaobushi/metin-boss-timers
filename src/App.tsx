@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { useConfig } from "./overlay/useConfig";
+import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
 
@@ -16,6 +17,9 @@ type Screen = { name: "select" } | { name: "timers" };
 export default function App() {
   const cfg = useConfig();
   const [screen, setScreen] = useState<Screen>({ name: "select" });
+
+  // Restore the overlay's last on-screen position and persist it as it's dragged (no-op in browser-dev).
+  useOverlayPosition();
 
   // Browsers/webviews gate audio behind a user gesture — unlock on the first interaction.
   useEffect(() => {

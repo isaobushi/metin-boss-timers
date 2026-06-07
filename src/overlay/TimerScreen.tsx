@@ -30,7 +30,10 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
         <button className="icon-btn" onClick={onChangeBoss} title="change boss">
           ←
         </button>
-        <span className="timer-head__name">{boss.name.toUpperCase()}</span>
+        {/* doubles as the window's drag handle — grab the boss name to move the overlay */}
+        <span className="timer-head__name" data-tauri-drag-region>
+          {boss.name.toUpperCase()}
+        </span>
         <span className="icon-btn-spacer" />
       </div>
 

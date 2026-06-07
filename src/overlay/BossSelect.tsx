@@ -16,7 +16,10 @@ type Props = {
 export function BossSelect({ bosses, onPick, onOpenSettings }: Props) {
   return (
     <div className="panel boss-select">
-      <div className="panel__title">SELECT BOSS</div>
+      {/* doubles as the window's drag handle — grab the title to move the frameless overlay */}
+      <div className="panel__title" data-tauri-drag-region>
+        SELECT BOSS
+      </div>
       {bosses.map((b) => (
         <div className="boss-row" key={b.id} style={{ "--accent": b.accent, "--accent2": b.accent2 } as CSSProperties}>
           <button className="boss-row__pick" onClick={() => onPick(b.id)}>
