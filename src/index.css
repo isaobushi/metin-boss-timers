@@ -1,0 +1,49 @@
+/* PROTOTYPE base — dark neon. */
+:root {
+  font-family: "Orbitron", "Rajdhani", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #16131f 0%, #0a0810 55%, #060409 100%);
+  color: #f5f3ff;
+  overflow: hidden;
+}
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+@keyframes danger-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px currentColor); opacity: 1; }
+  50% { filter: drop-shadow(0 0 22px currentColor); opacity: 0.7; }
+}
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scan {
+  from { background-position: 0 0; }
+  to { background-position: 0 -40px; }
+}
+.danger { animation: danger-pulse 0.6s ease-in-out infinite; }
+
+/* ---- demo scene (faux game backdrop) ---- */
+@keyframes ember-rise {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-90vh) translateX(24px); opacity: 0; }
+}
+@keyframes fog-drift {
+  from { transform: translateX(-5%); }
+  to   { transform: translateX(5%); }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+.help-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.help-btn:hover { transform: scale(1.08); }
+.link-btn:hover { color: #fff; }
