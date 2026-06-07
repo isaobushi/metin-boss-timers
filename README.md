@@ -36,8 +36,8 @@ Under **Assets**, pick the installer that suits you:
 
 | Asset | Use it if |
 |---|---|
-| `Metin Boss Timers_<version>_x64-setup.exe` (NSIS) | **Most users** — normal double-click install. |
-| `Metin Boss Timers_<version>_x64_en-US.msi` (WiX) | Silent / IT / scripted install. |
+| `Metin.Boss.Timers_<version>_x64-setup.exe` (NSIS) | **Most users** — normal double-click install. |
+| `Metin.Boss.Timers_<version>_x64_en-US.msi` (WiX) | Silent / IT / scripted install. |
 | `SHA256SUMS.txt` | Checksums, to verify your download (see below). |
 
 Asset URLs are version-stamped and change each release, so link to the
