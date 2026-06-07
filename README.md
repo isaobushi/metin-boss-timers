@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# Metin Boss Timers
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A desktop **overlay** of draining boss respawn timers for Metin2. It shows a
+small, transparent, always-on-top window of countdown chips that you start and
+reset with **global hotkeys** — so the timers keep working while the game has
+keyboard focus. A separate settings window lets you pick which bosses/skills to
+track and bind hotkeys; your selection and the overlay's on-screen position are
+remembered between launches.
 
-Currently, two official plugins are available:
+Built with [Tauri](https://tauri.app) (Rust core + a React/TypeScript UI).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What it does — and does not — do
 
-## React Compiler
+- **No network calls.** The app never talks to the internet: no telemetry, no
+  accounts, no auto-update. There is no HTTP capability compiled into the build,
+  so this is verifiable from source (`src-tauri/capabilities/`) — not just a
+  promise.
+- **Global hotkeys** are the one capability that looks unusual. They exist for a
+  single reason: you need to start/reset a timer without alt-tabbing out of a
+  full-screen game. They are not a keylogger — only the specific key
+  combinations you bind in settings are registered.
+- **Always-on-top + hidden taskbar entry** keep the overlay visible over the
+  game without cluttering your taskbar.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+That behaviour profile (global hotkeys + always-on-top + hidden taskbar) is
+exactly what antivirus heuristics tend to flag on an unsigned binary, which is
+why the trust/verification story below exists.
 
-## Expanding the ESLint configuration
+## Download
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Get the latest build from the releases page (no app store, no account):
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**→ https://github.com/isaobushi/metin-boss-timers/releases/latest**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Under **Assets**, pick the installer that suits you:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Asset | Use it if |
+|---|---|
+| `Metin Boss Timers_<version>_x64-setup.exe` (NSIS) | **Most users** — normal double-click install. |
+| `Metin Boss Timers_<version>_x64_en-US.msi` (WiX) | Silent / IT / scripted install. |
+| `SHA256SUMS.txt` | Checksums, to verify your download (see below). |
+
+Asset URLs are version-stamped and change each release, so link to the
+`/releases/latest` **page** above rather than a direct file.
+
+### First-launch warnings (and why)
+
+Because the app is **not code-signed yet**, you'll see one or two scary-looking
+warnings the first time. They're expected for an unsigned tool — here's how to
+get through them:
+
+1. **Browser "uncommon download" / "isn't commonly downloaded"** — choose
+   **Keep** (in Chrome/Edge, click the `…` on the download → **Keep**).
+2. **Windows SmartScreen "Windows protected your PC" / "unknown publisher"** —
+   click **More info → Run anyway**.
+
+The installer then runs normally and adds a Start-menu shortcut. Removing these
+warnings entirely requires Authenticode code signing — a possible future step.
+Before clicking through, you can confirm the download is the genuine artifact
+using the steps below.
+
+## Verify your download
+
+Every release installer is built **only in CI**, on a GitHub-hosted Windows
+runner, from the exact tagged public commit — never from a local machine. That
+gives a verifiable chain from public source to artifact:
+
+1. **Provenance attestation** (signed SLSA, links artifact → workflow run → commit):
+   ```sh
+   gh attestation verify <installer-file> --repo isaobushi/metin-boss-timers
+   ```
+2. **Checksums** — `SHA256SUMS.txt` is attached to each release. Compare:
+   ```powershell
+   Get-FileHash <installer-file> -Algorithm SHA256
+   ```
+3. **VirusTotal** — when configured, scan links are included in the release
+   notes; otherwise you can upload the installer to
+   [virustotal.com](https://www.virustotal.com) yourself.
+
+## Development
+
+```sh
+npm install
+npm run dev          # Vite dev server for the UI only
+npx tauri dev        # full desktop app (overlay + settings windows)
+npm run test:run     # unit tests (timer/config/hotkey/persist/position engines)
+npm run build        # type-check + bundle the frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The Windows release is produced by [`.github/workflows/release-windows.yml`](.github/workflows/release-windows.yml),
+triggered by pushing a `v*` tag whose version matches `src-tauri/tauri.conf.json`:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+git tag v0.1.0
+git push origin v0.1.0
 ```
+
+It bundles the `.msi`/`.exe`, attaches them to a **draft** release with checksums
+and a provenance attestation, and (optionally) runs a VirusTotal scan when a
+`VT_API_KEY` repository secret is present.

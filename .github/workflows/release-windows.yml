@@ -1,0 +1,129 @@
+name: release-windows
+
+# Builds the Windows installers in CI only — the dev machine is macOS, so the
+# Windows artifact never exists on a laptop. Provenance is therefore tied to
+# public source: a tagged commit on GitHub -> this workflow run -> the artifact.
+#
+# Cut a release by tagging a commit whose version matches src-tauri/tauri.conf.json
+# (the source of truth), e.g.  git tag v0.1.0 && git push origin v0.1.0
+# tauri-action creates a *draft* release so the human reviews notes before publishing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the release + upload assets
+  id-token: write # provenance attestation (OIDC)
+  attestations: write # provenance attestation
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Runs beforeBuildCommand (tsc + vite build) -> Rust core -> NSIS .exe + WiX .msi,
+      # then creates/updates the GitHub release and uploads the installers as assets.
+      - uses: tauri-apps/tauri-action@v0
+        id: tauri
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Metin Boss Timers ${{ github.ref_name }}"
+          releaseDraft: true
+          releaseBody: |
+            ## Metin Boss Timers ${{ github.ref_name }}
+
+            A desktop overlay of draining boss respawn timers for Metin2: a
+            transparent, always-on-top window of countdown chips you start with
+            **global hotkeys** (so they work while the game has focus). Settings
+            and overlay position are stored locally.
+
+            ### Why your AV / SmartScreen may complain
+            This is an **unsigned** native app whose behaviour profile — global
+            hotkeys + always-on-top + hidden taskbar entry — overlaps with what
+            antivirus heuristics flag. To be clear about what it is:
+            - It makes **no network calls** of any kind (no auto-update, no
+              telemetry — there is no HTTP capability in the build).
+            - It needs **global hotkeys** only so you can start/reset timers
+              without alt-tabbing out of the game.
+
+            On first launch Windows may show *"Windows protected your PC"* —
+            click **More info → Run anyway**.
+
+            ### Verify this download
+            Every installer is built only in CI from the tagged public commit and
+            carries a signed SLSA provenance attestation:
+            ```
+            gh attestation verify <installer> --repo isaobushi/metin-boss-timers
+            ```
+            Checksums are in `SHA256SUMS.txt` attached below. A VirusTotal scan
+            (when configured) is linked here; otherwise you can upload the
+            installer to https://www.virustotal.com yourself.
+
+      # Signed SLSA provenance for each built installer: artifact -> run -> commit SHA.
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+
+      # SHA-256 checksums for every installer, published as a release asset.
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem src-tauri/target/release/bundle -Recurse -Include *.exe,*.msi |
+            ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } |
+            Out-File -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - name: Upload checksums to release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} SHA256SUMS.txt --clobber
+
+      # Optional: only runs when a VT_API_KEY secret is configured. Pre-empts
+      # false positives for an overlay tool by attaching scan links to the notes.
+      - name: VirusTotal scan
+        id: vt
+        if: ${{ env.VT_API_KEY != '' }}
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        uses: crazy-max/ghaction-virustotal@v4
+        with:
+          vt_api_key: ${{ env.VT_API_KEY }}
+          files: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+
+      - name: Append VirusTotal links to release notes
+        if: ${{ steps.vt.outputs.analysis != '' }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          $lines = $env:ANALYSIS -split ',' | ForEach-Object {
+            $name, $url = $_ -split '=', 2
+            "- [$name]($url)"
+          }
+          $section = "`n`n### VirusTotal`n" + ($lines -join "`n")
+          $current = gh release view ${{ github.ref_name }} --json body -q .body
+          ($current + $section) | gh release edit ${{ github.ref_name }} --notes-file -

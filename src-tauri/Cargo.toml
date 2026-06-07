@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Overlay boss respawn timers for Metin2 — a transparent, always-on-top window of draining timer chips driven by global hotkeys."
+authors = ["isaobushi"]
 license = ""
-repository = ""
+repository = "https://github.com/isaobushi/metin-boss-timers"
 edition = "2021"
 rust-version = "1.77.2"
 
