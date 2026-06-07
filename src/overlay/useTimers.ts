@@ -30,14 +30,40 @@ export type ChipView = { id: string; label: string; running: boolean };
  * every timer (the engine emits cues, which we hand to the audio adapter) and paints
  * each chip straight to the DOM. React only re-renders on running-state changes (for
  * the dimmed style), never per frame.
+ *
+ * The timer map is reconciled against the current `inits` (keyed by id): new skills
+ * get a fresh timer, removed skills are dropped, and a changed duration/pitch/label
+ * is applied in place. Switching boss swaps the whole id set, so the outgoing boss's
+ * timers are dropped and the incoming boss's are created fresh (stopped, full) — which
+ * is exactly the "switching boss stops and resets all timers" rule, for free.
  */
 export function useTimers(inits: TimerInit[]) {
-  const timers = useRef<Map<string, Timer>>(null as unknown as Map<string, Timer>);
-  if (timers.current === null) {
-    timers.current = new Map(inits.map((i) => [i.id, makeTimer(i)]));
-  }
+  const timers = useRef<Map<string, Timer>>(new Map());
   const els = useRef<Map<string, ChipEls>>(new Map());
   const [, force] = useState(0);
+
+  // Reconcile on any change to the init set (ids/durations/labels/pitches). A fresh
+  // timer for a new boss's skill is stopped at a full cycle, so a boss switch resets.
+  const sig = inits.map((i) => `${i.id}:${i.durationMs}:${i.pitch}:${i.label}`).join("|");
+  useEffect(() => {
+    const map = timers.current;
+    const wanted = new Set<string>();
+    for (const i of inits) {
+      wanted.add(i.id);
+      const ex = map.get(i.id);
+      if (!ex) {
+        map.set(i.id, makeTimer(i));
+      } else if (ex.durationMs !== i.durationMs || ex.pitch !== i.pitch || ex.label !== i.label) {
+        // A running timer keeps draining (new duration takes effect on its next loop);
+        // a stopped one snaps to a fresh full cycle at the new duration.
+        map.set(i.id, ex.running ? { ...ex, label: i.label, pitch: i.pitch, durationMs: i.durationMs } : makeTimer(i));
+      }
+    }
+    for (const id of [...map.keys()]) if (!wanted.has(id)) map.delete(id);
+    // No re-render needed: the render that changed `inits` already painted the new
+    // chip set, and reconcile only seeds/updates the ref map (running state unchanged).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
 
   useEffect(() => {
     let raf = 0;
@@ -73,10 +99,13 @@ export function useTimers(inits: TimerInit[]) {
     force((x) => x + 1);
   }, []);
 
-  const views: ChipView[] = inits.map((i) => {
-    const t = timers.current.get(i.id)!;
-    return { id: t.id, label: t.label, running: t.running };
-  });
+  // Derived from inits so a just-selected boss renders its chips immediately; the
+  // running flag comes from the timer map (absent until the reconcile effect runs).
+  const views: ChipView[] = inits.map((i) => ({
+    id: i.id,
+    label: i.label,
+    running: timers.current.get(i.id)?.running ?? false,
+  }));
 
   return { views, register, onToggle, onReset };
 }

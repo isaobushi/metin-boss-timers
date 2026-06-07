@@ -1,0 +1,75 @@
+import { useCallback, useState } from "react";
+import {
+  addBoss,
+  addSkill,
+  bossById,
+  deleteBoss,
+  makeConfig,
+  removeSkill,
+  renameBoss,
+  renameSkill,
+  setSkillDuration,
+  type Boss,
+  type Config,
+} from "../engine/config";
+
+/**
+ * Thin React control layer over the pure config model. It holds the `Config` and the
+ * active-boss selection in state and exposes edit actions; every action just runs the
+ * matching pure transform. No persistence (slice #5) and no hotkeys (slice #6) here.
+ *
+ * Edits go through functional `setConfig` updaters (always current, stable identity).
+ * `createBoss` is the exception: it runs the transform on this render's `config` so it
+ * can hand the new id back synchronously — the caller jumps straight into that boss's
+ * settings.
+ */
+export function useConfig() {
+  const [config, setConfig] = useState<Config>(makeConfig);
+  const [activeBossId, setActiveBossId] = useState<string | null>(null);
+
+  const createBoss = useCallback((): string => {
+    const next = addBoss(config);
+    setConfig(next);
+    return next.bosses[next.bosses.length - 1].id;
+  }, [config]);
+
+  const editBossName = useCallback((id: string, name: string) => setConfig((c) => renameBoss(c, id, name)), []);
+
+  const removeBoss = useCallback((id: string) => {
+    setConfig((c) => deleteBoss(c, id));
+    // if the active boss vanished, drop back to the select screen's default
+    setActiveBossId((cur) => (cur === id ? null : cur));
+  }, []);
+
+  const createSkill = useCallback((bossId: string) => setConfig((c) => addSkill(c, bossId)), []);
+  const editSkillName = useCallback(
+    (bossId: string, skillId: string, label: string) => setConfig((c) => renameSkill(c, bossId, skillId, label)),
+    [],
+  );
+  const editSkillDuration = useCallback(
+    (bossId: string, skillId: string, durationMs: number) =>
+      setConfig((c) => setSkillDuration(c, bossId, skillId, durationMs)),
+    [],
+  );
+  const deleteSkill = useCallback(
+    (bossId: string, skillId: string) => setConfig((c) => removeSkill(c, bossId, skillId)),
+    [],
+  );
+
+  const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
+
+  const activeBoss: Boss | undefined = bossById(config, activeBossId);
+
+  return {
+    config,
+    activeBoss,
+    createBoss,
+    editBossName,
+    removeBoss,
+    createSkill,
+    editSkillName,
+    editSkillDuration,
+    deleteSkill,
+    selectBoss,
+  };
+}
