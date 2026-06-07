@@ -21,6 +21,9 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
   // re-arms (reset + start) its timer. Re-registers when this boss's bindings change.
   useHotkeys(boss.skills, onTrigger);
 
+  // Bound combo per skill id, so each chip can badge its hotkey (views carry no binding).
+  const hotkeyById = new Map(boss.skills.map((s) => [s.id, s.hotkey]));
+
   return (
     <div className="panel timer-screen" style={{ "--accent": boss.accent } as CSSProperties}>
       <div className="timer-head">
@@ -37,6 +40,7 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
           id={v.id}
           label={v.label}
           running={v.running}
+          hotkey={hotkeyById.get(v.id)}
           register={register}
           onToggle={() => onToggle(v.id)}
           onReset={() => onReset(v.id)}

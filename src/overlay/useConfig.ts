@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addBoss,
   addSkill,
@@ -15,6 +15,7 @@ import {
 } from "../engine/config";
 import { deserialize, serialize } from "../engine/persist";
 import { loadPersisted, savePersisted } from "./configStore";
+import { broadcastConfig, subscribeConfig } from "./configSync";
 
 /**
  * Thin React control layer over the pure config model. It holds the `Config` and the
@@ -27,6 +28,11 @@ import { loadPersisted, savePersisted } from "./configStore";
  * `createBoss` is the exception: it runs the transform on this render's `config` so it
  * can hand the new id back synchronously — the caller jumps straight into that boss's
  * settings.
+ *
+ * Runs in both windows (overlay + settings), kept in sync via configSync: a local edit
+ * persists and broadcasts; a broadcast from the other window is applied as state only.
+ * The `skipBroadcast` ref breaks the echo — a remote-applied change neither re-persists
+ * (it's already on disk) nor re-broadcasts (which would ping-pong forever).
  */
 export function useConfig() {
   const [config, setConfig] = useState<Config>(makeConfig);
@@ -34,6 +40,8 @@ export function useConfig() {
   // Gate saves until the on-disk config has been read, so the initial in-memory
   // defaults can never clobber a stored config before it loads.
   const [hydrated, setHydrated] = useState(false);
+  // True for exactly the next change effect when that change came from the other window.
+  const skipBroadcast = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -47,9 +55,24 @@ export function useConfig() {
     };
   }, []);
 
+  // Apply edits the other window broadcast — state only; don't re-persist or re-broadcast.
+  useEffect(
+    () => subscribeConfig((payload) => {
+      skipBroadcast.current = true;
+      setConfig(deserialize(payload));
+    }),
+    [],
+  );
+
   useEffect(() => {
     if (!hydrated) return;
-    void savePersisted(serialize(config));
+    if (skipBroadcast.current) {
+      skipBroadcast.current = false; // remote-applied: already on disk, and echoing would loop
+      return;
+    }
+    const payload = serialize(config);
+    void savePersisted(payload);
+    broadcastConfig(payload);
   }, [config, hydrated]);
 
   const createBoss = useCallback((): string => {

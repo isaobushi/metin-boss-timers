@@ -30,8 +30,10 @@ export type Config = {
   skillSeq: number;
 };
 
-// Accent pairs cycled as bosses are added, so each boss reads distinctly.
+// Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
+// violet the overlay lands on by default (the shipped "Balathor" boss).
 export const ACCENTS: ReadonlyArray<readonly [string, string]> = [
+  ["#7c6cff", "#6a5bff"],
   ["#ff2d6b", "#ff8a3d"],
   ["#00e5ff", "#8a5bff"],
   ["#39ff88", "#00e5ff"],
@@ -43,7 +45,11 @@ export const ACCENTS: ReadonlyArray<readonly [string, string]> = [
 // Pitch palette assigned to new skills, so each skill's beep stays distinguishable.
 export const PITCHES: readonly number[] = [880, 523, 659, 740, 988, 440, 587, 784];
 
-// Re-seeded when the last boss is deleted, so the overlay is never empty/broken.
+// The shipped first boss's name (the overlay's default landing boss).
+const DEFAULT_BOSS_NAME = "Balathor";
+
+// Re-seeded when the last boss is deleted, so the overlay is never empty/broken. Kept the
+// generic "Boss" (distinct from the shipped DEFAULT_BOSS_NAME) since it's an emergency seed.
 export const FALLBACK_BOSS = { name: "Boss", accent: "#7c6cff", accent2: "#7c6cff" } as const;
 
 const DEFAULT_DURATION_MS = 20_000;
@@ -78,10 +84,11 @@ const makeBoss = (seq: number, skillSeq: number, name: string, accent: string, a
   skills: [makeSkill(skillSeq, "Skill 1", PITCHES[0])],
 });
 
-/** The shipped default config: one boss with two distinct-pitch skills. */
+/** The shipped default config: one boss ("Balathor", violet) with two skills. */
 export function makeConfig(): Config {
   let c: Config = { bosses: [], bossSeq: 0, skillSeq: 0 };
   c = addBoss(c);
+  c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
   c = addSkill(c, c.bosses[0].id);
   return c;
 }

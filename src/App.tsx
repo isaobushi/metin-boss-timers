@@ -1,16 +1,17 @@
-// v1 overlay — Slice 3: the pick-boss-first flow over a user-editable config.
-// Screen 1 SELECT BOSS → (⚙ per-boss SETTINGS) → Screen 2 TIMERS (that boss's chips).
-// Config lives in the pure model (src/engine/config.ts) behind the useConfig control
-// layer, persisted to disk (#5); per-skill global hotkeys (#6) are bound in ⚙ settings
-// and registered while a boss's timer screen is active.
+// v1 overlay — the compact, always-on-top play surface. Two screens only:
+// Screen 1 SELECT BOSS (pick → timers, or ⚙ → the settings window) → Screen 2 TIMERS
+// (that boss's chips). All config editing now lives in a separate settings window
+// (overlay/settingsWindow.ts → settings/SettingsApp.tsx); edits there reflect here live
+// via configSync. Config still flows through useConfig, persisted to disk; per-skill
+// global hotkeys are registered while a boss's timer screen is active.
 import { useEffect, useState } from "react";
 import { BossSelect } from "./overlay/BossSelect";
-import { BossSettings } from "./overlay/BossSettings";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { useConfig } from "./overlay/useConfig";
+import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
 
-type Screen = { name: "select" } | { name: "settings"; bossId: string } | { name: "timers" };
+type Screen = { name: "select" } | { name: "timers" };
 
 export default function App() {
   const cfg = useConfig();
@@ -23,31 +24,9 @@ export default function App() {
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
 
-  const toSelect = () => setScreen({ name: "select" });
-
   let body;
-  const settingsBoss = screen.name === "settings" ? cfg.config.bosses.find((b) => b.id === screen.bossId) : undefined;
-
-  if (settingsBoss) {
-    const id = settingsBoss.id;
-    body = (
-      <BossSettings
-        boss={settingsBoss}
-        onBack={toSelect}
-        onRenameBoss={(name) => cfg.editBossName(id, name)}
-        onDeleteBoss={() => {
-          cfg.removeBoss(id);
-          toSelect();
-        }}
-        onAddSkill={() => cfg.createSkill(id)}
-        onRenameSkill={(skillId, label) => cfg.editSkillName(id, skillId, label)}
-        onSetDuration={(skillId, durationMs) => cfg.editSkillDuration(id, skillId, durationMs)}
-        onSetHotkey={(skillId, hotkey) => cfg.editSkillHotkey(id, skillId, hotkey)}
-        onRemoveSkill={(skillId) => cfg.deleteSkill(id, skillId)}
-      />
-    );
-  } else if (screen.name === "timers" && cfg.activeBoss) {
-    body = <TimerScreen boss={cfg.activeBoss} onChangeBoss={toSelect} />;
+  if (screen.name === "timers" && cfg.activeBoss) {
+    body = <TimerScreen boss={cfg.activeBoss} onChangeBoss={() => setScreen({ name: "select" })} />;
   } else {
     body = (
       <BossSelect
@@ -56,9 +35,7 @@ export default function App() {
           cfg.selectBoss(id);
           setScreen({ name: "timers" });
         }}
-        onSettings={(id) => setScreen({ name: "settings", bossId: id })}
-        onAddBoss={() => setScreen({ name: "settings", bossId: cfg.createBoss() })}
-        onReset={cfg.resetConfig}
+        onOpenSettings={openSettingsWindow}
       />
     );
   }

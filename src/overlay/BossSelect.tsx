@@ -4,16 +4,16 @@ import type { Boss } from "../engine/config";
 type Props = {
   bosses: Boss[];
   onPick: (id: string) => void;
-  onSettings: (id: string) => void;
-  onAddBoss: () => void;
-  onReset: () => void;
+  onOpenSettings: () => void;
 };
 
 /**
- * Screen 1 of the pick-boss-first flow: choose the active boss (→ its timers) or open
- * a boss's ⚙ settings. Each boss button carries its accent so bosses read distinctly.
+ * Screen 1 of the pick-boss-first flow: choose the active boss (→ its timers). The overlay
+ * stays compact during play — all editing (add/rename/delete bosses & skills, pitches,
+ * hotkeys, reset) lives behind ⚙, which opens the separate settings window. Each boss
+ * button carries its accent so bosses read distinctly.
  */
-export function BossSelect({ bosses, onPick, onSettings, onAddBoss, onReset }: Props) {
+export function BossSelect({ bosses, onPick, onOpenSettings }: Props) {
   return (
     <div className="panel boss-select">
       <div className="panel__title">SELECT BOSS</div>
@@ -22,22 +22,11 @@ export function BossSelect({ bosses, onPick, onSettings, onAddBoss, onReset }: P
           <button className="boss-row__pick" onClick={() => onPick(b.id)}>
             {b.name.toUpperCase()}
           </button>
-          <button className="boss-row__gear" onClick={() => onSettings(b.id)} title={`${b.name} settings`}>
-            ⚙
-          </button>
         </div>
       ))}
       {bosses.length === 0 && <div className="empty">no bosses yet</div>}
-      <button className="btn-dashed" onClick={onAddBoss}>
-        + ADD BOSS
-      </button>
-      <button
-        className="btn-link"
-        onClick={() => {
-          if (window.confirm("Reset all bosses and skills to defaults?")) onReset();
-        }}
-      >
-        reset to defaults
+      <button className="btn-link" onClick={onOpenSettings} title="open settings window">
+        ⚙ settings
       </button>
     </div>
   );

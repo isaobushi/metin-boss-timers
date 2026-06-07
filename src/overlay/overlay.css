@@ -126,7 +126,6 @@ body {
 
 /* ---- boss-select ---- */
 .boss-row {
-  position: relative;
   display: flex;
 }
 .boss-row__pick {
@@ -147,19 +146,44 @@ body {
   box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 27%, transparent);
   cursor: pointer;
 }
-.boss-row__gear {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+
+/* ---- settings window (separate, opaque, scrollable — not the frameless overlay) ---- */
+body[data-window="settings"] {
+  background: #0c0916;
+  overflow-y: auto;
+}
+.settings-app {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 432px;
+  margin: 0 auto;
+  padding: 14px;
+}
+.settings-app__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.settings-app__title {
   font-size: 12px;
-  line-height: 1;
-  color: #fff;
-  background: rgba(8, 6, 14, 0.55);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 6px;
-  cursor: pointer;
+  letter-spacing: 3px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.settings-app__bosses {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-app .panel {
+  width: 100%; /* fill the wider settings window rather than the overlay's fixed 316px */
+}
+.boss-accent-dot {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 50%;
 }
 
 /* ---- boss-settings ---- */
@@ -191,7 +215,7 @@ body {
   flex: 1;
 }
 .skill-head__sec {
-  width: 40px;
+  width: 56px;
   text-align: right;
 }
 .skill-head__key {
@@ -206,6 +230,12 @@ body {
   align-items: center;
   gap: 5px;
 }
+/* keep the three editable controls a uniform height so the row reads as one line */
+.skill-name,
+.skill-sec,
+.skill-key {
+  height: 30px;
+}
 .skill-name {
   flex: 1;
   min-width: 0;
@@ -213,8 +243,8 @@ body {
   font-size: 12px;
 }
 .skill-sec {
-  width: 40px;
-  padding: 6px;
+  width: 56px;
+  padding: 6px 4px;
   font-size: 12px;
   text-align: right;
 }
@@ -275,7 +305,7 @@ body {
 .chip__head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  gap: 7px;
   margin-bottom: 6px;
 }
 .chip__label {
@@ -284,7 +314,20 @@ body {
   text-transform: uppercase;
   opacity: 0.85;
 }
+/* read-only badge of the skill's bound hotkey, so the play UI hints which key re-arms it */
+.chip__key {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  white-space: nowrap;
+}
 .chip__count {
+  margin-left: auto; /* pin the countdown right; label + key group on the left */
   font-variant-numeric: tabular-nums;
   font-size: 16px;
   font-weight: 700;

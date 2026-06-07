@@ -5,7 +5,6 @@ import { inTextField } from "./hotkeys";
 
 type Props = {
   boss: Boss;
-  onBack: () => void;
   onRenameBoss: (name: string) => void;
   onDeleteBoss: () => void;
   onAddSkill: () => void;
@@ -19,12 +18,12 @@ type Props = {
  * Per-boss settings: rename or delete the boss, and edit its skills (rename, set
  * duration in whole seconds, bind a hotkey, remove, add). Durations are stored in ms;
  * the input shows/edits seconds. The hotkey button is a minimal capture affordance —
- * click it, then press a combo to bind (Esc clears) — the full editing surface is the
- * settings-window slice. The combo is stored canonical and shown pretty.
+ * click it, then press a combo to bind (Esc clears). The combo is stored canonical and
+ * shown pretty. One block per boss makes up the settings window's editing surface
+ * (overlay/SettingsApp).
  */
 export function BossSettings({
   boss,
-  onBack,
   onRenameBoss,
   onDeleteBoss,
   onAddSkill,
@@ -57,9 +56,7 @@ export function BossSettings({
   return (
     <div className="panel boss-settings" style={{ "--accent": boss.accent } as CSSProperties}>
       <div className="settings-head">
-        <button className="icon-btn" onClick={onBack} title="back">
-          ←
-        </button>
+        <span className="boss-accent-dot" style={{ background: boss.accent }} />
         <input
           className="boss-name-input"
           value={boss.name}
@@ -74,7 +71,7 @@ export function BossSettings({
       <div className="skill-head">
         <span className="skill-head__name">SKILL</span>
         <span className="skill-head__sec">SEC</span>
-        <span className="skill-head__key">KEY</span>
+        <span className="skill-head__key">HOTKEY</span>
         <span className="skill-head__x" />
       </div>
 
@@ -98,7 +95,7 @@ export function BossSettings({
           <button
             className={`skill-key${capturing === s.id ? " skill-key--capturing" : ""}`}
             onClick={() => setCapturing(capturing === s.id ? null : s.id)}
-            title="set hotkey (press a key; Esc clears)"
+            title="hotkey to reset this timer — click, then press a key (Esc clears)"
           >
             {capturing === s.id ? "…" : prettyCombo(s.hotkey)}
           </button>

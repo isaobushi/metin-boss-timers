@@ -1,8 +1,8 @@
 // Audio adapter — the thin layer that renders engine cues as sound. The engine stays
-// pure and only emits `Cue` values; this module turns each into a pitch-shifted
-// kick-drum sample (per-timer pitch via playbackRate). The 0-boundary `hit` lands
-// harder than the 3/2/1 ticks. A synth beep covers the gap until the sample decodes,
-// or permanently if the sample fails to load.
+// pure and only emits `Cue` values; this module plays each as the kick-drum sample at
+// its natural pitch (every skill sounds the same). The 0-boundary `hit` lands harder
+// than the 3/2/1 ticks. A synth beep covers the gap until the sample decodes, or
+// permanently if the sample fails to load.
 import kickUrl from "../assets/kick-drum-timer.wav";
 import type { Cue } from "../engine/timer";
 
@@ -39,22 +39,21 @@ export function unlockAudio() {
   loadSample();
 }
 
-/** The pitch the sample is recorded at; each timer's pitch shifts playbackRate around it. */
-const BASE_FREQ = 660;
+/** Frequency for the fallback synth beep (used only until the sample decodes). */
+const FALLBACK_FREQ = 660;
 
-/** Render one engine cue as sound, pitched for the timer that emitted it. */
-export function playCue(cue: Cue, pitch: number) {
-  beep(pitch, cue === "hit" ? "final" : "tick");
+/** Render one engine cue as sound: the kick-drum sample at its natural pitch. */
+export function playCue(cue: Cue) {
+  beep(cue === "hit" ? "final" : "tick");
 }
 
-function beep(freq: number, kind: "tick" | "final") {
+function beep(kind: "tick" | "final") {
   const a = ac();
   const t = a.currentTime;
 
   if (sample) {
     const src = a.createBufferSource();
-    src.buffer = sample;
-    src.playbackRate.value = freq / BASE_FREQ; // higher-pitched timers -> tighter/higher kick
+    src.buffer = sample; // played at its natural rate — same sound for every skill
     const gain = a.createGain();
     gain.gain.value = kind === "final" ? 0.95 : 0.5; // the 0-hit lands harder than the ticks
     src.connect(gain);
@@ -71,8 +70,8 @@ function beep(freq: number, kind: "tick" | "final") {
 
   const dur = kind === "final" ? 0.5 : 0.12;
   osc.type = kind === "final" ? "sawtooth" : "square";
-  osc.frequency.setValueAtTime(freq, t);
-  if (kind === "final") osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + dur);
+  osc.frequency.setValueAtTime(FALLBACK_FREQ, t);
+  if (kind === "final") osc.frequency.exponentialRampToValueAtTime(FALLBACK_FREQ * 0.6, t + dur);
 
   const peak = kind === "final" ? 0.28 : 0.18;
   gain.gain.setValueAtTime(0.0001, t);
