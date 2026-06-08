@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { readout, remainingMs, type CooldownDef } from "../engine/cooldown";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { readout, readyCrossings, remainingMs, type CooldownDef, type RunningCooldown } from "../engine/cooldown";
+import { playCooldownReady } from "./audio";
 import type { useConfig } from "./useConfig";
 
 /** A running cooldown projected for the strip: identity, labels, and the live readout. */
@@ -28,6 +29,19 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
 
   const { config, beginCooldown, reCooldown, stopCooldown } = cfg;
   const catalog: CooldownDef[] = config.cooldowns;
+
+  // Best-effort ready cue (ADR-0002): compare each observation of the running set against
+  // the previous one and chime on any *live* zero-crossing. The ref seeds with the mount
+  // snapshot, so a cooldown already past zero on restore has no prior not-ready tick and
+  // stays silent. `readyCrossings` keys on running-instance identity, so a sticky `Ready`
+  // never re-fires and a restart re-arms. Watching `config.running` too (not just `now`)
+  // means a start/clear gesture can't sneak a phantom crossing past the comparison.
+  const prevObs = useRef<{ running: RunningCooldown[]; now: number }>({ running: config.running, now });
+  useEffect(() => {
+    const prev = prevObs.current;
+    if (readyCrossings(prev.running, prev.now, config.running, now).length > 0) playCooldownReady();
+    prevObs.current = { running: config.running, now };
+  }, [now, config.running]);
 
   const pills: CooldownPill[] = config.running.map((r) => {
     const def = catalog.find((d) => d.id === r.defId);

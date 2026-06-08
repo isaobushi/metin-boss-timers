@@ -6,6 +6,7 @@ import {
   fmtDur,
   isReady,
   readout,
+  readyCrossings,
   remainingMs,
   MAX_RUNNING,
   clear,
@@ -149,5 +150,52 @@ describe("clear", () => {
   it("is a no-op when nothing is running for that definition", () => {
     const rs = start([], def("hyd", 15 * M), 0);
     expect(clear(rs, "nope")).toEqual(rs);
+  });
+});
+
+describe("readyCrossings", () => {
+  // The live-only zero-crossing detector behind the best-effort ready cue (ADR-0002).
+  // Given two consecutive observations of the running set, it returns the defIds that
+  // were running-and-not-ready last tick and are ready now — so the cue fires exactly
+  // on a crossing the app actually watched, never on a cooldown that elapsed while closed.
+  it("reports a cooldown that counted down across zero between two observations", () => {
+    const prev = [running("hyd", 10_000)];
+    const cur = [running("hyd", 10_000)];
+    expect(readyCrossings(prev, 9_000, cur, 10_000)).toEqual(["hyd"]);
+  });
+
+  it("does not re-fire a pill sitting at sticky Ready (ready in both observations)", () => {
+    const rs = [running("hyd", 10_000)];
+    expect(readyCrossings(rs, 12_000, rs, 13_000)).toEqual([]); // already ready last tick
+  });
+
+  it("stays silent on restore — a cooldown elapsed while closed has no prior not-ready tick", () => {
+    // First live observation already sees it past zero (prev === cur at mount).
+    const restored = [running("hyd", 10_000)];
+    expect(readyCrossings(restored, 50_000, restored, 51_000)).toEqual([]);
+    // And with no prior running set at all (empty prev), nothing can have crossed.
+    expect(readyCrossings([], 0, restored, 51_000)).toEqual([]);
+  });
+
+  it("re-arms across a restart: the new instance is a fresh crossing, the re-stamp itself is silent", () => {
+    const d = def("hyd", 15 * M);
+    const elapsed = [running("hyd", 10_000)]; // sitting at Ready
+    const restamped = restart(elapsed, d, 12_000); // click-to-restart → new expiry, not ready
+    expect(readyCrossings(elapsed, 11_000, restamped, 12_000)).toEqual([]); // ready→not-ready: no cue
+
+    // …and when that fresh instance later crosses zero, it fires again.
+    const crossed = restamped; // same instance, observed past its new expiry
+    expect(readyCrossings(restamped, 12_000 + 15 * M - 1_000, crossed, 12_000 + 15 * M)).toEqual(["hyd"]);
+  });
+
+  it("reports every cooldown crossing zero in the same tick", () => {
+    const prev = [running("hyd", 10_000), running("raz", 10_000), running("nem", 30_000)];
+    const cur = prev;
+    expect(readyCrossings(prev, 9_000, cur, 10_000).sort()).toEqual(["hyd", "raz"]); // nem still running
+  });
+
+  it("reports nothing while a cooldown is still running in both observations", () => {
+    const rs = [running("hyd", 10_000)];
+    expect(readyCrossings(rs, 4_000, rs, 5_000)).toEqual([]);
   });
 });

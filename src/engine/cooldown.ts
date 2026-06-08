@@ -114,3 +114,24 @@ export function restart(running: RunningCooldown[], def: CooldownDef, now: numbe
 export function clear(running: RunningCooldown[], defId: string): RunningCooldown[] {
   return running.filter((r) => r.defId !== defId);
 }
+
+/**
+ * The defIds whose cooldown crossed zero between two consecutive observations of the
+ * running set: ready in `cur` (at `now`), but present-and-not-ready in `prev` (at
+ * `prevNow`). This is what makes the ready cue *live-only* (ADR-0002) — it fires only on
+ * a crossing the running app actually watched. A cooldown already past zero on restore
+ * has no prior not-ready observation, so it stays silent; a pill sitting at sticky
+ * `Ready` was already ready last tick, so it never re-fires. Running-instance identity is
+ * `(defId, expiry)`, so a restart is a fresh instance that re-arms and can cross afresh.
+ */
+export function readyCrossings(
+  prev: RunningCooldown[],
+  prevNow: number,
+  cur: RunningCooldown[],
+  now: number,
+): string[] {
+  return cur
+    .filter((r) => isReady(r, now))
+    .filter((r) => prev.some((p) => p.defId === r.defId && p.expiry === r.expiry && !isReady(p, prevNow)))
+    .map((r) => r.defId);
+}

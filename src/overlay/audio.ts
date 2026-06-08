@@ -73,6 +73,21 @@ export function playCue(cue: Cue, soundId: string, skillId: string) {
   beep(cue === "hit" ? "final" : "tick", id, skillId);
 }
 
+// The shared key the best-effort "cooldown ready" cue voices under, so several cooldowns
+// crossing zero in the same 1s tick collapse to a single chime rather than stacking.
+const COOLDOWN_VOICE = "__cooldown_ready__";
+
+/**
+ * Play the one shared "cooldown ready" cue (ADR-0002, best-effort sound only). Reuses the
+ * existing per-skill cue path — the default sample, the first-gesture `unlockAudio`, and
+ * the synth fallback — so it introduces no new audio asset pipeline. The `hit` cue gives
+ * it the harder 0-boundary landing; voicing under a single shared key keeps a burst of
+ * simultaneous crossings to one chime.
+ */
+export function playCooldownReady() {
+  playCue("hit", DEFAULT_SOUND_ID, COOLDOWN_VOICE);
+}
+
 /**
  * Play a sound once for the settings picker, independent of any timer: it's not tracked
  * in `voices`, so a preview never cuts (or is cut by) a running skill. Falls back to the
