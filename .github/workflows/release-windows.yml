@@ -87,7 +87,7 @@ jobs:
           Remove-Item $layout -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path "$layout/Assets" | Out-Null
           Copy-Item $exe.FullName "$layout/DungeonAid.exe"
-          foreach ($asset in "StoreLogo","Square150x150Logo","Square44x44Logo","Square71x71Logo","Square310x310Logo") {
+          foreach ($asset in "StoreLogo","Square150x150Logo","Square44x44Logo","Square71x71Logo") {
             Copy-Item "src-tauri/icons/$asset.png" "$layout/Assets/$asset.png"
           }
 
