@@ -4,6 +4,7 @@
 // block per boss, plus add-boss and reset-to-defaults that used to crowd the overlay.
 import { useEffect } from "react";
 import { BossSettings } from "../overlay/BossSettings";
+import { CooldownSettings } from "../overlay/CooldownSettings";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
@@ -41,7 +42,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           <button
             className="btn-link"
             onClick={() => {
-              if (window.confirm("Reset all bosses and skills to defaults?")) cfg.resetConfig();
+              if (window.confirm("Reset all bosses, skills and cooldowns to defaults?")) cfg.resetConfig();
             }}
           >
             reset to defaults
@@ -74,6 +75,15 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
       <button className="btn-dashed" onClick={() => cfg.createBoss()}>
         + ADD BOSS
       </button>
+
+      <CooldownSettings
+        cooldowns={cfg.config.cooldowns}
+        onAdd={() => cfg.createCooldown()}
+        onRename={(defId, name) => cfg.editCooldownName(defId, name)}
+        onRetag={(defId, tag) => cfg.editCooldownTag(defId, tag)}
+        onSetDuration={(defId, durationMs) => cfg.editCooldownDuration(defId, durationMs)}
+        onRemove={(defId) => cfg.deleteCooldown(defId)}
+      />
     </div>
   );
 }

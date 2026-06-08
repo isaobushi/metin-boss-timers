@@ -12,6 +12,8 @@ import { SequenceScreen } from "./overlay/SequenceScreen";
 import SettingsApp from "./settings/SettingsApp";
 import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
+import { useCooldowns } from "./overlay/useCooldowns";
+import { CooldownStrip } from "./overlay/CooldownStrip";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
@@ -24,6 +26,7 @@ type Screen = { name: "select" } | { name: "timers" } | { name: "sequence" };
 
 export default function App() {
   const cfg = useConfig();
+  const cd = useCooldowns(cfg);
   const [screen, setScreen] = useState<Screen>({ name: "select" });
   // Browser only: settings renders inline (a modal over the still-mounted overlay) rather
   // than a second OS window/tab. Tauri spawns a real settings window, so this stays false.
@@ -62,15 +65,48 @@ export default function App() {
         }}
         onOpenSettings={openSettings}
         onOpenSequence={() => setScreen({ name: "sequence" })}
+        onCooldownsOnly={() => cfg.setCooldownsOnlyMode(true)}
       />
     );
   }
+
+  // Standalone "cooldowns-only" mode (issue #29): hide the boss panel so the overlay is just
+  // the strip. The panel title normally doubles as the window's drag handle, so when it's gone
+  // we render a slim bar that carries both the drag region and the way back to the full panel.
+  const cooldownsOnly = cfg.config.cooldownsOnly;
 
   return (
     <>
       {inBrowser && <DemoScene />}
       <div className="overlay" ref={overlayRef}>
-        {body}
+        {cooldownsOnly && (
+          <div className="cooldown-only">
+            <span className="cooldown-only__grip" data-tauri-drag-region title="drag to move">
+              ⠿
+            </span>
+            <button
+              className="btn-link"
+              onClick={() => cfg.setCooldownsOnlyMode(false)}
+              title="back to the dungeon panel"
+            >
+              ‹ Dungeons
+            </button>
+            <button className="btn-link" onClick={openSettings} title="open settings window">
+              ⚙
+            </button>
+          </div>
+        )}
+        <CooldownStrip
+          pills={cd.pills}
+          catalog={cd.catalog}
+          onStart={cd.start}
+          onRestart={cd.restart}
+          onClear={cd.clear}
+          onTune={cd.tune}
+          onDuplicate={cd.duplicate}
+          inlineAdd={cooldownsOnly}
+        />
+        {!cooldownsOnly && body}
       </div>
       {showSettings && (
         <div className="settings-modal">

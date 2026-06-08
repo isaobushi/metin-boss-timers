@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addBoss, addSkill, makeConfig, setSkillHotkey, setSkillSound, type Config } from "./config";
+import { readout, remainingMs, start } from "./cooldown";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 import { DEFAULT_SOUND_ID } from "./sounds";
 
@@ -80,6 +81,75 @@ describe("soundId migration (lenient, no version bump)", () => {
   it("serialize omits the legacy pitch field entirely", () => {
     const json = JSON.stringify(serialize(makeConfig()));
     expect(json).not.toContain("pitch");
+  });
+});
+
+describe("cooldown persistence (additive, no version bump)", () => {
+  it("round-trips the cooldown catalog and running instances through a disk hop", () => {
+    let c = makeConfig();
+    // start one running cooldown so both the catalog and the running set are exercised
+    c = { ...c, running: start(c.running, c.cooldowns[0], 1_000) };
+
+    const restored = deserialize(throughDisk(c));
+    expect(restored.cooldowns).toEqual(c.cooldowns);
+    expect(restored.running).toEqual(c.running);
+    expect(restored.cooldownSeq).toBe(c.cooldownSeq); // seq seeded past the persisted ids
+  });
+
+  it("keeps a pre-feature config intact with an empty cooldown catalog (never wipes)", () => {
+    // a config saved before cooldowns existed: valid bosses, no cooldown fields at all
+    const preFeature = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses };
+    const restored = deserialize(preFeature);
+    expect(restored.bosses).toEqual(makeConfig().bosses); // bosses/skills survive
+    expect(restored.cooldowns).toEqual([]); // default empty, not the seeded catalog
+    expect(restored.running).toEqual([]);
+    expect(restored.cooldownSeq).toBe(0);
+  });
+
+  it("drops a malformed cooldown entry without nuking the rest of the config", () => {
+    const valid = { id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 };
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [valid, { id: "cooldown-2", name: "Bad" /* no durationMs */ }],
+    };
+    const restored = deserialize(payload);
+    expect(restored.bosses.length).toBeGreaterThan(0); // config survives
+    expect(restored.cooldowns).toEqual([valid]); // bad entry dropped, good one kept
+  });
+
+  it("does not bump the schema version (old configs must not route to the defaults wipe)", () => {
+    expect(SCHEMA_VERSION).toBe(1);
+  });
+
+  it("restores a running cooldown whose expiry already passed as Ready", () => {
+    const now = 10_000_000;
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      running: [{ defId: "cooldown-1", expiry: now - 30 * 60_000, startedAt: now - 90 * 60_000 }],
+    };
+    const r = deserialize(payload).running[0];
+    expect(r.expiry).toBe(now - 30 * 60_000); // absolute expiry restored verbatim
+    expect(remainingMs(r, now)).toBe(0);
+    expect(readout(remainingMs(r, now))).toBe("Ready"); // silent, sticky Ready on launch
+  });
+});
+
+describe("cooldowns-only mode persistence (additive, no version bump)", () => {
+  it("round-trips the cooldowns-only flag through a disk hop", () => {
+    const c = { ...makeConfig(), cooldownsOnly: true };
+    expect(deserialize(throughDisk(c)).cooldownsOnly).toBe(true);
+  });
+
+  it("defaults a pre-feature config (no flag) to the panel shown", () => {
+    const preFeature = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses };
+    expect(deserialize(preFeature).cooldownsOnly).toBe(false);
+  });
+
+  it("treats a malformed flag as off rather than nuking the config", () => {
+    const payload = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses, cooldownsOnly: "yes" };
+    expect(deserialize(payload).cooldownsOnly).toBe(false);
   });
 });
 

@@ -12,4 +12,5 @@ const root = createRoot(document.getElementById('root')!)
 
 const settings = isSettingsWindow()
 document.body.dataset.window = settings ? 'settings' : 'overlay'
+
 root.render(<StrictMode>{settings ? <SettingsApp /> : <App />}</StrictMode>)
