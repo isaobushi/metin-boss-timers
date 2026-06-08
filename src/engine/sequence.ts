@@ -13,9 +13,27 @@ export type SeqState = {
 
 export const emptySeq = (): SeqState => ({ steps: [], done: [] });
 
-/** Append a step, not-yet-done. */
-export function append(s: SeqState, id: string): SeqState {
+/**
+ * Append a step, not-yet-done. With `max` set, the sequence is capped: once it holds `max`
+ * steps the append is a no-op (the Elements tool records at most four — one per metin group).
+ */
+export function append(s: SeqState, id: string, max?: number): SeqState {
+  if (max !== undefined && s.steps.length >= max) return s;
   return { steps: [...s.steps, id], done: [...s.done, false] };
+}
+
+/**
+ * Rotate the sequence one place to the right — the last step (and its done flag) becomes the
+ * first, e.g. 1·2·3·4 → 4·1·2·3. Models the Templum "queen" shift, where the metin order
+ * cycles by one but each one keeps whether it was already destroyed. No-op below two steps.
+ */
+export function rotate(s: SeqState): SeqState {
+  const n = s.steps.length;
+  if (n < 2) return s;
+  return {
+    steps: [s.steps[n - 1], ...s.steps.slice(0, n - 1)],
+    done: [s.done[n - 1], ...s.done.slice(0, n - 1)],
+  };
 }
 
 /** Drop the last step (no-op on an empty sequence). */

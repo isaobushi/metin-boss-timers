@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import { ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
 import { COLUMNS, ELEMENTS, findToken, type Token } from "./sequenceTokens";
@@ -16,7 +16,7 @@ type Tool = "elements" | "columns";
  * is in-memory: leaving the screen starts fresh (same as the timer screens).
  */
 export function SequenceScreen({ onBack }: Props) {
-  const elements = useSequence(); // Phase 1
+  const elements = useSequence(4); // Phase 1 — at most four metin groups
   const columns = useSequence(); // Phase 2
   const [tool, setTool] = useState<Tool>("elements");
   const swap = () => setTool((t) => (t === "elements" ? "columns" : "elements"));
@@ -58,7 +58,21 @@ export function SequenceScreen({ onBack }: Props) {
 
       {isElements ? <ElementPicker c={elements} /> : <ColumnPad c={columns} />}
 
-      <RecallTrack c={c} alphabet={alphabet} />
+      <RecallTrack
+        c={c}
+        alphabet={alphabet}
+        trailing={
+          isElements ? (
+            <button
+              className="icon-btn icon-btn--queen"
+              onClick={elements.rotate}
+              disabled={elements.state.steps.length < 2}
+              aria-label="Queen shift"
+              title="queen: shift the order one place (1·2·3·4 → 4·1·2·3)"
+            />
+          ) : undefined
+        }
+      />
     </div>
   );
 }
@@ -120,8 +134,19 @@ function ColumnNode({ t, c }: { t: Token; c: SequenceController }) {
   );
 }
 
-/** Shared recall track: the recorded order as chips; tap a chip to tick it off. */
-function RecallTrack({ c, alphabet }: { c: SequenceController; alphabet: Token[] }) {
+/**
+ * Shared recall track: the recorded order as chips; tap a chip to tick it off. `trailing`
+ * sits inline after the chips (the Elements tool puts its Queen-shift button there).
+ */
+function RecallTrack({
+  c,
+  alphabet,
+  trailing,
+}: {
+  c: SequenceController;
+  alphabet: Token[];
+  trailing?: ReactNode;
+}) {
   if (c.state.steps.length === 0) {
     return <div className="empty">tap above to record the order — tap a chip to tick it off</div>;
   }
@@ -144,6 +169,7 @@ function RecallTrack({ c, alphabet }: { c: SequenceController; alphabet: Token[]
           </button>
         );
       })}
+      {trailing}
     </div>
   );
 }

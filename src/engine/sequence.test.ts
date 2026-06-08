@@ -4,6 +4,7 @@ import {
   clear,
   emptySeq,
   nextIndex,
+  rotate,
   toggleDone,
   undo,
   type SeqState,
@@ -13,8 +14,9 @@ import {
 // ordered list of token ids plus a parallel done-flag per step, so every record/recall
 // transition is testable with no DOM.
 
-// Build a sequence by appending ids left-to-right.
-const seq = (...ids: string[]): SeqState => ids.reduce(append, emptySeq());
+// Build a sequence by appending ids left-to-right. (Wrap append so reduce's index/array
+// args don't leak into its optional `max` parameter.)
+const seq = (...ids: string[]): SeqState => ids.reduce((s, id) => append(s, id), emptySeq());
 
 describe("emptySeq", () => {
   it("starts empty", () => {
@@ -33,6 +35,47 @@ describe("append", () => {
     const before = emptySeq();
     append(before, "fire");
     expect(before).toEqual({ steps: [], done: [] });
+  });
+
+  it("ignores the append once `max` steps are recorded", () => {
+    let s = seq("fire", "ice", "earth", "wind");
+    s = append(s, "fire", 4); // already at the cap → no-op
+    expect(s.steps).toEqual(["fire", "ice", "earth", "wind"]);
+  });
+
+  it("appends freely below `max`", () => {
+    const s = append(seq("fire"), "ice", 4);
+    expect(s.steps).toEqual(["fire", "ice"]);
+  });
+});
+
+describe("rotate", () => {
+  it("moves the last step to the front (1·2·3·4 → 4·1·2·3)", () => {
+    expect(rotate(seq("fire", "ice", "earth", "wind")).steps).toEqual([
+      "wind",
+      "fire",
+      "ice",
+      "earth",
+    ]);
+  });
+
+  it("carries each step's done flag with it", () => {
+    let s = seq("fire", "ice", "earth", "wind");
+    s = toggleDone(s, 3); // wind destroyed
+    s = rotate(s); // wind moves to front, still destroyed
+    expect(s.steps).toEqual(["wind", "fire", "ice", "earth"]);
+    expect(s.done).toEqual([true, false, false, false]);
+  });
+
+  it("is a no-op below two steps", () => {
+    expect(rotate(emptySeq())).toEqual(emptySeq());
+    expect(rotate(seq("fire"))).toEqual(seq("fire"));
+  });
+
+  it("does not mutate the input", () => {
+    const before = seq("fire", "ice");
+    rotate(before);
+    expect(before).toEqual(seq("fire", "ice"));
   });
 });
 

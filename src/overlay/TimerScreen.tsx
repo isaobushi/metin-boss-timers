@@ -53,6 +53,11 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
         />
       ))}
       {views.length === 0 && <div className="empty">no skills — add some in ⚙ settings</div>}
+      {views.length > 0 && (
+        <div className="timer-hint">
+          <b>left-click</b> stop / start · <b>right-click</b> reset
+        </div>
+      )}
     </div>
   );
 }

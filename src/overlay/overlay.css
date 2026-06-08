@@ -97,6 +97,18 @@ body {
   text-align: center;
   padding: 6px 0;
 }
+/* Quiet footer legend for the chip click actions (the timers aren't self-explanatory). */
+.timer-hint {
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  text-align: center;
+  opacity: 0.45;
+}
+.timer-hint b {
+  font-weight: 700;
+  opacity: 0.85;
+}
 
 /* shared buttons / inputs */
 .btn-dashed {
@@ -160,6 +172,11 @@ body {
 .icon-btn:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  border-color: #ffffff22;
+}
 .icon-btn--danger {
   color: #ff7b96;
   border-color: #ff7b9644;
@@ -210,6 +227,23 @@ body {
 }
 .icon-btn--swap svg {
   color: var(--accent);
+}
+/* Queen shift — the boss portrait, zoomed onto the crowned head and cropped to a round
+   token beside the recall chips. background lets us art-direct the crop (the face sits high
+   in a wide frame): ~260% zoom, positioned to centre the eyes. */
+.icon-btn--queen {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background-image: url(/queen.png);
+  background-repeat: no-repeat;
+  background-size: 260%;
+  background-position: 50% 34%;
+}
+.icon-btn--queen:disabled {
+  filter: grayscale(1);
 }
 .seq-head {
   display: flex;
