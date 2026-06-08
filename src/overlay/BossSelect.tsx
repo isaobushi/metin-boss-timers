@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Boss } from "../engine/config";
+import { quitApp } from "./quitApp";
 
 type Props = {
   bosses: Boss[];
@@ -28,9 +29,14 @@ export function BossSelect({ bosses, onPick, onOpenSettings }: Props) {
         </div>
       ))}
       {bosses.length === 0 && <div className="empty">no bosses yet</div>}
-      <button className="btn-link" onClick={onOpenSettings} title="open settings window">
-        ⚙ settings
-      </button>
+      <div className="boss-select__footer">
+        <button className="btn-link" onClick={onOpenSettings} title="open settings window">
+          ⚙ settings
+        </button>
+        <button className="btn-link btn-link--danger" onClick={quitApp} title="close app">
+          ✕ quit
+        </button>
+      </div>
     </div>
   );
 }

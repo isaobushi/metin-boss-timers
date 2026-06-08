@@ -96,6 +96,19 @@ body {
 .btn-link:hover {
   color: #ff7b96;
 }
+.btn-link--danger:hover {
+  color: #ff5c7a;
+}
+/* settings + quit sit side by side under the boss list */
+.boss-select__footer {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 2px;
+}
+.boss-select__footer .btn-link {
+  margin-top: 0;
+}
 .icon-btn {
   display: flex;
   align-items: center;
@@ -116,9 +129,6 @@ body {
 .icon-btn--danger {
   color: #ff7b96;
   border-color: #ff7b9644;
-}
-.icon-btn-spacer {
-  width: 24px;
 }
 .panel input {
   font: inherit;

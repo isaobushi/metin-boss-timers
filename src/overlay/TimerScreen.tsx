@@ -3,6 +3,7 @@ import type { Boss } from "../engine/config";
 import { Chip } from "./Chip";
 import { useHotkeys } from "./hotkeys";
 import { useTimers } from "./useTimers";
+import { quitApp } from "./quitApp";
 
 type Props = {
   boss: Boss;
@@ -34,7 +35,9 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
         <span className="timer-head__name" data-tauri-drag-region>
           {boss.name.toUpperCase()}
         </span>
-        <span className="icon-btn-spacer" />
+        <button className="icon-btn icon-btn--danger" onClick={quitApp} title="close app">
+          ✕
+        </button>
       </div>
 
       {views.map((v) => (
