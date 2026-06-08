@@ -5,6 +5,7 @@
 // plugin-store) lives separately and just hands raw values through these two functions.
 
 import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
+import type { CooldownDef, RunningCooldown } from "./cooldown";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
 
 /**
@@ -16,15 +17,20 @@ export const SCHEMA_VERSION = 1;
 export type PersistedConfig = {
   version: number;
   bosses: Boss[];
+  cooldowns: CooldownDef[];
+  /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
+  running: RunningCooldown[];
 };
 
 /**
- * Versioned, JSON-safe snapshot for the on-disk store. Only `bosses` is persisted —
- * the id-sequence counters are *recomputed* on load (seeded past the max persisted id),
- * so they can never drift from the ids actually in the payload.
+ * Versioned, JSON-safe snapshot for the on-disk store. Definitions (bosses, cooldown
+ * catalog) and the running cooldown set are persisted; the id-sequence counters are
+ * *recomputed* on load (seeded past the max persisted id), so they can never drift from
+ * the ids actually in the payload. Running cooldowns keep their absolute `expiry` so a
+ * wait that elapsed while the app was closed restores already past zero.
  */
 export function serialize(c: Config): PersistedConfig {
-  return { version: SCHEMA_VERSION, bosses: c.bosses };
+  return { version: SCHEMA_VERSION, bosses: c.bosses, cooldowns: c.cooldowns, running: c.running };
 }
 
 /**
@@ -38,10 +44,17 @@ export function deserialize(raw: unknown): Config {
   if (!bosses || bosses.length === 0) return makeConfig();
 
   const skillIds = bosses.flatMap((b) => b.skills.map((s) => s.id));
+  // Cooldowns are ADDITIVE and lenient: absent → empty (a pre-feature config is preserved,
+  // never wiped), and a single malformed entry is dropped rather than nuking the config.
+  const cooldowns = readCooldowns(raw);
+  const running = readRunning(raw);
   return {
     bosses,
+    cooldowns,
+    running,
     bossSeq: maxIdSeq(bosses.map((b) => b.id), "boss"),
     skillSeq: maxIdSeq(skillIds, "skill"),
+    cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),
   };
 }
 
@@ -97,4 +110,29 @@ function readSkill(s: unknown): SkillCfg | null {
   // unknown extra fields — including legacy `pitch` — are stripped, matching readBoss).
   if (isStr(s.hotkey)) skill.hotkey = s.hotkey;
   return skill;
+}
+
+// ---- cooldowns (lenient + per-item: a bad entry is dropped, the config is never nuked) ----
+
+/** Validated cooldown catalog, or `[]` when the field is absent (pre-feature config). */
+function readCooldowns(raw: unknown): CooldownDef[] {
+  if (!isObj(raw) || !Array.isArray(raw.cooldowns)) return [];
+  return raw.cooldowns.map(readCooldownDef).filter((c): c is CooldownDef => c !== null);
+}
+
+function readCooldownDef(c: unknown): CooldownDef | null {
+  if (!isObj(c) || !isStr(c.id) || !isStr(c.name) || !isStr(c.tag) || !isNum(c.durationMs)) return null;
+  // rebuild explicitly so unknown extra fields are dropped (matches readBoss/readSkill)
+  return { id: c.id, name: c.name, tag: c.tag, durationMs: c.durationMs };
+}
+
+/** Validated running cooldowns, or `[]` when absent. Absolute `expiry` is kept verbatim. */
+function readRunning(raw: unknown): RunningCooldown[] {
+  if (!isObj(raw) || !Array.isArray(raw.running)) return [];
+  return raw.running.map(readRunningCooldown).filter((r): r is RunningCooldown => r !== null);
+}
+
+function readRunningCooldown(r: unknown): RunningCooldown | null {
+  if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
+  return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
 }

@@ -6,6 +6,7 @@
 
 import type { TimerInit } from "./timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
+import { type CooldownDef, type RunningCooldown, deriveTag } from "./cooldown";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -26,9 +27,14 @@ export type Boss = {
 
 export type Config = {
   bosses: Boss[];
+  /** The editable catalog of cooldown definitions the user starts from. */
+  cooldowns: CooldownDef[];
+  /** The currently-running cooldowns (absolute expiries); persisted across sessions. */
+  running: RunningCooldown[];
   /** Monotonic counters owned here so ids never collide (even after deletes). */
   bossSeq: number;
   skillSeq: number;
+  cooldownSeq: number;
 };
 
 // Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
@@ -53,6 +59,20 @@ export const FALLBACK_BOSS = { name: "Boss", accent: "#7c6cff", accent2: "#7c6cf
 const DEFAULT_DURATION_MS = 20_000;
 const MIN_DURATION_MS = 1_000;
 const MAX_DURATION_MS = 999_000;
+
+const MS_PER_MIN = 60_000;
+const MS_PER_HOUR = 3_600_000;
+
+// The example dungeons a fresh install ships with. Durations are "examples not gospel" —
+// the user retunes them per server (the catalog editor is a later slice). Tags are
+// auto-derived from the names so the seed and any user-added cooldown stay consistent.
+const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
+  { name: "Hydra", durationMs: 15 * MS_PER_MIN },
+  { name: "Razador", durationMs: 1 * MS_PER_HOUR },
+  { name: "Nemere", durationMs: 4 * MS_PER_HOUR },
+  { name: "Meley", durationMs: 3 * MS_PER_HOUR },
+  { name: "Balathor", durationMs: 3 * MS_PER_HOUR },
+];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
 const accentAt = (n: number): readonly [string, string] => ACCENTS[n % ACCENTS.length];
@@ -83,13 +103,27 @@ const makeBoss = (seq: number, skillSeq: number, name: string, accent: string, a
   skills: [makeSkill(skillSeq, "Skill 1", DEFAULT_SOUND_ID)],
 });
 
-/** The shipped default config: one boss ("Balathor", violet) with two skills. */
+/** The seeded cooldown catalog: each example dungeon with a deterministic `cooldown-N` id. */
+function seedCooldowns(): CooldownDef[] {
+  return COOLDOWN_SEED.map((cd, i) => ({
+    id: `cooldown-${i + 1}`,
+    name: cd.name,
+    tag: deriveTag(cd.name),
+    durationMs: cd.durationMs,
+  }));
+}
+
+/**
+ * The shipped default config: one boss ("Balathor", violet) with two skills, plus the
+ * seeded cooldown catalog (five example dungeons, nothing running yet).
+ */
 export function makeConfig(): Config {
-  let c: Config = { bosses: [], bossSeq: 0, skillSeq: 0 };
+  let c: Config = { bosses: [], cooldowns: [], running: [], bossSeq: 0, skillSeq: 0, cooldownSeq: 0 };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
   c = addSkill(c, c.bosses[0].id);
-  return c;
+  const cooldowns = seedCooldowns();
+  return { ...c, cooldowns, cooldownSeq: cooldowns.length };
 }
 
 /** Append a new boss (with one default skill); its accent cycles from the palette. */
@@ -98,7 +132,7 @@ export function addBoss(c: Config): Config {
   const skillSeq = c.skillSeq + 1;
   const [accent, accent2] = accentAt(bossSeq - 1);
   const boss = makeBoss(bossSeq, skillSeq, `Boss ${bossSeq}`, accent, accent2);
-  return { bosses: [...c.bosses, boss], bossSeq, skillSeq };
+  return { ...c, bosses: [...c.bosses, boss], bossSeq, skillSeq };
 }
 
 export function renameBoss(c: Config, id: string, name: string): Config {
@@ -115,7 +149,7 @@ export function deleteBoss(c: Config, id: string): Config {
   const bossSeq = c.bossSeq + 1;
   const skillSeq = c.skillSeq + 1;
   const boss = makeBoss(bossSeq, skillSeq, FALLBACK_BOSS.name, FALLBACK_BOSS.accent, FALLBACK_BOSS.accent2);
-  return { bosses: [boss], bossSeq, skillSeq };
+  return { ...c, bosses: [boss], bossSeq, skillSeq };
 }
 
 /** Add a skill to a boss, auto-assigned a distinct sound and a generic default label. */

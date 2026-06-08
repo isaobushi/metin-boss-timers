@@ -33,6 +33,23 @@ describe("makeConfig", () => {
     expect(new Set(skills.map((s) => s.soundId)).size).toBe(2); // distinct by default
     expect(skills.some((s) => "pitch" in s)).toBe(false); // pitch fully removed
   });
+
+  it("seeds the five example dungeon cooldowns with their tags and durations", () => {
+    const M = 60_000;
+    const H = 3_600_000;
+    const c = makeConfig();
+    // examples-not-gospel defaults: name, auto-tag, duration
+    expect(c.cooldowns.map((cd) => [cd.name, cd.tag, cd.durationMs])).toEqual([
+      ["Hydra", "Hyd", 15 * M],
+      ["Razador", "Raz", 1 * H],
+      ["Nemere", "Nem", 4 * H],
+      ["Meley", "Mel", 3 * H],
+      ["Balathor", "Bal", 3 * H],
+    ]);
+    expect(new Set(c.cooldowns.map((cd) => cd.id)).size).toBe(5); // ids are distinct
+    expect(c.cooldownSeq).toBe(5); // seq seeded past the last seeded id
+    expect(c.running).toEqual([]); // nothing running on a fresh install
+  });
 });
 
 describe("boss edits", () => {
@@ -48,6 +65,18 @@ describe("boss edits", () => {
     c = deleteBoss(c, id);
     expect(c.bosses.map((b) => b.id)).not.toContain(id);
     expect(c.bosses).toHaveLength(1);
+  });
+
+  it("preserves the cooldown catalog through boss add and delete", () => {
+    // bosses and cooldowns are independent categories — editing one must never wipe
+    // the other (the running set + catalog ride alongside the bosses in Config).
+    const seeded = makeConfig().cooldowns;
+    let c = addBoss(makeConfig());
+    expect(c.cooldowns).toEqual(seeded);
+
+    c = deleteBoss(c, c.bosses[0].id); // delete down to the fallback boss
+    expect(c.cooldowns).toEqual(seeded);
+    expect(c.bosses).toHaveLength(1); // fallback re-seed still works
   });
 
   it("assigns fresh non-colliding ids even after deletes", () => {
