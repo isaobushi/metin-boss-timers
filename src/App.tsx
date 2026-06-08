@@ -10,10 +10,15 @@ import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
 import SettingsApp from "./settings/SettingsApp";
+import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
+
+// In a plain browser the overlay floats over a mock game scene (the live demo); the real
+// desktop app is transparent over the actual game, so the scene is never mounted there.
+const inBrowser = !isTauri();
 
 type Screen = { name: "select" } | { name: "timers" } | { name: "sequence" };
 
@@ -63,6 +68,7 @@ export default function App() {
 
   return (
     <>
+      {inBrowser && <DemoScene />}
       <div className="overlay" ref={overlayRef}>
         {body}
       </div>

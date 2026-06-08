@@ -50,6 +50,40 @@ body {
   text-align: center;
 }
 
+/* ---- browser demo scene (DemoScene.tsx) animations — desktop app never mounts it ---- */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fog-drift {
+  from {
+    transform: translateX(-5%);
+  }
+  to {
+    transform: translateX(5%);
+  }
+}
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-90vh) translateX(24px);
+    opacity: 0;
+  }
+}
+
 /* drag handles (frameless overlay has no title bar): grab a header to move the window */
 [data-tauri-drag-region] {
   cursor: grab;

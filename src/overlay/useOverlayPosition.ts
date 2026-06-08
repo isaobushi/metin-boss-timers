@@ -72,6 +72,7 @@ export function useOverlayPosition() {
     const el = overlayRef.current;
     if (!el) return;
     el.style.position = "fixed";
+    el.style.zIndex = "10"; // above the demo scene (zIndex 0), below the settings modal (50)
 
     // Place top-left at (x, y), clamped so the whole panel stays within the viewport.
     const place = (x: number, y: number) => {

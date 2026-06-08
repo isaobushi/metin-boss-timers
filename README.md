@@ -9,6 +9,18 @@ remembered between launches.
 
 Built with [Tauri](https://tauri.app) (Rust core + a React/TypeScript UI).
 
+## Try it in your browser
+
+A live web demo runs the same overlay over a mock game scene — no install:
+
+**→ https://metin-boss-timers.vercel.app**
+
+It's the real UI (pick a boss, draining bars, per-skill hotkeys, audio cues,
+draggable panel, inline settings). Two things only the desktop app can do:
+hotkeys fire while *another* window is focused, and the window is truly
+always-on-top and frameless. In the browser the panel floats over an
+illustrative backdrop instead.
+
 ## What it does — and does not — do
 
 - **No network calls.** The app never talks to the internet: no telemetry, no

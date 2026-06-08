@@ -55,6 +55,9 @@ jobs:
             **global hotkeys** (so they work while the game has focus). Settings
             and overlay position are stored locally.
 
+            **Prefer not to install?** Try the live web demo (same UI, in your
+            browser): https://metin-boss-timers.vercel.app
+
             ### Why your AV / SmartScreen may complain
             This is an **unsigned** native app whose behaviour profile — global
             hotkeys + always-on-top + hidden taskbar entry — overlaps with what
