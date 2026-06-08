@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX manifest TEMPLATE for the Microsoft Store build (Slice 9 / #10).
+
+  The release workflow (.github/workflows/release-windows.yml) substitutes the
+  __PLACEHOLDER__ tokens at pack time:
+
+    __IDENTITY_NAME__          -> Package Identity Name reserved in Partner Center
+    __PUBLISHER__              -> Publisher distinguished name from Partner Center
+    __PUBLISHER_DISPLAY_NAME__ -> human-readable publisher name shown in the Store
+    __VERSION__                -> 4-part version derived from tauri.conf.json
+
+  These identity values DIFFER from the Tauri bundle identifier
+  (com.isaobushi.dungeonaid); Partner Center assigns its own. They are supplied
+  to CI via repo variables (MSIX_IDENTITY_NAME / MSIX_PUBLISHER /
+  MSIX_PUBLISHER_DISPLAY_NAME) and fall back to dev placeholders so the workflow
+  is green before the Store account exists.
+
+  Capabilities: this is an unvirtualised Win32 desktop app (global hotkeys,
+  always-on-top overlay), so it requires `runFullTrust` — the single capability
+  a packaged desktop app needs. NO network/device/broad UWP capabilities are
+  declared, which keeps the verifiable "no network calls" property intact.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="__IDENTITY_NAME__"
+    Publisher="__PUBLISHER__"
+    Version="__VERSION__"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>DungeonAid</DisplayName>
+    <PublisherDisplayName>__PUBLISHER_DISPLAY_NAME__</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="DungeonAid" Executable="DungeonAid.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="DungeonAid"
+        Description="A transparent, always-on-top overlay of draining boss respawn timers, started with global hotkeys."
+        BackgroundColor="#1a1a1a"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile
+          Square71x71Logo="Assets\Square71x71Logo.png"
+          Square310x310Logo="Assets\Square310x310Logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
