@@ -10,6 +10,13 @@ import metalUrl from "../assets/horror-sfx-metallic-hit.wav";
 import pickaxeUrl from "../assets/mining-with-reverb-game-type-foley-hit.wav";
 import chimeUrl from "../assets/rpg-sounds-save-successful-sfx.wav";
 
+// Fixed UI click for Templum element/column selections — a single app sound, NOT a
+// per-skill `SoundId`, so it lives outside `SOUND_URLS` and the picker never offers it.
+import selectUrl from "../assets/wet-trance-kick_196bpm_C.wav";
+
+/** The Templum selection-tap sound. */
+export const SELECT_SOUND_URL = selectUrl;
+
 /** Bundled sample URL for every selectable sound. */
 export const SOUND_URLS: Record<SoundId, string> = {
   kick: kickUrl,

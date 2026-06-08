@@ -9,10 +9,13 @@
 // same sound have different keys, so they never cut each other.
 import type { Cue } from "../engine/timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId, type SoundId } from "../engine/sounds";
-import { SOUND_URLS } from "./soundAssets";
+import { SELECT_SOUND_URL, SOUND_URLS } from "./soundAssets";
 
 let ctx: AudioContext | null = null;
 const buffers = new Map<SoundId, AudioBuffer>();
+// The Templum selection-tap sound — a single fixed UI sound, decoded alongside the
+// per-skill samples but kept out of the `buffers` map (it's not a `SoundId`).
+let selectBuffer: AudioBuffer | null = null;
 let loading = false;
 // The currently-playing source per skill id, so the next cue for that skill can cut it.
 const voices = new Map<string, AudioBufferSourceNode>();
@@ -27,21 +30,25 @@ function ac(): AudioContext {
   return ctx;
 }
 
+async function decodeInto(url: string, set: (b: AudioBuffer) => void) {
+  try {
+    const res = await fetch(url);
+    set(await ac().decodeAudioData(await res.arrayBuffer()));
+  } catch {
+    // leave it unset — callers fall back (synth beep for cues, silence for the UI tap)
+  }
+}
+
 async function loadSamples() {
-  if (loading || buffers.size === SOUND_IDS.length) return;
+  if (loading || (buffers.size === SOUND_IDS.length && selectBuffer)) return;
   loading = true;
   try {
-    await Promise.all(
-      SOUND_IDS.map(async (id) => {
-        if (buffers.has(id)) return;
-        try {
-          const res = await fetch(SOUND_URLS[id]);
-          buffers.set(id, await ac().decodeAudioData(await res.arrayBuffer()));
-        } catch {
-          // leave this id unbuffered — it falls back to the synth beep
-        }
-      }),
-    );
+    await Promise.all([
+      ...SOUND_IDS.map((id) =>
+        buffers.has(id) ? Promise.resolve() : decodeInto(SOUND_URLS[id], (b) => buffers.set(id, b)),
+      ),
+      selectBuffer ? Promise.resolve() : decodeInto(SELECT_SOUND_URL, (b) => (selectBuffer = b)),
+    ]);
   } finally {
     loading = false;
   }
@@ -85,6 +92,24 @@ export function previewSound(soundId: string) {
   src.buffer = sample;
   const gain = a.createGain();
   gain.gain.value = 0.8;
+  src.connect(gain);
+  gain.connect(a.destination);
+  src.start(a.currentTime);
+}
+
+/**
+ * Play the Templum selection-tap sound once. Fire-and-forget and untracked, so taps can
+ * overlap freely; silent until the sample decodes (the tap itself is the unlock gesture,
+ * so the very first tap may not sound). `resume()` defensively for that first gesture.
+ */
+export function playSelect() {
+  const a = ac();
+  a.resume();
+  if (!selectBuffer) return;
+  const src = a.createBufferSource();
+  src.buffer = selectBuffer;
+  const gain = a.createGain();
+  gain.gain.value = 0.6;
   src.connect(gain);
   gain.connect(a.destination);
   src.start(a.currentTime);

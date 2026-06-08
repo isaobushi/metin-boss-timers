@@ -221,12 +221,40 @@ body {
 .icon-btn svg {
   font-size: 16px;
 }
-.icon-btn--swap {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+/* Labeled phase toggle: icon + destination name, accent-filled so it reads as the
+   header's primary action. Auto-width pill, matched to the 24px header-button height. */
+.seq-swap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px 0 7px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent2, var(--accent)) 24%, transparent)
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  cursor: pointer;
 }
-.icon-btn--swap svg {
-  color: var(--accent);
+.seq-swap:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    color-mix(in srgb, var(--accent2, var(--accent)) 34%, transparent)
+  );
+}
+.seq-swap svg {
+  font-size: 14px;
+  color: #fff;
 }
 /* Queen shift — the boss portrait, zoomed onto the crowned head and cropped to a round
    token beside the recall chips. background lets us art-direct the crop (the face sits high

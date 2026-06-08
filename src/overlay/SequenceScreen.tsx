@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
 import { COLUMNS, ELEMENTS, findToken, type Token } from "./sequenceTokens";
 import { useSequence, type SequenceController } from "./useSequence";
+import { playSelect } from "./audio";
 
 type Props = { onBack: () => void };
 
@@ -31,12 +32,16 @@ export function SequenceScreen({ onBack }: Props) {
         <button className="icon-btn" onClick={onBack} title="back to boss select">
           ←
         </button>
+        {/* Labeled destination toggle: the text is where you'll land, so the control says
+            what tapping does — not just "swap". Accent-filled to read as the primary action. */}
         <button
-          className="icon-btn icon-btn--swap"
+          className="seq-swap"
           onClick={swap}
+          aria-label={isElements ? "Switch to Columns (Phase 2)" : "Switch to Elements (Phase 1)"}
           title={isElements ? "switch to columns (Phase 2)" : "switch to elements (Phase 1)"}
         >
           <SwapIcon />
+          <span className="seq-swap__label">{isElements ? "Columns" : "Elements"}</span>
         </button>
         {/* doubles as the window's drag handle */}
         <span className="seq-head__title" data-tauri-drag-region>
@@ -86,7 +91,10 @@ function ElementPicker({ c }: { c: SequenceController }) {
           key={t.id}
           className="elt-pill"
           style={{ "--c": t.color } as CSSProperties}
-          onClick={() => c.append(t.id)}
+          onClick={() => {
+            playSelect();
+            c.append(t.id);
+          }}
         >
           <span className="elt-pill__icon">{t.icon && <ElementIcon name={t.icon} />}</span>
           <span className="elt-pill__name">{t.label}</span>
