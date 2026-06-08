@@ -10,9 +10,11 @@ import {
   renameSkill,
   setSkillDuration,
   setSkillHotkey,
+  setSkillSound,
   type Boss,
   type Config,
 } from "../engine/config";
+import type { SoundId } from "../engine/sounds";
 import { deserialize, serialize } from "../engine/persist";
 import { loadPersisted, savePersisted } from "./configStore";
 import { broadcastConfig, subscribeConfig } from "./configSync";
@@ -99,6 +101,11 @@ export function useConfig() {
       setConfig((c) => setSkillDuration(c, bossId, skillId, durationMs)),
     [],
   );
+  const editSkillSound = useCallback(
+    (bossId: string, skillId: string, soundId: SoundId) =>
+      setConfig((c) => setSkillSound(c, bossId, skillId, soundId)),
+    [],
+  );
   const deleteSkill = useCallback(
     (bossId: string, skillId: string) => setConfig((c) => removeSkill(c, bossId, skillId)),
     [],
@@ -128,6 +135,7 @@ export function useConfig() {
     createSkill,
     editSkillName,
     editSkillDuration,
+    editSkillSound,
     deleteSkill,
     editSkillHotkey,
     selectBoss,

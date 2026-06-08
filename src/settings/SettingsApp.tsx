@@ -64,6 +64,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
             onAddSkill={() => cfg.createSkill(boss.id)}
             onRenameSkill={(skillId, label) => cfg.editSkillName(boss.id, skillId, label)}
             onSetDuration={(skillId, durationMs) => cfg.editSkillDuration(boss.id, skillId, durationMs)}
+            onSetSound={(skillId, soundId) => cfg.editSkillSound(boss.id, skillId, soundId)}
             onSetHotkey={(skillId, hotkey) => cfg.editSkillHotkey(boss.id, skillId, hotkey)}
             onRemoveSkill={(skillId) => cfg.deleteSkill(boss.id, skillId)}
           />

@@ -1,6 +1,8 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { Boss } from "../engine/config";
+import { SOUND_IDS, soundLabel, type SoundId } from "../engine/sounds";
 import { eventToCombo, prettyCombo } from "../engine/hotkey";
+import { previewSound } from "./audio";
 import { inTextField } from "./hotkeys";
 
 type Props = {
@@ -10,6 +12,7 @@ type Props = {
   onAddSkill: () => void;
   onRenameSkill: (skillId: string, label: string) => void;
   onSetDuration: (skillId: string, durationMs: number) => void;
+  onSetSound: (skillId: string, soundId: SoundId) => void;
   onSetHotkey: (skillId: string, hotkey: string | undefined) => void;
   onRemoveSkill: (skillId: string) => void;
 };
@@ -29,6 +32,7 @@ export function BossSettings({
   onAddSkill,
   onRenameSkill,
   onSetDuration,
+  onSetSound,
   onSetHotkey,
   onRemoveSkill,
 }: Props) {
@@ -71,6 +75,7 @@ export function BossSettings({
       <div className="skill-head">
         <span className="skill-head__name">SKILL</span>
         <span className="skill-head__sec">SEC</span>
+        <span className="skill-head__sound">SOUND</span>
         <span className="skill-head__key">HOTKEY</span>
         <span className="skill-head__x" />
       </div>
@@ -92,6 +97,27 @@ export function BossSettings({
             onChange={(e) => onSetDuration(s.id, Number(e.target.value) * 1000)}
             title="duration (seconds)"
           />
+          <div className="skill-sound">
+            <select
+              className="skill-sound__select"
+              value={s.soundId}
+              onChange={(e) => onSetSound(s.id, e.target.value as SoundId)}
+              title="sound played on this skill's cues"
+            >
+              {SOUND_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {soundLabel(id)}
+                </option>
+              ))}
+            </select>
+            <button
+              className="skill-sound__preview"
+              onClick={() => previewSound(s.soundId)}
+              title="preview this sound"
+            >
+              ▶
+            </button>
+          </div>
           <button
             className={`skill-key${capturing === s.id ? " skill-key--capturing" : ""}`}
             onClick={() => setCapturing(capturing === s.id ? null : s.id)}

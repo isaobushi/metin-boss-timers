@@ -66,6 +66,30 @@ export function playCue(cue: Cue, soundId: string, skillId: string) {
   beep(cue === "hit" ? "final" : "tick", id, skillId);
 }
 
+/**
+ * Play a sound once for the settings picker, independent of any timer: it's not tracked
+ * in `voices`, so a preview never cuts (or is cut by) a running skill. Falls back to the
+ * synth beep if the sample hasn't decoded. `resume()` defensively in case the click that
+ * triggered the preview is itself the first gesture.
+ */
+export function previewSound(soundId: string) {
+  const a = ac();
+  a.resume();
+  const id: SoundId = isSoundId(soundId) ? soundId : DEFAULT_SOUND_ID;
+  const sample = buffers.get(id);
+  if (!sample) {
+    beep("final", id, `__preview__:${id}`); // no buffer yet → synth (own key, cuts nothing real)
+    return;
+  }
+  const src = a.createBufferSource();
+  src.buffer = sample;
+  const gain = a.createGain();
+  gain.gain.value = 0.8;
+  src.connect(gain);
+  gain.connect(a.destination);
+  src.start(a.currentTime);
+}
+
 function beep(kind: "tick" | "final", soundId: SoundId, skillId: string) {
   const a = ac();
   const t = a.currentTime;
