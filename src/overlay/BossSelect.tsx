@@ -34,8 +34,8 @@ export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence }: P
         <button className="btn-link" onClick={onOpenSettings} title="open settings window">
           ⚙ settings
         </button>
-        <button className="btn-link" onClick={onOpenSequence} title="Templum Serpens sequence helper">
-          ▦ sequence
+        <button className="btn-link" onClick={onOpenSequence} title="Templum Serpens helper">
+          ▦ Templum
         </button>
         <button className="btn-link btn-link--danger" onClick={quitApp} title="close app">
           ✕ quit
