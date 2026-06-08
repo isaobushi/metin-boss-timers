@@ -353,10 +353,27 @@ body[data-window="settings"] {
   margin: 0 auto;
   padding: 14px;
 }
+/* Browser: settings as a full-viewport modal over the still-mounted floating overlay.
+   (The Tauri build opens a real opaque window instead — see body[data-window="settings"].) */
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #0c0916;
+  overflow-y: auto;
+}
 .settings-app__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.settings-app__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-app__actions .btn-link {
+  margin-top: 0;
 }
 .settings-app__title {
   font-size: 12px;
