@@ -45,10 +45,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Metin Boss Timers ${{ github.ref_name }}"
+          releaseName: "DungeonAid ${{ github.ref_name }}"
           releaseDraft: true
           releaseBody: |
-            ## Metin Boss Timers ${{ github.ref_name }}
+            ## DungeonAid ${{ github.ref_name }}
 
             A desktop overlay of draining boss respawn timers for Metin2: a
             transparent, always-on-top window of countdown chips you start with
