@@ -109,7 +109,7 @@ export function playSelect() {
   const src = a.createBufferSource();
   src.buffer = selectBuffer;
   const gain = a.createGain();
-  gain.gain.value = 0.6;
+  gain.gain.value = 0.15; // deliberately subtle — just enough to confirm a tap registered
   src.connect(gain);
   gain.connect(a.destination);
   src.start(a.currentTime);

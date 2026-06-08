@@ -36,60 +36,37 @@ illustrative backdrop instead.
 - **Always-on-top + hidden taskbar entry** keep the overlay visible over the
   game without cluttering your taskbar.
 
-That behaviour profile (global hotkeys + always-on-top + hidden taskbar) is
-exactly what antivirus heuristics tend to flag on an unsigned binary, which is
-why the trust/verification story below exists.
+That behaviour profile (global hotkeys + always-on-top + hidden taskbar) is the
+kind of thing antivirus heuristics flag — which is exactly why DungeonAid ships
+**only** through the Microsoft Store (Microsoft signs it, so there's no "unknown
+publisher" warning) and keeps its **source public** so the claims above are
+verifiable, not just promised. See the trust story below.
 
-## Download
+## Get DungeonAid
 
-Get the latest build from the releases page (no app store, no account):
+DungeonAid is a paid app on the **Microsoft Store**. Distributing through the
+Store means Microsoft signs the package — so there's no "unknown publisher" /
+SmartScreen warning to click through, and updates arrive automatically.
 
-**→ https://github.com/isaobushi/metin-boss-timers/releases/latest**
+<!-- STORE LINK: replace this line with the apps.microsoft.com listing once the app is published (#17 / #18). -->
+**→ Microsoft Store listing — _link goes live when the app is published._**
 
-Under **Assets**, pick the installer that suits you:
+Prefer to try before you buy? The [free web demo](https://metin-boss-timers.vercel.app)
+runs the same UI in your browser — no install, no account.
 
-| Asset | Use it if |
-|---|---|
-| `Metin.Boss.Timers_<version>_x64-setup.exe` (NSIS) | **Most users** — normal double-click install. |
-| `Metin.Boss.Timers_<version>_x64_en-US.msi` (WiX) | Silent / IT / scripted install. |
-| `SHA256SUMS.txt` | Checksums, to verify your download (see below). |
+## Trust & verification
 
-Asset URLs are version-stamped and change each release, so link to the
-`/releases/latest` **page** above rather than a direct file.
+DungeonAid registers global hotkeys and draws an always-on-top window — behaviour
+worth being skeptical about. Two things let you *check* it rather than trust it:
 
-### First-launch warnings (and why)
-
-Because the app is **not code-signed yet**, you'll see one or two scary-looking
-warnings the first time. They're expected for an unsigned tool — here's how to
-get through them:
-
-1. **Browser "uncommon download" / "isn't commonly downloaded"** — choose
-   **Keep** (in Chrome/Edge, click the `…` on the download → **Keep**).
-2. **Windows SmartScreen "Windows protected your PC" / "unknown publisher"** —
-   click **More info → Run anyway**.
-
-The installer then runs normally and adds a Start-menu shortcut. Removing these
-warnings entirely requires Authenticode code signing — a possible future step.
-Before clicking through, you can confirm the download is the genuine artifact
-using the steps below.
-
-## Verify your download
-
-Every release installer is built **only in CI**, on a GitHub-hosted Windows
-runner, from the exact tagged public commit — never from a local machine. That
-gives a verifiable chain from public source to artifact:
-
-1. **Provenance attestation** (signed SLSA, links artifact → workflow run → commit):
-   ```sh
-   gh attestation verify <installer-file> --repo isaobushi/metin-boss-timers
-   ```
-2. **Checksums** — `SHA256SUMS.txt` is attached to each release. Compare:
-   ```powershell
-   Get-FileHash <installer-file> -Algorithm SHA256
-   ```
-3. **VirusTotal** — when configured, scan links are included in the release
-   notes; otherwise you can upload the installer to
-   [virustotal.com](https://www.virustotal.com) yourself.
+1. **Microsoft-signed.** The Store package is signed by Microsoft during
+   certification, so Windows shows a known publisher — no unsigned-binary warning.
+2. **Source-available.** This repository stays **public** even though installer
+   binaries are no longer published here, so anyone can read exactly what the app
+   does. In particular there is **no HTTP capability** in the build
+   (`src-tauri/capabilities/`), so the "no network calls" claim is verifiable from
+   source — not just a promise. The Store package is built only in CI from a
+   tagged public commit and carries a signed SLSA provenance attestation.
 
 ## Development
 
@@ -101,14 +78,21 @@ npm run test:run     # unit tests (timer/config/hotkey/persist/position engines)
 npm run build        # type-check + bundle the frontend
 ```
 
-The Windows release is produced by [`.github/workflows/release-windows.yml`](.github/workflows/release-windows.yml),
+The Microsoft Store package is produced by [`.github/workflows/release-windows.yml`](.github/workflows/release-windows.yml),
 triggered by pushing a `v*` tag whose version matches `src-tauri/tauri.conf.json`:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
-It bundles the `.msi`/`.exe`, attaches them to a **draft** release with checksums
-and a provenance attestation, and (optionally) runs a VirusTotal scan when a
-`VT_API_KEY` repository secret is present.
+It packs a `.msix` (see [`src-tauri/msix/`](src-tauri/msix/)) with a provenance
+attestation and uploads it as a CI artifact for Partner Center submission, where
+Microsoft signs it for the Store. It no longer publishes free `.exe`/`.msi`
+installers to GitHub Releases — the Store is the sole distribution channel.
+
+## License
+
+Source-available, **not** open-source — see [`LICENSE`](LICENSE). You may read
+the code and build it for personal use; redistributing or selling it (or a
+rebrand) is not permitted. The official paid build is the Microsoft Store listing.
