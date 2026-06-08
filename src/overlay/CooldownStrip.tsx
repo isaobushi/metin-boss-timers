@@ -3,12 +3,19 @@
 // text-only, low opacity, no bars; only a Ready pill lights up. Left-click a pill restarts
 // it, right-click clears it (the wheel does NOT live on running pills — duration tuning is
 // the picker's job, see CooldownPicker). The + opens a plain catalog dropdown; clicking a
-// row starts that cooldown at its (possibly tuned) catalog duration in one tap. (Edge-aware
-// placement is #4.)
-import { useEffect, useRef, useState } from "react";
+// row starts that cooldown at its (possibly tuned) catalog duration in one tap. Because the
+// overlay is freely draggable, the dropdown is edge-aware (#27): the pure anchorFor decides
+// which way it opens, fed real per-platform metrics by measureAnchor; the strip re-resolves
+// on mount, resize, and after every drag (pointerup), then the pills and the + hug whichever
+// horizontal side keeps them attached to the screen edge.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fmtDur, type CooldownDef } from "../engine/cooldown";
 import { GAP_MS, applyNotch } from "../engine/cooldownTuning";
+import { type Anchor } from "./anchor";
+import { measureAnchor } from "./measureOverlay";
 import type { CooldownPill } from "./useCooldowns";
+
+const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
 type Props = {
   pills: CooldownPill[];
@@ -21,8 +28,29 @@ type Props = {
 };
 
 export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune, onDuplicate }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
+
+  // Re-resolve the open direction whenever the overlay might have moved: on mount, when the
+  // viewport resizes, and after any drag (a drag ends with a pointerup). Cheap and async —
+  // a null result (failed metrics read) just leaves the last good placement in place.
+  const recompute = useCallback(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    void measureAnchor(el).then((a) => a && setAnchor(a));
+  }, []);
+  useEffect(() => {
+    recompute();
+    window.addEventListener("resize", recompute);
+    window.addEventListener("pointerup", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("pointerup", recompute);
+    };
+  }, [recompute]);
+
   return (
-    <div className="cooldown-strip">
+    <div className={`cooldown-strip${anchor.horizontal === "right" ? " cooldown-strip--right" : ""}`} ref={rootRef}>
       {pills.length > 0 && (
         <div className="cooldown-strip__pills">
           {pills.map((p) => (
@@ -42,7 +70,14 @@ export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onT
           ))}
         </div>
       )}
-      <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} onDuplicate={onDuplicate} />
+      <CooldownPicker
+        catalog={catalog}
+        anchor={anchor}
+        onOpen={recompute}
+        onStart={onStart}
+        onTune={onTune}
+        onDuplicate={onDuplicate}
+      />
     </div>
   );
 }
@@ -50,17 +85,24 @@ export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onT
 // The + picker: a compact dropdown of the catalog. Scrolling a row tunes that definition's
 // catalog duration (velocity-sensitive — see engine/cooldownTuning); one tap on a row then
 // starts it at the tuned value; the per-row + duplicates that definition (a numbered copy,
-// so the same boss can run twice at once). Edge-aware placement (#4) is still a plain downward
-// dropdown for now. The wheel listener is attached natively + non-passive (React 19
-// delegates `wheel` passively, so an `onWheel` prop could not preventDefault page scroll);
-// every tuning decision is delegated to the pure `applyNotch`, so this stays a thin shell.
+// so the same boss can run twice at once). The menu opens in the `anchor` direction resolved
+// by the strip (#27) — horizontal/vertical modifier classes flip it leftward/upward so it
+// never overflows when the overlay is dragged to a screen edge; opening also re-resolves the
+// anchor (onOpen) so a drag that didn't end on this window still places it correctly. The
+// wheel listener is attached natively + non-passive (React 19 delegates `wheel` passively, so
+// an `onWheel` prop could not preventDefault page scroll); every tuning decision is delegated
+// to the pure `applyNotch`, so this stays a thin shell.
 function CooldownPicker({
   catalog,
+  anchor,
+  onOpen,
   onStart,
   onTune,
   onDuplicate,
 }: {
   catalog: CooldownDef[];
+  anchor: Anchor;
+  onOpen: () => void;
   onStart: (defId: string) => void;
   onTune: (defId: string, durationMs: number) => void;
   onDuplicate: (defId: string) => void;
@@ -116,14 +158,24 @@ function CooldownPicker({
     <div className="cooldown-picker">
       <button
         className="cooldown-add"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() =>
+          setOpen((o) => {
+            if (!o) onOpen(); // re-resolve placement as the menu opens, before it paints
+            return !o;
+          })
+        }
         title="start a cooldown"
         aria-label="start a cooldown"
       >
         +
       </button>
       {open && (
-        <div className="cooldown-menu" ref={menuRef}>
+        <div
+          className={`cooldown-menu${anchor.horizontal === "right" ? " cooldown-menu--right" : ""}${
+            anchor.vertical === "up" ? " cooldown-menu--up" : ""
+          }`}
+          ref={menuRef}
+        >
           <div className="cooldown-menu__hint">scroll to change time</div>
           {catalog.map((d) => (
             // data-defid on the row so scroll-to-tune works across the whole row, including

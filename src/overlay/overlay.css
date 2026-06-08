@@ -730,6 +730,18 @@ body[data-window="settings"] {
   grid-template-columns: repeat(4, 1fr);
   gap: 5px;
 }
+/* When the overlay sits in the right half of the screen the + and its menu hug the right edge,
+   and a partial last row of pills wraps toward that edge (direction:rtl reverses grid flow), so
+   the strip stays visually attached to the panel. Pills reset to ltr to keep their own layout. */
+.cooldown-strip--right .cooldown-picker {
+  align-self: flex-end;
+}
+.cooldown-strip--right .cooldown-strip__pills {
+  direction: rtl;
+}
+.cooldown-strip--right .cooldown-pill {
+  direction: ltr;
+}
 .cooldown-pill {
   display: flex;
   align-items: baseline;
@@ -809,6 +821,17 @@ body[data-window="settings"] {
   border: 1px solid #ffffff22;
   box-shadow: 0 12px 30px #000c;
   backdrop-filter: blur(8px);
+}
+/* Edge-aware open direction (#27), driven by anchorFor via the strip's data. Default is
+   down-right (top:30px / left:0 above); these flip the menu so it never runs off-screen when
+   the overlay is dragged to a screen edge. */
+.cooldown-menu--right {
+  left: auto;
+  right: 0;
+}
+.cooldown-menu--up {
+  top: auto;
+  bottom: 30px;
 }
 .cooldown-menu__hint {
   /* Always present, so it never reflows the rows mid-scroll. A quiet how-to header. */
