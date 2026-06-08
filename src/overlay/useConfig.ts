@@ -15,6 +15,10 @@ import {
   restartCooldown,
   setCooldownDuration,
   duplicateCooldown,
+  addCooldown,
+  renameCooldown,
+  retagCooldown,
+  removeCooldown,
   clearCooldown,
   type Boss,
   type Config,
@@ -144,6 +148,26 @@ export function useConfig() {
   // numbers it off the base name. Persists and cross-window syncs like any other edit.
   const dupeCooldown = useCallback((defId: string) => setConfig((c) => duplicateCooldown(c, defId)), []);
 
+  // Catalog CRUD for the settings Cooldowns section (issue #28): add a blank definition,
+  // rename it (which re-derives its tag), override the tag, set its duration on the h/m
+  // control, or remove it. Each rides the same setConfig → persist + configSync path.
+  const createCooldown = useCallback(() => setConfig((c) => addCooldown(c)), []);
+  const editCooldownName = useCallback(
+    (defId: string, name: string) => setConfig((c) => renameCooldown(c, defId, name)),
+    [],
+  );
+  const editCooldownTag = useCallback(
+    (defId: string, tag: string) => setConfig((c) => retagCooldown(c, defId, tag)),
+    [],
+  );
+  // The h/m duration control commits through the same clamped catalog transform the
+  // velocity wheel uses (`setCooldownDuration`, [1m, 12h]).
+  const editCooldownDuration = useCallback(
+    (defId: string, durationMs: number) => setConfig((c) => setCooldownDuration(c, defId, durationMs)),
+    [],
+  );
+  const deleteCooldown = useCallback((defId: string) => setConfig((c) => removeCooldown(c, defId)), []);
+
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
   // Wipe all customization back to the shipped defaults (persisted by the save effect).
@@ -171,6 +195,11 @@ export function useConfig() {
     stopCooldown,
     tuneCooldown,
     dupeCooldown,
+    createCooldown,
+    editCooldownName,
+    editCooldownTag,
+    editCooldownDuration,
+    deleteCooldown,
     selectBoss,
     resetConfig,
   };

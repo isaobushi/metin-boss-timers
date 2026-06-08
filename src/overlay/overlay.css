@@ -623,6 +623,82 @@ body[data-window="settings"] {
   border-color: #ffd166;
 }
 
+/* ---- cooldown-settings (catalog editor, issue #28) ---- */
+/* No boss owns this panel, so give it its own accent so `.panel input` borders/focus
+   (keyed on --accent) still render. */
+.cooldown-settings {
+  --accent: #8a7bff;
+}
+.cooldown-settings__title {
+  flex: 1;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.8;
+}
+.cd-head {
+  display: flex;
+  gap: 5px;
+  font-size: 8px;
+  letter-spacing: 1px;
+  opacity: 0.45;
+  padding: 0 2px;
+}
+.cd-head__name {
+  flex: 1;
+}
+.cd-head__tag {
+  width: 56px;
+}
+.cd-head__dur {
+  width: 132px;
+  text-align: center;
+}
+.cd-head__x {
+  width: 24px;
+}
+.cd-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+/* uniform control height so the row reads as one line (matches .skill-row) */
+.cd-name,
+.cd-tag,
+.cd-dur__n {
+  height: 30px;
+}
+.cd-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 7px;
+  font-size: 12px;
+}
+.cd-tag {
+  width: 56px;
+  padding: 6px 6px;
+  font-size: 12px;
+}
+/* hours/minutes duration control: two number inputs with small unit labels, in a fixed
+   cell that lines up with the DURATION header column */
+.cd-dur {
+  width: 132px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cd-dur__n {
+  width: 46px;
+  padding: 6px 4px;
+  font-size: 12px;
+  text-align: right;
+}
+.cd-dur__u {
+  font-size: 10px;
+  opacity: 0.5;
+}
+
 /* ---- timer screen header ---- */
 .timer-head__name {
   flex: 1;

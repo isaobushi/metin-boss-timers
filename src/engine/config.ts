@@ -64,6 +64,10 @@ const MAX_DURATION_MS = 999_000;
 const MS_PER_MIN = 60_000;
 const MS_PER_HOUR = 3_600_000;
 
+// The length a freshly-added catalog entry starts at — one hour, mid-band in the tunable
+// [1m, 12h] range, so the user nudges it down or up with the h/m control either way.
+const DEFAULT_COOLDOWN_MS = 1 * MS_PER_HOUR;
+
 // The example dungeons a fresh install ships with. Durations are "examples not gospel" —
 // the user retunes them per server (the catalog editor is a later slice). Tags are
 // auto-derived from the names so the seed and any user-added cooldown stay consistent.
@@ -219,6 +223,62 @@ export const bossById = (c: Config, id: string | null): Boss | undefined =>
 const cooldownById = (c: Config, defId: string): CooldownDef | undefined =>
   c.cooldowns.find((d) => d.id === defId);
 
+/** Map the matching definition through `fn`, leaving siblings/bosses/running untouched. */
+const editCooldown = (c: Config, defId: string, fn: (d: CooldownDef) => CooldownDef): Config => ({
+  ...c,
+  cooldowns: c.cooldowns.map((d) => (d.id === defId ? fn(d) : d)),
+});
+
+// ---- catalog CRUD (pure edits to the cooldown *definitions*, issue #28) ----
+// Unlike the running-set wrappers (start/restart/clear), these edit the editable catalog
+// the user starts from. Each leaves sibling definitions, the bosses and (bar a remove) the
+// running set untouched, so the Cooldowns settings section can add / rename / retag /
+// set-duration / remove without disturbing anything else. Duration editing reuses
+// `setCooldownDuration` (the same [1m, 12h] clamp the velocity wheel uses).
+
+/**
+ * Append a blank catalog definition (the "+ add cooldown" gesture), mirroring `addBoss`:
+ * a generic `Cooldown N` name with its auto-derived tag and a default one-hour duration,
+ * carrying a fresh non-colliding `cooldown-N` id. The user then renames / retags / retunes
+ * it in the settings editor.
+ */
+export function addCooldown(c: Config): Config {
+  const cooldownSeq = c.cooldownSeq + 1;
+  const name = `Cooldown ${cooldownSeq}`;
+  const def: CooldownDef = { id: `cooldown-${cooldownSeq}`, name, tag: deriveTag(name), durationMs: DEFAULT_COOLDOWN_MS };
+  return { ...c, cooldowns: [...c.cooldowns, def], cooldownSeq };
+}
+
+/**
+ * Rename a definition. Because a Tag auto-derives from the name (issue #28), this also
+ * re-derives `tag` from the new name, so the short strip label stays in sync as the user
+ * types. To override the auto-tag, call `retagCooldown` afterward — a later rename will
+ * re-derive it again. An unknown `defId` is a no-op (the same config is returned).
+ */
+export function renameCooldown(c: Config, defId: string, name: string): Config {
+  if (!cooldownById(c, defId)) return c;
+  return editCooldown(c, defId, (d) => ({ ...d, name, tag: deriveTag(name) }));
+}
+
+/**
+ * Set a definition's Tag explicitly — the user override of the name-derived default. A
+ * later `renameCooldown` re-derives the tag, clobbering this. Unknown `defId` is a no-op.
+ */
+export function retagCooldown(c: Config, defId: string, tag: string): Config {
+  if (!cooldownById(c, defId)) return c;
+  return editCooldown(c, defId, (d) => ({ ...d, tag }));
+}
+
+/**
+ * Remove a definition from the catalog AND stop any running instance of it, so the strip
+ * never holds a running cooldown pointing at a deleted def. Other definitions and the rest
+ * of the running set are untouched. Mirrors `removeSkill`: an unknown `defId` simply
+ * matches nothing.
+ */
+export function removeCooldown(c: Config, defId: string): Config {
+  return { ...c, cooldowns: c.cooldowns.filter((d) => d.id !== defId), running: clear(c.running, defId) };
+}
+
 /**
  * Start (or re-stamp) the cooldown for `defId` at an absolute `expiry = now + durationMs`
  * (defaulting to the definition's own duration). An unknown `defId` is a no-op — the same
@@ -239,10 +299,7 @@ export function startCooldown(c: Config, defId: string, now: number, durationMs?
  */
 export function setCooldownDuration(c: Config, defId: string, durationMs: number): Config {
   if (!cooldownById(c, defId)) return c;
-  return {
-    ...c,
-    cooldowns: c.cooldowns.map((d) => (d.id === defId ? { ...d, durationMs: clampDuration(durationMs) } : d)),
-  };
+  return editCooldown(c, defId, (d) => ({ ...d, durationMs: clampDuration(durationMs) }));
 }
 
 /** Split a trailing " <n>" off a name; an unsuffixed name counts as copy #1 of its base. */

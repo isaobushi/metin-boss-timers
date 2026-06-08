@@ -17,6 +17,10 @@ import {
   restartCooldown,
   setCooldownDuration,
   duplicateCooldown,
+  addCooldown,
+  renameCooldown,
+  retagCooldown,
+  removeCooldown,
   clearCooldown,
   type Config,
 } from "./config";
@@ -322,6 +326,102 @@ describe("duplicateCooldown", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(duplicateCooldown(c, "cooldown-999")).toBe(c);
+  });
+});
+
+describe("addCooldown", () => {
+  it("appends a blank definition with a fresh id, auto-tag and the default duration", () => {
+    const c = makeConfig();
+    const after = addCooldown(c);
+    const def = after.cooldowns[after.cooldowns.length - 1];
+    expect(after.cooldowns.length).toBe(c.cooldowns.length + 1);
+    expect([def.id, def.name, def.tag, def.durationMs]).toEqual(["cooldown-7", "Cooldown 7", "Coo", 3_600_000]);
+    expect(after.cooldownSeq).toBe(7); // seq advanced past the new id
+  });
+
+  it("leaves the existing catalog, bosses and running set untouched", () => {
+    const c = makeConfig();
+    const after = addCooldown(c);
+    expect(after.cooldowns.slice(0, c.cooldowns.length)).toEqual(c.cooldowns);
+    expect(after.bosses).toBe(c.bosses);
+    expect(after.running).toBe(c.running);
+  });
+
+  it("hands out non-colliding ids across repeated adds", () => {
+    const c = addCooldown(addCooldown(makeConfig()));
+    const ids = c.cooldowns.map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("renameCooldown", () => {
+  it("renames a definition and re-derives its tag from the new name", () => {
+    const c = makeConfig();
+    const id = c.cooldowns[0].id; // Hydra / Hyd
+    const after = renameCooldown(c, id, "Razador");
+    expect([after.cooldowns[0].name, after.cooldowns[0].tag]).toEqual(["Razador", "Raz"]);
+  });
+
+  it("re-derives the tag over a prior manual override (rename wins)", () => {
+    const c = makeConfig();
+    const id = c.cooldowns[0].id;
+    const retagged = retagCooldown(c, id, "ZZ");
+    const after = renameCooldown(retagged, id, "Meley");
+    expect(after.cooldowns[0].tag).toBe("Mel"); // the override is clobbered by the rename
+  });
+
+  it("leaves sibling definitions and bosses untouched", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    const after = renameCooldown(c, a.id, "Renamed");
+    expect(after.cooldowns[1]).toEqual(b);
+    expect(after.bosses).toBe(c.bosses);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(renameCooldown(c, "cooldown-999", "X")).toBe(c);
+  });
+});
+
+describe("retagCooldown", () => {
+  it("sets a definition's tag explicitly, leaving its name and siblings alone", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    const after = retagCooldown(c, a.id, "Hy");
+    expect([after.cooldowns[0].name, after.cooldowns[0].tag]).toEqual(["Hydra", "Hy"]);
+    expect(after.cooldowns[1]).toEqual(b);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(retagCooldown(c, "cooldown-999", "X")).toBe(c);
+  });
+});
+
+describe("removeCooldown", () => {
+  it("drops a definition and leaves the other definitions", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    const after = removeCooldown(c, a.id);
+    expect(after.cooldowns.map((d) => d.id)).not.toContain(a.id);
+    expect(after.cooldowns).toContainEqual(b);
+    expect(after.cooldowns.length).toBe(c.cooldowns.length - 1);
+  });
+
+  it("also stops a running instance of the removed def, sparing the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    let started = startCooldown(c, a.id, 1_000_000);
+    started = startCooldown(started, b.id, 1_000_000);
+    const after = removeCooldown(started, a.id);
+    expect(after.running.map((r) => r.defId)).toEqual([b.id]); // a's running instance gone, b's kept
+  });
+
+  it("leaves the bosses untouched", () => {
+    const c = makeConfig();
+    const after = removeCooldown(c, c.cooldowns[0].id);
+    expect(after.bosses).toBe(c.bosses);
   });
 });
 
