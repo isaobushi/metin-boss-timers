@@ -1,0 +1,10 @@
+# The web demo is a pure Vite build — Vercel only needs the source, package.json,
+# and lockfile (it runs `npm install` + `npm run build` itself). Everything below is
+# either rebuilt on Vercel or irrelevant to the browser bundle. src-tauri/target alone
+# is multi-GB of Rust artifacts and was blowing past Vercel's free upload file limit.
+node_modules
+dist
+.git
+
+# Tauri desktop shell — not part of the web build.
+src-tauri
