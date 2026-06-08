@@ -81,7 +81,7 @@ export function useTimers(inits: TimerInit[]) {
       for (const [id, t] of timers.current) {
         const { timer, cues } = tick(t, now);
         if (timer !== t) timers.current.set(id, timer);
-        for (const cue of cues) playCue(cue);
+        for (const cue of cues) playCue(cue, timer.soundId, id);
         paint(els.current.get(id), timer, now);
       }
       raf = requestAnimationFrame(draw);
