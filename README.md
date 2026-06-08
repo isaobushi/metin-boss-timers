@@ -1,4 +1,6 @@
-# Metin Boss Timers
+# DungeonAid
+
+*A boss-respawn-timer overlay that works with Metin2.*
 
 A desktop **overlay** of draining boss respawn timers for Metin2. It shows a
 small, transparent, always-on-top window of countdown chips that you start and

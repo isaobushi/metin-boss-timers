@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Metin Boss Timers",
+  "productName": "DungeonAid",
   "version": "0.2.0",
-  "identifier": "com.isaobushi.metin-boss-timers",
+  "identifier": "com.isaobushi.dungeonaid",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Metin Boss Timers",
+        "title": "DungeonAid",
         "width": 360,
         "height": 320,
         "resizable": true,

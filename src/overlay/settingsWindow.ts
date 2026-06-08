@@ -27,7 +27,7 @@ export function openSettingsWindow(): void {
         // (the overlay sits in a corner), focused, and also on-top so it lands in front.
         new WebviewWindow(LABEL, {
           url: "index.html#settings",
-          title: "Settings — Metin Boss Timers",
+          title: "Settings — DungeonAid",
           width: 460,
           height: 520,
           resizable: true,
