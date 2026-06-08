@@ -41,7 +41,15 @@ export type ChipView = { id: string; label: string; running: boolean };
 export function useTimers(inits: TimerInit[]) {
   const timers = useRef<Map<string, Timer>>(new Map());
   const els = useRef<Map<string, ChipEls>>(new Map());
-  const [, force] = useState(0);
+  // The set of running ids, mirrored from the ref map into React state so render can
+  // read `running` without touching the ref. `tick` never stops a timer (it auto-loops),
+  // so this only changes via the toggle/reset/trigger callbacks, each of which re-syncs.
+  const [runningIds, setRunningIds] = useState<ReadonlySet<string>>(new Set());
+  const syncRunning = useCallback(() => {
+    const next = new Set<string>();
+    for (const [id, t] of timers.current) if (t.running) next.add(id);
+    setRunningIds(next);
+  }, []);
 
   // Reconcile on any change to the init set (ids/durations/labels/pitches). A fresh
   // timer for a new boss's skill is stopped at a full cycle, so a boss switch resets.
@@ -61,8 +69,8 @@ export function useTimers(inits: TimerInit[]) {
       }
     }
     for (const id of [...map.keys()]) if (!wanted.has(id)) map.delete(id);
-    // No re-render needed: the render that changed `inits` already painted the new
-    // chip set, and reconcile only seeds/updates the ref map (running state unchanged).
+    // No re-render needed: a boss switch brings new ids that aren't in `runningIds`, so
+    // its chips already render stopped; the next callback re-syncs the set to this boss.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig]);
 
@@ -91,29 +99,30 @@ export function useTimers(inits: TimerInit[]) {
   const onToggle = useCallback((id: string) => {
     const t = timers.current.get(id);
     if (t) timers.current.set(id, toggleTimer(t, Date.now()));
-    force((x) => x + 1); // re-render so the dimmed style tracks running state
-  }, []);
+    syncRunning(); // re-sync so the dimmed style tracks running state
+  }, [syncRunning]);
 
   const onReset = useCallback((id: string) => {
     const t = timers.current.get(id);
     if (t) timers.current.set(id, resetTimer(t, Date.now()));
-    force((x) => x + 1);
-  }, []);
+    syncRunning();
+  }, [syncRunning]);
 
   // The hotkey action: reset-and-start from any state, so a fired shortcut always
   // re-arms the skill (unlike onToggle). Stable, so the hotkey effect can depend on it.
   const onTrigger = useCallback((id: string) => {
     const t = timers.current.get(id);
     if (t) timers.current.set(id, triggerTimer(t, Date.now()));
-    force((x) => x + 1);
-  }, []);
+    syncRunning();
+  }, [syncRunning]);
 
   // Derived from inits so a just-selected boss renders its chips immediately; the
-  // running flag comes from the timer map (absent until the reconcile effect runs).
+  // running flag comes from `runningIds` state (a just-switched boss's new ids aren't
+  // in it yet, so its chips render stopped until the reconcile effect re-syncs).
   const views: ChipView[] = inits.map((i) => ({
     id: i.id,
     label: i.label,
-    running: timers.current.get(i.id)?.running ?? false,
+    running: runningIds.has(i.id),
   }));
 
   return { views, register, onToggle, onReset, onTrigger };
