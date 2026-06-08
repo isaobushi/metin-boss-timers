@@ -6,7 +6,7 @@
 
 import type { TimerInit } from "./timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
-import { type CooldownDef, type RunningCooldown, deriveTag } from "./cooldown";
+import { type CooldownDef, type RunningCooldown, clear, deriveTag, restart, start } from "./cooldown";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -209,3 +209,37 @@ export function removeSkill(c: Config, bossId: string, skillId: string): Config 
 
 export const bossById = (c: Config, id: string | null): Boss | undefined =>
   id == null ? undefined : c.bosses.find((b) => b.id === id);
+
+// ---- cooldown actions (thin Config-level wrappers over the pure running-set ops) ----
+// Each resolves a `defId` against the catalog and applies the matching `cooldown.ts`
+// transform to `c.running`, leaving the catalog and the rest of the config untouched.
+
+const cooldownById = (c: Config, defId: string): CooldownDef | undefined =>
+  c.cooldowns.find((d) => d.id === defId);
+
+/**
+ * Start (or re-stamp) the cooldown for `defId` at an absolute `expiry = now + durationMs`
+ * (defaulting to the definition's own duration). An unknown `defId` is a no-op — the same
+ * config is returned. The cap + one-instance-per-def semantics live in `cooldown.start`.
+ */
+export function startCooldown(c: Config, defId: string, now: number, durationMs?: number): Config {
+  const def = cooldownById(c, defId);
+  if (!def) return c;
+  return { ...c, running: start(c.running, def, now, durationMs ?? def.durationMs) };
+}
+
+/**
+ * Re-stamp the running cooldown for `defId` back to the definition's full catalog
+ * duration (the click-a-pill gesture — always the catalog length, never a tuned value).
+ * An unknown `defId` is a no-op.
+ */
+export function restartCooldown(c: Config, defId: string, now: number): Config {
+  const def = cooldownById(c, defId);
+  if (!def) return c;
+  return { ...c, running: restart(c.running, def, now) };
+}
+
+/** Stop and remove the running cooldown for `defId`; a no-op if it isn't running. */
+export function clearCooldown(c: Config, defId: string): Config {
+  return { ...c, running: clear(c.running, defId) };
+}

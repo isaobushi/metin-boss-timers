@@ -12,6 +12,8 @@ import { SequenceScreen } from "./overlay/SequenceScreen";
 import SettingsApp from "./settings/SettingsApp";
 import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
+import { useCooldowns } from "./overlay/useCooldowns";
+import { CooldownStrip } from "./overlay/CooldownStrip";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
@@ -24,6 +26,7 @@ type Screen = { name: "select" } | { name: "timers" } | { name: "sequence" };
 
 export default function App() {
   const cfg = useConfig();
+  const cd = useCooldowns(cfg);
   const [screen, setScreen] = useState<Screen>({ name: "select" });
   // Browser only: settings renders inline (a modal over the still-mounted overlay) rather
   // than a second OS window/tab. Tauri spawns a real settings window, so this stays false.
@@ -70,6 +73,13 @@ export default function App() {
     <>
       {inBrowser && <DemoScene />}
       <div className="overlay" ref={overlayRef}>
+        <CooldownStrip
+          pills={cd.pills}
+          catalog={cd.catalog}
+          onStart={cd.start}
+          onRestart={cd.restart}
+          onClear={cd.clear}
+        />
         {body}
       </div>
       {showSettings && (

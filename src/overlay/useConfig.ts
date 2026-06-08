@@ -11,6 +11,9 @@ import {
   setSkillDuration,
   setSkillHotkey,
   setSkillSound,
+  startCooldown,
+  restartCooldown,
+  clearCooldown,
   type Boss,
   type Config,
 } from "../engine/config";
@@ -116,6 +119,19 @@ export function useConfig() {
     [],
   );
 
+  // Cooldown actions — like the skill edits, each just runs the matching pure transform
+  // through setConfig, so the running set persists and cross-window syncs for free. `now`
+  // is supplied by the caller (the 1s tick in useCooldowns), keeping this layer clock-free.
+  const beginCooldown = useCallback(
+    (defId: string, now: number, durationMs?: number) => setConfig((c) => startCooldown(c, defId, now, durationMs)),
+    [],
+  );
+  const reCooldown = useCallback(
+    (defId: string, now: number) => setConfig((c) => restartCooldown(c, defId, now)),
+    [],
+  );
+  const stopCooldown = useCallback((defId: string) => setConfig((c) => clearCooldown(c, defId)), []);
+
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
   // Wipe all customization back to the shipped defaults (persisted by the save effect).
@@ -138,6 +154,9 @@ export function useConfig() {
     editSkillSound,
     deleteSkill,
     editSkillHotkey,
+    beginCooldown,
+    reCooldown,
+    stopCooldown,
     selectBoss,
     resetConfig,
   };

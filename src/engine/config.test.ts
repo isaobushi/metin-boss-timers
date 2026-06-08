@@ -13,6 +13,9 @@ import {
   setSkillDuration,
   setSkillHotkey,
   setSkillSound,
+  startCooldown,
+  restartCooldown,
+  clearCooldown,
   type Config,
 } from "./config";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
@@ -213,5 +216,57 @@ describe("setSkillSound", () => {
   it("defaults the first skill of a fresh boss to the default sound", () => {
     const c = addBoss(makeConfig());
     expect(lastBoss(c).skills[0].soundId).toBe(DEFAULT_SOUND_ID);
+  });
+});
+
+describe("startCooldown", () => {
+  it("stamps an absolute expiry of now + the definition's duration into running", () => {
+    const c = makeConfig();
+    const def = c.cooldowns[0]; // Hydra, 15m
+    const now = 1_000_000;
+    const after = startCooldown(c, def.id, now);
+    expect(after.running).toEqual([{ defId: def.id, expiry: now + def.durationMs, startedAt: now }]);
+  });
+
+  it("is a no-op for a defId that isn't in the catalog", () => {
+    const c = makeConfig();
+    const after = startCooldown(c, "cooldown-999", 1_000_000);
+    expect(after).toBe(c); // same reference — nothing changed
+  });
+
+  it("re-stamps an already-running def in place rather than duplicating it", () => {
+    const c = makeConfig();
+    const def = c.cooldowns[0];
+    const started = startCooldown(c, def.id, 1_000_000);
+    const restamped = startCooldown(started, def.id, 2_000_000);
+    expect(restamped.running).toHaveLength(1);
+    expect(restamped.running[0].expiry).toBe(2_000_000 + def.durationMs);
+  });
+});
+
+describe("restartCooldown", () => {
+  it("re-stamps a running cooldown back to the definition's full catalog duration", () => {
+    const c = makeConfig();
+    const def = c.cooldowns[0]; // 15m
+    // started short (tuned to 1m), then restart should snap back to the 15m catalog length
+    const started = startCooldown(c, def.id, 1_000_000, 60_000);
+    const after = restartCooldown(started, def.id, 2_000_000);
+    expect(after.running[0].expiry).toBe(2_000_000 + def.durationMs);
+  });
+});
+
+describe("clearCooldown", () => {
+  it("removes the running cooldown for a def and leaves the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    let started = startCooldown(c, a.id, 1_000_000);
+    started = startCooldown(started, b.id, 1_000_000);
+    const after = clearCooldown(started, a.id);
+    expect(after.running.map((r) => r.defId)).toEqual([b.id]);
+  });
+
+  it("is a no-op when nothing is running for that def", () => {
+    const c = makeConfig();
+    expect(clearCooldown(c, c.cooldowns[0].id).running).toEqual([]);
   });
 });
