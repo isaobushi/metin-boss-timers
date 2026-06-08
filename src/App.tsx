@@ -80,6 +80,7 @@ export default function App() {
           onRestart={cd.restart}
           onClear={cd.clear}
           onTune={cd.tune}
+          onDuplicate={cd.duplicate}
         />
         {body}
       </div>

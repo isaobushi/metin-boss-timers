@@ -819,7 +819,14 @@ body[data-window="settings"] {
   font: 600 9px/1.2 inherit;
   letter-spacing: 0.3px;
 }
+.cooldown-menu__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .cooldown-menu__item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -834,6 +841,23 @@ body[data-window="settings"] {
 }
 .cooldown-menu__item:hover {
   background: #ffffff14;
+}
+.cooldown-menu__dupe {
+  flex: none;
+  width: 22px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px dashed color-mix(in srgb, #7c6cff 45%, transparent);
+  background: transparent;
+  color: #b9aee6;
+  font: 700 14px/1 inherit;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.cooldown-menu__dupe:hover {
+  opacity: 1;
+  background: color-mix(in srgb, #7c6cff 22%, transparent);
+  color: #fff;
 }
 .cooldown-menu__tag {
   width: 30px;

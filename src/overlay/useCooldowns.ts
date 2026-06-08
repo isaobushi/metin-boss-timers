@@ -27,7 +27,7 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
     return () => clearInterval(t);
   }, []);
 
-  const { config, beginCooldown, reCooldown, stopCooldown, tuneCooldown } = cfg;
+  const { config, beginCooldown, reCooldown, stopCooldown, tuneCooldown, dupeCooldown } = cfg;
   const catalog: CooldownDef[] = config.cooldowns;
 
   // Best-effort ready cue (ADR-0002): compare each observation of the running set against
@@ -58,5 +58,5 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
   const start = useCallback((defId: string) => beginCooldown(defId, Date.now()), [beginCooldown]);
   const restart = useCallback((defId: string) => reCooldown(defId, Date.now()), [reCooldown]);
 
-  return { pills, catalog, start, restart, clear: stopCooldown, tune: tuneCooldown };
+  return { pills, catalog, start, restart, clear: stopCooldown, tune: tuneCooldown, duplicate: dupeCooldown };
 }

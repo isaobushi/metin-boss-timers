@@ -17,9 +17,10 @@ type Props = {
   onRestart: (defId: string) => void;
   onClear: (defId: string) => void;
   onTune: (defId: string, durationMs: number) => void;
+  onDuplicate: (defId: string) => void;
 };
 
-export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune }: Props) {
+export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune, onDuplicate }: Props) {
   return (
     <div className="cooldown-strip">
       {pills.length > 0 && (
@@ -41,14 +42,15 @@ export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onT
           ))}
         </div>
       )}
-      <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} />
+      <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} onDuplicate={onDuplicate} />
     </div>
   );
 }
 
 // The + picker: a compact dropdown of the catalog. Scrolling a row tunes that definition's
 // catalog duration (velocity-sensitive — see engine/cooldownTuning); one tap on a row then
-// starts it at the tuned value. Edge-aware placement (#4) is still a plain downward
+// starts it at the tuned value; the per-row + duplicates that definition (a numbered copy,
+// so the same boss can run twice at once). Edge-aware placement (#4) is still a plain downward
 // dropdown for now. The wheel listener is attached natively + non-passive (React 19
 // delegates `wheel` passively, so an `onWheel` prop could not preventDefault page scroll);
 // every tuning decision is delegated to the pure `applyNotch`, so this stays a thin shell.
@@ -56,10 +58,12 @@ function CooldownPicker({
   catalog,
   onStart,
   onTune,
+  onDuplicate,
 }: {
   catalog: CooldownDef[];
   onStart: (defId: string) => void;
   onTune: (defId: string, durationMs: number) => void;
+  onDuplicate: (defId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -122,20 +126,30 @@ function CooldownPicker({
         <div className="cooldown-menu" ref={menuRef}>
           <div className="cooldown-menu__hint">scroll to change time</div>
           {catalog.map((d) => (
-            <button
-              key={d.id}
-              className="cooldown-menu__item"
-              data-defid={d.id}
-              onClick={() => {
-                onStart(d.id);
-                setOpen(false);
-              }}
-              title="click to start · scroll to tune duration"
-            >
-              <span className="cooldown-menu__tag">{d.tag}</span>
-              <span className="cooldown-menu__name">{d.name}</span>
-              <span className="cooldown-menu__dur">{fmtDur(d.durationMs)}</span>
-            </button>
+            // data-defid on the row so scroll-to-tune works across the whole row, including
+            // over the duplicate button; the start and duplicate actions are separate buttons.
+            <div key={d.id} className="cooldown-menu__row" data-defid={d.id}>
+              <button
+                className="cooldown-menu__item"
+                onClick={() => {
+                  onStart(d.id);
+                  setOpen(false);
+                }}
+                title="click to start · scroll to tune duration"
+              >
+                <span className="cooldown-menu__tag">{d.tag}</span>
+                <span className="cooldown-menu__name">{d.name}</span>
+                <span className="cooldown-menu__dur">{fmtDur(d.durationMs)}</span>
+              </button>
+              <button
+                className="cooldown-menu__dupe"
+                onClick={() => onDuplicate(d.id)}
+                title={`add another ${d.name}`}
+                aria-label={`add another ${d.name}`}
+              >
+                +
+              </button>
+            </div>
           ))}
         </div>
       )}

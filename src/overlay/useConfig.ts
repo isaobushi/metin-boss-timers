@@ -14,6 +14,7 @@ import {
   startCooldown,
   restartCooldown,
   setCooldownDuration,
+  duplicateCooldown,
   clearCooldown,
   type Boss,
   type Config,
@@ -139,6 +140,9 @@ export function useConfig() {
     (defId: string, durationMs: number) => setConfig((c) => setCooldownDuration(c, defId, durationMs)),
     [],
   );
+  // Add another copy of a definition (the same boss spawns in two places); the pure action
+  // numbers it off the base name. Persists and cross-window syncs like any other edit.
+  const dupeCooldown = useCallback((defId: string) => setConfig((c) => duplicateCooldown(c, defId)), []);
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
@@ -166,6 +170,7 @@ export function useConfig() {
     reCooldown,
     stopCooldown,
     tuneCooldown,
+    dupeCooldown,
     selectBoss,
     resetConfig,
   };

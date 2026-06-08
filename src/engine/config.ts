@@ -73,6 +73,7 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
   { name: "Nemere", durationMs: 4 * MS_PER_HOUR },
   { name: "Meley", durationMs: 3 * MS_PER_HOUR },
   { name: "Balathor", durationMs: 3 * MS_PER_HOUR },
+  { name: "Northwind War Chief", durationMs: 1 * MS_PER_HOUR },
 ];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
@@ -242,6 +243,37 @@ export function setCooldownDuration(c: Config, defId: string, durationMs: number
     ...c,
     cooldowns: c.cooldowns.map((d) => (d.id === defId ? { ...d, durationMs: clampDuration(durationMs) } : d)),
   };
+}
+
+/** Split a trailing " <n>" off a name; an unsuffixed name counts as copy #1 of its base. */
+const splitSuffix = (name: string): { base: string; n: number } => {
+  const m = name.match(/^(.+) (\d+)$/);
+  return m ? { base: m[1], n: Number(m[2]) } : { base: name, n: 1 };
+};
+
+/**
+ * Duplicate a definition so the same boss can be tracked twice at once (it spawns in more
+ * than one place). The copy keeps the duration and is numbered off its base name —
+ * "Hydra" → "Hydra 2", duplicating again → "Hydra 3" — with a number-suffixed Tag
+ * ("Hyd2") so the two pills stay distinct in the strip. An unknown `defId` is a no-op.
+ */
+export function duplicateCooldown(c: Config, defId: string): Config {
+  const src = cooldownById(c, defId);
+  if (!src) return c;
+  const base = splitSuffix(src.name).base;
+  const maxN = c.cooldowns
+    .map((d) => splitSuffix(d.name))
+    .filter((s) => s.base === base)
+    .reduce((mx, s) => Math.max(mx, s.n), 0);
+  const n = maxN + 1;
+  const cooldownSeq = c.cooldownSeq + 1;
+  const dup: CooldownDef = {
+    id: `cooldown-${cooldownSeq}`,
+    name: `${base} ${n}`,
+    tag: `${deriveTag(base)}${n}`,
+    durationMs: src.durationMs,
+  };
+  return { ...c, cooldowns: [...c.cooldowns, dup], cooldownSeq };
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   startCooldown,
   restartCooldown,
   setCooldownDuration,
+  duplicateCooldown,
   clearCooldown,
   type Config,
 } from "./config";
@@ -38,7 +39,7 @@ describe("makeConfig", () => {
     expect(skills.some((s) => "pitch" in s)).toBe(false); // pitch fully removed
   });
 
-  it("seeds the five example dungeon cooldowns with their tags and durations", () => {
+  it("seeds the example dungeon cooldowns with their tags and durations", () => {
     const M = 60_000;
     const H = 3_600_000;
     const c = makeConfig();
@@ -49,9 +50,10 @@ describe("makeConfig", () => {
       ["Nemere", "Nem", 4 * H],
       ["Meley", "Mel", 3 * H],
       ["Balathor", "Bal", 3 * H],
+      ["Northwind War Chief", "Nor", 1 * H],
     ]);
-    expect(new Set(c.cooldowns.map((cd) => cd.id)).size).toBe(5); // ids are distinct
-    expect(c.cooldownSeq).toBe(5); // seq seeded past the last seeded id
+    expect(new Set(c.cooldowns.map((cd) => cd.id)).size).toBe(6); // ids are distinct
+    expect(c.cooldownSeq).toBe(6); // seq seeded past the last seeded id
     expect(c.running).toEqual([]); // nothing running on a fresh install
   });
 });
@@ -285,6 +287,41 @@ describe("setCooldownDuration", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(setCooldownDuration(c, "cooldown-999", 60_000)).toBe(c);
+  });
+});
+
+describe("duplicateCooldown", () => {
+  it("appends a copy of a definition, numbered so two of the same boss can run at once", () => {
+    const c = makeConfig();
+    const hydra = c.cooldowns[0]; // Hydra, 15m
+    const after = duplicateCooldown(c, hydra.id);
+    const dup = after.cooldowns[after.cooldowns.length - 1];
+    expect(after.cooldowns.length).toBe(c.cooldowns.length + 1);
+    expect([dup.name, dup.tag, dup.durationMs]).toEqual(["Hydra 2", "Hyd2", hydra.durationMs]);
+    expect(dup.id).toBe("cooldown-7"); // fresh id past the seeded six
+    expect(after.cooldownSeq).toBe(7);
+  });
+
+  it("counts up across repeated duplicates and duplicates of duplicates", () => {
+    const c = makeConfig();
+    const hydraId = c.cooldowns[0].id;
+    const two = duplicateCooldown(c, hydraId); // Hydra 2
+    const three = duplicateCooldown(two, hydraId); // Hydra 3 (next after the max suffix)
+    const dupOfTwo = duplicateCooldown(three, two.cooldowns[two.cooldowns.length - 1].id); // dup "Hydra 2"
+    const names = dupOfTwo.cooldowns.filter((d) => d.name.startsWith("Hydra")).map((d) => d.name);
+    expect(names).toEqual(["Hydra", "Hydra 2", "Hydra 3", "Hydra 4"]);
+  });
+
+  it("leaves the rest of the catalog and the running set untouched", () => {
+    const c = makeConfig();
+    const after = duplicateCooldown(c, c.cooldowns[0].id);
+    expect(after.cooldowns.slice(0, c.cooldowns.length)).toEqual(c.cooldowns);
+    expect(after.running).toBe(c.running);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(duplicateCooldown(c, "cooldown-999")).toBe(c);
   });
 });
 
