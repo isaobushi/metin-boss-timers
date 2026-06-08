@@ -33,7 +33,7 @@ export type ChipView = { id: string; label: string; running: boolean };
  * the dimmed style), never per frame.
  *
  * The timer map is reconciled against the current `inits` (keyed by id): new skills
- * get a fresh timer, removed skills are dropped, and a changed duration/pitch/label
+ * get a fresh timer, removed skills are dropped, and a changed duration/sound/label
  * is applied in place. Switching boss swaps the whole id set, so the outgoing boss's
  * timers are dropped and the incoming boss's are created fresh (stopped, full) — which
  * is exactly the "switching boss stops and resets all timers" rule, for free.
@@ -51,9 +51,9 @@ export function useTimers(inits: TimerInit[]) {
     setRunningIds(next);
   }, []);
 
-  // Reconcile on any change to the init set (ids/durations/labels/pitches). A fresh
+  // Reconcile on any change to the init set (ids/durations/labels/sounds). A fresh
   // timer for a new boss's skill is stopped at a full cycle, so a boss switch resets.
-  const sig = inits.map((i) => `${i.id}:${i.durationMs}:${i.pitch}:${i.label}`).join("|");
+  const sig = inits.map((i) => `${i.id}:${i.durationMs}:${i.soundId}:${i.label}`).join("|");
   useEffect(() => {
     const map = timers.current;
     const wanted = new Set<string>();
@@ -62,10 +62,10 @@ export function useTimers(inits: TimerInit[]) {
       const ex = map.get(i.id);
       if (!ex) {
         map.set(i.id, makeTimer(i));
-      } else if (ex.durationMs !== i.durationMs || ex.pitch !== i.pitch || ex.label !== i.label) {
+      } else if (ex.durationMs !== i.durationMs || ex.soundId !== i.soundId || ex.label !== i.label) {
         // A running timer keeps draining (new duration takes effect on its next loop);
         // a stopped one snaps to a fresh full cycle at the new duration.
-        map.set(i.id, ex.running ? { ...ex, label: i.label, pitch: i.pitch, durationMs: i.durationMs } : makeTimer(i));
+        map.set(i.id, ex.running ? { ...ex, label: i.label, soundId: i.soundId, durationMs: i.durationMs } : makeTimer(i));
       }
     }
     for (const id of [...map.keys()]) if (!wanted.has(id)) map.delete(id);

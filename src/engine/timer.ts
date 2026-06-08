@@ -12,8 +12,8 @@ export type Timer = {
   label: string;
   /** Length of one countdown cycle, in milliseconds. */
   durationMs: number;
-  /** Beep pitch (Hz) the audio adapter shifts the sample to; distinct per timer. */
-  pitch: number;
+  /** Which bundled sample the audio adapter plays for this timer's cues; opaque here. */
+  soundId: string;
   running: boolean;
   /** Wall-clock time (ms) the current cycle ends — valid only while running. */
   endsAt: number | null;
@@ -23,7 +23,7 @@ export type Timer = {
   lastSec: number;
 };
 
-export type TimerInit = { id: string; label: string; durationMs: number; pitch: number };
+export type TimerInit = { id: string; label: string; durationMs: number; soundId: string };
 
 /** A fresh, stopped timer sitting at a full cycle. */
 export function makeTimer(init: TimerInit): Timer {

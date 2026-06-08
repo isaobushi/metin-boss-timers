@@ -18,13 +18,17 @@ import {
 // transition and the cue sequence testable with no real time and no audio device.
 
 const mk = (durationMs = 20_000): Timer =>
-  makeTimer({ id: "t", label: "Skill 1", durationMs, pitch: 880 });
+  makeTimer({ id: "t", label: "Skill 1", durationMs, soundId: "rifle" });
 
 describe("makeTimer", () => {
   it("starts stopped at a full cycle", () => {
     const t = mk(20_000);
     expect(t.running).toBe(false);
     expect(remainingMsAt(t, 999_999)).toBe(20_000); // stopped: time of day is irrelevant
+  });
+
+  it("carries the skill's soundId onto the timer (opaque to the engine)", () => {
+    expect(mk().soundId).toBe("rifle");
   });
 });
 

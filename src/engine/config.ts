@@ -5,9 +5,10 @@
 // later seed the counters past any restored ids so regenerated ids never collide).
 
 import type { TimerInit } from "./timer";
+import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
-// { id; label; durationMs; pitch }) plus an optional global-hotkey binding. It stays a
+// { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
 // superset of `TimerInit`, so a boss's `skills` feed straight into `useTimers` with no
 // mapping (the engine just ignores `hotkey`). The hotkey is a canonical combo string
 // (see engine/hotkey.ts); absent means unbound.
@@ -42,9 +43,6 @@ export const ACCENTS: ReadonlyArray<readonly [string, string]> = [
   ["#ff7b3d", "#ffd166"],
 ];
 
-// Pitch palette assigned to new skills, so each skill's beep stays distinguishable.
-export const PITCHES: readonly number[] = [880, 523, 659, 740, 988, 440, 587, 784];
-
 // The shipped first boss's name (the overlay's default landing boss).
 const DEFAULT_BOSS_NAME = "Balathor";
 
@@ -60,19 +58,20 @@ const MAX_DURATION_MS = 999_000;
 const accentAt = (n: number): readonly [string, string] => ACCENTS[n % ACCENTS.length];
 
 /**
- * The next distinct pitch for a boss: the first palette pitch not already in use by
- * its skills; once the palette is exhausted, cycle by skill count so it still varies.
+ * The next distinct sound for a boss: the first sound not already in use by its skills;
+ * once the set is exhausted, cycle by skill count so a fresh boss's skills stay audibly
+ * distinct without configuration. (Mirrors the old `nextPitch` logic.)
  */
-const nextPitch = (skills: SkillCfg[]): number => {
-  const used = new Set(skills.map((s) => s.pitch));
-  return PITCHES.find((p) => !used.has(p)) ?? PITCHES[skills.length % PITCHES.length];
+const nextSound = (skills: SkillCfg[]): SoundId => {
+  const used = new Set(skills.map((s) => s.soundId));
+  return SOUND_IDS.find((s) => !used.has(s)) ?? SOUND_IDS[skills.length % SOUND_IDS.length];
 };
 
-const makeSkill = (seq: number, label: string, pitch: number): SkillCfg => ({
+const makeSkill = (seq: number, label: string, soundId: SoundId): SkillCfg => ({
   id: `skill-${seq}`,
   label,
   durationMs: DEFAULT_DURATION_MS,
-  pitch,
+  soundId,
 });
 
 /** A boss with a single default skill, so it's never empty. */
@@ -81,7 +80,7 @@ const makeBoss = (seq: number, skillSeq: number, name: string, accent: string, a
   name,
   accent,
   accent2,
-  skills: [makeSkill(skillSeq, "Skill 1", PITCHES[0])],
+  skills: [makeSkill(skillSeq, "Skill 1", DEFAULT_SOUND_ID)],
 });
 
 /** The shipped default config: one boss ("Balathor", violet) with two skills. */
@@ -119,7 +118,7 @@ export function deleteBoss(c: Config, id: string): Config {
   return { bosses: [boss], bossSeq, skillSeq };
 }
 
-/** Add a skill to a boss, auto-assigned a distinct pitch and a generic default label. */
+/** Add a skill to a boss, auto-assigned a distinct sound and a generic default label. */
 export function addSkill(c: Config, bossId: string): Config {
   const skillSeq = c.skillSeq + 1;
   return {
@@ -127,7 +126,7 @@ export function addSkill(c: Config, bossId: string): Config {
     skillSeq,
     bosses: c.bosses.map((b) =>
       b.id === bossId
-        ? { ...b, skills: [...b.skills, makeSkill(skillSeq, `Skill ${b.skills.length + 1}`, nextPitch(b.skills))] }
+        ? { ...b, skills: [...b.skills, makeSkill(skillSeq, `Skill ${b.skills.length + 1}`, nextSound(b.skills))] }
         : b,
     ),
   };
@@ -148,6 +147,11 @@ export function renameSkill(c: Config, bossId: string, skillId: string, label: s
 export function setSkillDuration(c: Config, bossId: string, skillId: string, durationMs: number): Config {
   const d = Math.max(MIN_DURATION_MS, Math.min(MAX_DURATION_MS, Math.round(durationMs) || MIN_DURATION_MS));
   return editSkill(c, bossId, skillId, (s) => ({ ...s, durationMs: d }));
+}
+
+/** Set a skill's sound (the bundled sample played on its cues). */
+export function setSkillSound(c: Config, bossId: string, skillId: string, soundId: SoundId): Config {
+  return editSkill(c, bossId, skillId, (s) => ({ ...s, soundId }));
 }
 
 /** Set (or, with `undefined`, clear) a skill's hotkey binding. Combo is stored canonical. */

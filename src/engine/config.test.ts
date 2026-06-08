@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ACCENTS,
-  PITCHES,
   FALLBACK_BOSS,
   addBoss,
   addSkill,
@@ -13,8 +12,10 @@ import {
   renameSkill,
   setSkillDuration,
   setSkillHotkey,
+  setSkillSound,
   type Config,
 } from "./config";
+import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
 // React, no storage. Ids are deterministic (owned seq counters), so these assertions
@@ -23,12 +24,14 @@ import {
 const lastBoss = (c: Config) => c.bosses[c.bosses.length - 1];
 
 describe("makeConfig", () => {
-  it("ships one boss with two distinct-pitch skills", () => {
+  it("ships one boss with two distinct-sound skills and no residual pitch", () => {
     const c = makeConfig();
     expect(c.bosses).toHaveLength(1);
     const skills = c.bosses[0].skills;
     expect(skills).toHaveLength(2);
-    expect(new Set(skills.map((s) => s.pitch)).size).toBe(2);
+    expect(skills.every((s) => isSoundId(s.soundId))).toBe(true);
+    expect(new Set(skills.map((s) => s.soundId)).size).toBe(2); // distinct by default
+    expect(skills.some((s) => "pitch" in s)).toBe(false); // pitch fully removed
   });
 });
 
@@ -144,23 +147,42 @@ describe("hotkey binding", () => {
   });
 });
 
-describe("distinct-pitch assignment", () => {
-  it("gives each new skill a distinct pitch until the palette is exhausted", () => {
+describe("distinct-sound assignment", () => {
+  it("gives each new skill a distinct sound until the set is exhausted", () => {
     let c = makeConfig();
     const bid = c.bosses[0].id;
-    while (bossById(c, bid)!.skills.length < PITCHES.length) c = addSkill(c, bid);
+    // makeConfig already seeded 2 skills; grow to exactly one per available sound
+    while (bossById(c, bid)!.skills.length < SOUND_IDS.length) c = addSkill(c, bid);
 
-    const pitches = bossById(c, bid)!.skills.map((s) => s.pitch);
-    expect(pitches).toHaveLength(PITCHES.length);
-    expect(new Set(pitches).size).toBe(PITCHES.length); // all distinct
+    const sounds = bossById(c, bid)!.skills.map((s) => s.soundId);
+    expect(sounds).toHaveLength(SOUND_IDS.length);
+    expect(new Set(sounds).size).toBe(SOUND_IDS.length); // all distinct
   });
 
-  it("falls back to cycling once every palette pitch is in use", () => {
+  it("falls back to cycling once every sound is in use", () => {
     let c = makeConfig();
     const bid = c.bosses[0].id;
-    while (bossById(c, bid)!.skills.length <= PITCHES.length) c = addSkill(c, bid);
-    // one more skill than the palette has pitches — last one reuses a palette value
-    const pitches = bossById(c, bid)!.skills.map((s) => s.pitch);
-    expect(PITCHES).toContain(pitches[pitches.length - 1]);
+    while (bossById(c, bid)!.skills.length <= SOUND_IDS.length) c = addSkill(c, bid);
+    // one more skill than there are sounds — the last reuses a known sound id
+    const sounds = bossById(c, bid)!.skills.map((s) => s.soundId);
+    expect(isSoundId(sounds[sounds.length - 1])).toBe(true);
+  });
+});
+
+describe("setSkillSound", () => {
+  it("sets a skill's soundId and leaves its siblings untouched", () => {
+    let c = makeConfig();
+    const bid = c.bosses[0].id;
+    const [s0, s1] = c.bosses[0].skills;
+
+    c = setSkillSound(c, bid, s1.id, "chime");
+    const after = bossById(c, bid)!.skills;
+    expect(after[1].soundId).toBe("chime");
+    expect(after[0].soundId).toBe(s0.soundId); // sibling unchanged
+  });
+
+  it("defaults the first skill of a fresh boss to the default sound", () => {
+    const c = addBoss(makeConfig());
+    expect(lastBoss(c).skills[0].soundId).toBe(DEFAULT_SOUND_ID);
   });
 });

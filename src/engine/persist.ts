@@ -5,6 +5,7 @@
 // plugin-store) lives separately and just hands raw values through these two functions.
 
 import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
+import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
 
 /**
  * Bumped whenever the persisted shape changes; future migrations branch on it. Only
@@ -85,10 +86,15 @@ function readBoss(b: unknown): Boss | null {
 }
 
 function readSkill(s: unknown): SkillCfg | null {
-  if (!isObj(s) || !isStr(s.id) || !isStr(s.label) || !isNum(s.durationMs) || !isNum(s.pitch)) return null;
-  const skill: SkillCfg = { id: s.id, label: s.label, durationMs: s.durationMs, pitch: s.pitch };
+  if (!isObj(s) || !isStr(s.id) || !isStr(s.label) || !isNum(s.durationMs)) return null;
+  // soundId is lenient: a known slug is kept, anything else (including a pre-feature skill
+  // that only has the dropped `pitch` field) falls back to the default. This is what lets
+  // old configs migrate in place instead of being wiped — so we deliberately DON'T bump
+  // SCHEMA_VERSION (a bump would route them to the defaults path).
+  const soundId = isSoundId(s.soundId) ? s.soundId : DEFAULT_SOUND_ID;
+  const skill: SkillCfg = { id: s.id, label: s.label, durationMs: s.durationMs, soundId };
   // hotkey is optional; keep a valid string, drop anything else (rebuilds explicitly so
-  // unknown extra fields are stripped, matching readBoss).
+  // unknown extra fields — including legacy `pitch` — are stripped, matching readBoss).
   if (isStr(s.hotkey)) skill.hotkey = s.hotkey;
   return skill;
 }

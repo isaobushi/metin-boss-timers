@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { addBoss, addSkill, makeConfig, setSkillHotkey, type Config } from "./config";
+import { addBoss, addSkill, makeConfig, setSkillHotkey, setSkillSound, type Config } from "./config";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
+import { DEFAULT_SOUND_ID } from "./sounds";
+
+// A pre-feature persisted boss: a v1 skill that carries `pitch` and no `soundId`, exactly
+// as configs saved before this feature look on disk.
+const legacyBoss = (pitch = 880) => ({
+  id: "boss-1",
+  name: "Balathor",
+  accent: "#7c6cff",
+  accent2: "#6a5bff",
+  skills: [{ id: "skill-1", label: "Skill 1", durationMs: 20_000, pitch, hotkey: "ctrl+shift+k" }],
+});
 
 // Persistence (de)serialization is pure: no disk, no clock. The store adapter just
 // pipes raw JSON through these. Tests simulate the disk round-trip with JSON.
@@ -30,6 +41,45 @@ describe("round-trip", () => {
 
     const restored = deserialize(throughDisk(c));
     expect(restored.bosses[0].skills[0].hotkey).toBe("ctrl+shift+k");
+  });
+});
+
+describe("soundId migration (lenient, no version bump)", () => {
+  it("preserves a pre-feature skill and gives it the default sound", () => {
+    // The crux: an old config (pitch, no soundId) must NOT reset — boss/skill/duration/
+    // hotkey survive intact and the skill simply gains the default sound.
+    const restored = deserialize({ version: SCHEMA_VERSION, bosses: [legacyBoss()] });
+    expect(restored.bosses).toHaveLength(1);
+    const skill = restored.bosses[0].skills[0];
+    expect(skill.id).toBe("skill-1");
+    expect(skill.durationMs).toBe(20_000);
+    expect(skill.hotkey).toBe("ctrl+shift+k");
+    expect(skill.soundId).toBe(DEFAULT_SOUND_ID);
+  });
+
+  it("drops the legacy pitch field rather than carrying it forward", () => {
+    const restored = deserialize({ version: SCHEMA_VERSION, bosses: [legacyBoss()] });
+    expect("pitch" in restored.bosses[0].skills[0]).toBe(false);
+  });
+
+  it("falls back to the default sound for an unknown soundId", () => {
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: [{ ...legacyBoss(), skills: [{ id: "skill-1", label: "S", durationMs: 1000, soundId: "trumpet" }] }],
+    };
+    expect(deserialize(payload).bosses[0].skills[0].soundId).toBe(DEFAULT_SOUND_ID);
+  });
+
+  it("round-trips a valid soundId through the disk hop", () => {
+    let c = makeConfig();
+    c = setSkillSound(c, c.bosses[0].id, c.bosses[0].skills[0].id, "chime");
+    const restored = deserialize(throughDisk(c));
+    expect(restored.bosses[0].skills[0].soundId).toBe("chime");
+  });
+
+  it("serialize omits the legacy pitch field entirely", () => {
+    const json = JSON.stringify(serialize(makeConfig()));
+    expect(json).not.toContain("pitch");
   });
 });
 
