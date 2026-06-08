@@ -44,12 +44,12 @@ function IceIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Angular lightning bolt. */
-function LightningIcon(p: SVGProps<SVGSVGElement>) {
+/** Mountain range — the earth element. */
+function EarthIcon(p: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...p}>
       <path
-        d="M13 2L4 14h6l-2 8 10-13h-6l3-7z"
+        d="M2 20h20L14.5 6.5l-4 6.5-2.5-3L2 20z"
         fill="currentColor"
         stroke="currentColor"
         strokeWidth="1"
@@ -113,7 +113,7 @@ export function TrashIcon(p: SVGProps<SVGSVGElement>) {
 const ELEMENT_ICONS = {
   fire: FireIcon,
   ice: IceIcon,
-  lightning: LightningIcon,
+  earth: EarthIcon,
   wind: WindIcon,
 } as const;
 

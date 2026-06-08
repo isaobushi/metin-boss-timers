@@ -14,11 +14,11 @@ export interface Token {
   side?: "L" | "R";
 }
 
-// Phase 1 — the four Templum Serpens elements (lightning, not earth; lightning is purple).
+// Phase 1 — the four Templum Serpens elements (earth, not lightning; earth is yellow).
 export const ELEMENTS: Token[] = [
   { id: "fire", label: "Fire", icon: "fire", color: "#ff6b3d" },
   { id: "ice", label: "Ice", icon: "ice", color: "#5cc6ff" },
-  { id: "lightning", label: "Lightning", icon: "lightning", color: "#a974ff" },
+  { id: "earth", label: "Earth", icon: "earth", color: "#f3c63a" },
   { id: "wind", label: "Wind", icon: "wind", color: "#7ce0a3" },
 ];
 
