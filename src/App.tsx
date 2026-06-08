@@ -7,12 +7,13 @@
 import { useEffect, useState } from "react";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
+import { SequenceScreen } from "./overlay/SequenceScreen";
 import { useConfig } from "./overlay/useConfig";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { unlockAudio } from "./overlay/audio";
 
-type Screen = { name: "select" } | { name: "timers" };
+type Screen = { name: "select" } | { name: "timers" } | { name: "sequence" };
 
 export default function App() {
   const cfg = useConfig();
@@ -31,6 +32,8 @@ export default function App() {
   let body;
   if (screen.name === "timers" && cfg.activeBoss) {
     body = <TimerScreen boss={cfg.activeBoss} onChangeBoss={() => setScreen({ name: "select" })} />;
+  } else if (screen.name === "sequence") {
+    body = <SequenceScreen onBack={() => setScreen({ name: "select" })} />;
   } else {
     body = (
       <BossSelect
@@ -40,6 +43,7 @@ export default function App() {
           setScreen({ name: "timers" });
         }}
         onOpenSettings={openSettingsWindow}
+        onOpenSequence={() => setScreen({ name: "sequence" })}
       />
     );
   }

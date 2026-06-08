@@ -6,6 +6,7 @@ type Props = {
   bosses: Boss[];
   onPick: (id: string) => void;
   onOpenSettings: () => void;
+  onOpenSequence: () => void;
 };
 
 /**
@@ -14,7 +15,7 @@ type Props = {
  * hotkeys, reset) lives behind ⚙, which opens the separate settings window. Each boss
  * button carries its accent so bosses read distinctly.
  */
-export function BossSelect({ bosses, onPick, onOpenSettings }: Props) {
+export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence }: Props) {
   return (
     <div className="panel boss-select">
       {/* doubles as the window's drag handle — grab the title to move the frameless overlay */}
@@ -32,6 +33,9 @@ export function BossSelect({ bosses, onPick, onOpenSettings }: Props) {
       <div className="boss-select__footer">
         <button className="btn-link" onClick={onOpenSettings} title="open settings window">
           ⚙ settings
+        </button>
+        <button className="btn-link" onClick={onOpenSequence} title="Templum Serpens sequence helper">
+          ▦ sequence
         </button>
         <button className="btn-link btn-link--danger" onClick={quitApp} title="close app">
           ✕ quit
