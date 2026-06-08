@@ -32,6 +32,12 @@ export type Config = {
   cooldowns: CooldownDef[];
   /** The currently-running cooldowns (absolute expiries); persisted across sessions. */
   running: RunningCooldown[];
+  /**
+   * "Cooldowns-only" overlay mode: when true the overlay shows just the cooldown strip,
+   * hiding the boss timer panel — a minimal floating cooldown HUD (issue #29). Persisted,
+   * so a player who only wants cooldowns sets it once.
+   */
+  cooldownsOnly: boolean;
   /** Monotonic counters owned here so ids never collide (even after deletes). */
   bossSeq: number;
   skillSeq: number;
@@ -124,7 +130,7 @@ function seedCooldowns(): CooldownDef[] {
  * seeded cooldown catalog (five example dungeons, nothing running yet).
  */
 export function makeConfig(): Config {
-  let c: Config = { bosses: [], cooldowns: [], running: [], bossSeq: 0, skillSeq: 0, cooldownSeq: 0 };
+  let c: Config = { bosses: [], cooldowns: [], running: [], cooldownsOnly: false, bossSeq: 0, skillSeq: 0, cooldownSeq: 0 };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
   c = addSkill(c, c.bosses[0].id);
@@ -215,6 +221,15 @@ export function removeSkill(c: Config, bossId: string, skillId: string): Config 
 
 export const bossById = (c: Config, id: string | null): Boss | undefined =>
   id == null ? undefined : c.bosses.find((b) => b.id === id);
+
+/**
+ * Toggle the standalone "cooldowns-only" overlay mode (issue #29). Pure setter so the flag
+ * rides the same persist + configSync path as every other edit — survives launches and
+ * reflects across windows. Leaves bosses, the catalog and the running set untouched.
+ */
+export function setCooldownsOnly(c: Config, on: boolean): Config {
+  return { ...c, cooldownsOnly: on };
+}
 
 // ---- cooldown actions (thin Config-level wrappers over the pure running-set ops) ----
 // Each resolves a `defId` against the catalog and applies the matching `cooldown.ts`

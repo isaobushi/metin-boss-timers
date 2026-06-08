@@ -25,9 +25,11 @@ type Props = {
   onClear: (defId: string) => void;
   onTune: (defId: string, durationMs: number) => void;
   onDuplicate: (defId: string) => void;
+  /** Lay the + out on the same row as the running pills (the compact cooldowns-only HUD, #29). */
+  inlineAdd?: boolean;
 };
 
-export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune, onDuplicate }: Props) {
+export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune, onDuplicate, inlineAdd }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
 
@@ -50,7 +52,12 @@ export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onT
   }, [recompute]);
 
   return (
-    <div className={`cooldown-strip${anchor.horizontal === "right" ? " cooldown-strip--right" : ""}`} ref={rootRef}>
+    <div
+      className={`cooldown-strip${anchor.horizontal === "right" ? " cooldown-strip--right" : ""}${
+        inlineAdd ? " cooldown-strip--inline-add" : ""
+      }`}
+      ref={rootRef}
+    >
       {pills.length > 0 && (
         <div className="cooldown-strip__pills">
           {pills.map((p) => (

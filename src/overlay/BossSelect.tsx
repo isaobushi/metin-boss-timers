@@ -7,6 +7,7 @@ type Props = {
   onPick: (id: string) => void;
   onOpenSettings: () => void;
   onOpenSequence: () => void;
+  onCooldownsOnly: () => void;
 };
 
 // Templum reads as its own dungeon, so it gets a fixed serpent-green accent rather than a
@@ -20,7 +21,7 @@ const TEMPLUM_ACCENT = { accent: "#48d597", accent2: "#2bb6c4" } as const;
  * read distinctly. The overlay stays compact during play — all editing (add/rename/delete
  * bosses & skills, pitches, hotkeys, reset) lives behind ⚙, the separate settings window.
  */
-export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence }: Props) {
+export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence, onCooldownsOnly }: Props) {
   return (
     <div className="panel boss-select">
       {/* doubles as the window's drag handle — grab the title to move the frameless overlay */}
@@ -44,6 +45,13 @@ export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence }: P
         </button>
       </div>
       <div className="boss-select__footer">
+        <button
+          className="btn-link"
+          onClick={onCooldownsOnly}
+          title="hide the boss panel — show only the cooldown strip"
+        >
+          ▭ cooldowns only
+        </button>
         <button className="btn-link" onClick={onOpenSettings} title="open settings window">
           ⚙ settings
         </button>

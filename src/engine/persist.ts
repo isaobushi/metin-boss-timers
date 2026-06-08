@@ -20,6 +20,8 @@ export type PersistedConfig = {
   cooldowns: CooldownDef[];
   /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
   running: RunningCooldown[];
+  /** Standalone "cooldowns-only" overlay mode, so it's set once and survives launches (#29). */
+  cooldownsOnly: boolean;
 };
 
 /**
@@ -30,7 +32,13 @@ export type PersistedConfig = {
  * wait that elapsed while the app was closed restores already past zero.
  */
 export function serialize(c: Config): PersistedConfig {
-  return { version: SCHEMA_VERSION, bosses: c.bosses, cooldowns: c.cooldowns, running: c.running };
+  return {
+    version: SCHEMA_VERSION,
+    bosses: c.bosses,
+    cooldowns: c.cooldowns,
+    running: c.running,
+    cooldownsOnly: c.cooldownsOnly,
+  };
 }
 
 /**
@@ -48,10 +56,14 @@ export function deserialize(raw: unknown): Config {
   // never wiped), and a single malformed entry is dropped rather than nuking the config.
   const cooldowns = readCooldowns(raw);
   const running = readRunning(raw);
+  // Lenient like the cooldown fields: absent or non-boolean (a pre-feature config) → false,
+  // so an old config preserves its bosses and simply boots with the panel shown.
+  const cooldownsOnly = isObj(raw) && raw.cooldownsOnly === true;
   return {
     bosses,
     cooldowns,
     running,
+    cooldownsOnly,
     bossSeq: maxIdSeq(bosses.map((b) => b.id), "boss"),
     skillSeq: maxIdSeq(skillIds, "skill"),
     cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),

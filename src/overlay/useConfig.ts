@@ -20,6 +20,7 @@ import {
   retagCooldown,
   removeCooldown,
   clearCooldown,
+  setCooldownsOnly,
   type Boss,
   type Config,
 } from "../engine/config";
@@ -168,6 +169,11 @@ export function useConfig() {
   );
   const deleteCooldown = useCallback((defId: string) => setConfig((c) => removeCooldown(c, defId)), []);
 
+  // Standalone "cooldowns-only" overlay mode (issue #29): hide the boss panel, leaving just
+  // the strip. Rides the same setConfig → persist + configSync path, so it sticks across
+  // launches and reflects in the other window.
+  const setCooldownsOnlyMode = useCallback((on: boolean) => setConfig((c) => setCooldownsOnly(c, on)), []);
+
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
   // Wipe all customization back to the shipped defaults (persisted by the save effect).
@@ -200,6 +206,7 @@ export function useConfig() {
     editCooldownTag,
     editCooldownDuration,
     deleteCooldown,
+    setCooldownsOnlyMode,
     selectBoss,
     resetConfig,
   };

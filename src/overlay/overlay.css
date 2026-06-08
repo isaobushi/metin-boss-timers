@@ -789,6 +789,33 @@ body[data-window="settings"] {
   transform: translateX(268px);
 }
 
+/* ---- cooldowns-only mode (issue #29): the strip stands alone, no boss panel ---- */
+/* With the panel hidden its title — the usual window drag handle — goes too, so this slim
+   bar restores both: a grip carrying the drag region (its flex:1 makes most of the bar
+   grabbable) and the link back to the full panel. It carries its own faint backdrop since
+   there's no panel behind it to read against the game. Sized to the strip width to align. */
+.cooldown-only {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 316px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(14, 11, 22, 0.7);
+  border: 1px solid rgba(124, 108, 255, 0.25);
+  backdrop-filter: blur(10px);
+}
+.cooldown-only__grip {
+  flex: 1;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #6f6885;
+  cursor: grab;
+}
+.cooldown-only .btn-link {
+  margin-top: 0;
+}
+
 /* ---- cooldown strip (Variant A "whisper row") ---- */
 /* An app-level strip above the boss panel, present on every overlay screen. 316px to
    align flush with the panel edge. Deliberately subordinate to the boss-skill chips:
@@ -817,6 +844,22 @@ body[data-window="settings"] {
 }
 .cooldown-strip--right .cooldown-pill {
   direction: ltr;
+}
+/* Cooldowns-only HUD (#29): the running pills and the + share one row instead of stacking,
+   so the standalone strip reads as a single compact line. The pills lay out inline (not the
+   panel-aligned 4-up grid) so the + sits right after the last one; when the overlay is dragged
+   to the right edge they all hug that side, matching the edge-aware menu direction. */
+.cooldown-strip--inline-add {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cooldown-strip--inline-add .cooldown-strip__pills {
+  display: flex;
+  flex-wrap: wrap;
+}
+.cooldown-strip--inline-add.cooldown-strip--right {
+  justify-content: flex-end;
 }
 .cooldown-pill {
   display: flex;
@@ -887,7 +930,10 @@ body[data-window="settings"] {
   top: 30px;
   left: 0;
   z-index: 50;
-  width: 184px;
+  /* Size the curtain to its longest row so names never wrap; floor at 184px so a catalog of
+     short names still reads as a tidy menu rather than a cramped sliver. */
+  width: max-content;
+  min-width: 184px;
   display: flex;
   flex-direction: column;
   padding: 5px;
@@ -967,6 +1013,7 @@ body[data-window="settings"] {
 }
 .cooldown-menu__name {
   flex: 1;
+  white-space: nowrap; /* the curtain widens to fit instead — never break a dungeon name */
 }
 .cooldown-menu__dur {
   margin-left: auto;

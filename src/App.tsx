@@ -65,14 +65,37 @@ export default function App() {
         }}
         onOpenSettings={openSettings}
         onOpenSequence={() => setScreen({ name: "sequence" })}
+        onCooldownsOnly={() => cfg.setCooldownsOnlyMode(true)}
       />
     );
   }
+
+  // Standalone "cooldowns-only" mode (issue #29): hide the boss panel so the overlay is just
+  // the strip. The panel title normally doubles as the window's drag handle, so when it's gone
+  // we render a slim bar that carries both the drag region and the way back to the full panel.
+  const cooldownsOnly = cfg.config.cooldownsOnly;
 
   return (
     <>
       {inBrowser && <DemoScene />}
       <div className="overlay" ref={overlayRef}>
+        {cooldownsOnly && (
+          <div className="cooldown-only">
+            <span className="cooldown-only__grip" data-tauri-drag-region title="drag to move">
+              ⠿
+            </span>
+            <button
+              className="btn-link"
+              onClick={() => cfg.setCooldownsOnlyMode(false)}
+              title="back to the dungeon panel"
+            >
+              ‹ Dungeons
+            </button>
+            <button className="btn-link" onClick={openSettings} title="open settings window">
+              ⚙
+            </button>
+          </div>
+        )}
         <CooldownStrip
           pills={cd.pills}
           catalog={cd.catalog}
@@ -81,8 +104,9 @@ export default function App() {
           onClear={cd.clear}
           onTune={cd.tune}
           onDuplicate={cd.duplicate}
+          inlineAdd={cooldownsOnly}
         />
-        {body}
+        {!cooldownsOnly && body}
       </div>
       {showSettings && (
         <div className="settings-modal">

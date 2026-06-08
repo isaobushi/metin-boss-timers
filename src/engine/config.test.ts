@@ -22,6 +22,7 @@ import {
   retagCooldown,
   removeCooldown,
   clearCooldown,
+  setCooldownsOnly,
   type Config,
 } from "./config";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
@@ -59,6 +60,25 @@ describe("makeConfig", () => {
     expect(new Set(c.cooldowns.map((cd) => cd.id)).size).toBe(6); // ids are distinct
     expect(c.cooldownSeq).toBe(6); // seq seeded past the last seeded id
     expect(c.running).toEqual([]); // nothing running on a fresh install
+  });
+
+  it("ships with the boss panel shown (cooldowns-only mode off)", () => {
+    expect(makeConfig().cooldownsOnly).toBe(false);
+  });
+});
+
+describe("cooldowns-only overlay mode", () => {
+  it("toggles the flag without disturbing the rest of the config", () => {
+    const c = makeConfig();
+    const on = setCooldownsOnly(c, true);
+    expect(on.cooldownsOnly).toBe(true);
+    // everything else is untouched — bosses, catalog and running set ride alongside it
+    expect(on.bosses).toEqual(c.bosses);
+    expect(on.cooldowns).toEqual(c.cooldowns);
+    expect(on.running).toEqual(c.running);
+
+    const off = setCooldownsOnly(on, false);
+    expect(off.cooldownsOnly).toBe(false);
   });
 });
 
