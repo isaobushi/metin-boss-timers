@@ -2,10 +2,12 @@
 // the boss panel on every overlay screen. Deliberately quieter than the boss-skill chips —
 // text-only, low opacity, no bars; only a Ready pill lights up. Left-click a pill restarts
 // it, right-click clears it (the wheel does NOT live on running pills — duration tuning is
-// the picker's job in a later slice). The + opens a plain catalog dropdown; clicking a row
-// starts that cooldown at its catalog duration in one tap. (Edge-aware placement is #4.)
-import { useState } from "react";
+// the picker's job, see CooldownPicker). The + opens a plain catalog dropdown; clicking a
+// row starts that cooldown at its (possibly tuned) catalog duration in one tap. (Edge-aware
+// placement is #4.)
+import { useEffect, useRef, useState } from "react";
 import { fmtDur, type CooldownDef } from "../engine/cooldown";
+import { GAP_MS, applyNotch } from "../engine/cooldownTuning";
 import type { CooldownPill } from "./useCooldowns";
 
 type Props = {
@@ -14,9 +16,10 @@ type Props = {
   onStart: (defId: string) => void;
   onRestart: (defId: string) => void;
   onClear: (defId: string) => void;
+  onTune: (defId: string, durationMs: number) => void;
 };
 
-export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear }: Props) {
+export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear, onTune }: Props) {
   return (
     <div className="cooldown-strip">
       {pills.length > 0 && (
@@ -38,16 +41,73 @@ export function CooldownStrip({ pills, catalog, onStart, onRestart, onClear }: P
           ))}
         </div>
       )}
-      <CooldownPicker catalog={catalog} onStart={onStart} />
+      <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} />
     </div>
   );
 }
 
-// The + picker: a compact dropdown of the catalog. One tap on a row starts that cooldown
-// at its catalog duration. No wheel tuning (#3) and no edge-aware placement (#4) yet — a
-// plain downward dropdown is intentionally enough for this slice.
-function CooldownPicker({ catalog, onStart }: { catalog: CooldownDef[]; onStart: (defId: string) => void }) {
+// The + picker: a compact dropdown of the catalog. Scrolling a row tunes that definition's
+// catalog duration (velocity-sensitive — see engine/cooldownTuning); one tap on a row then
+// starts it at the tuned value. Edge-aware placement (#4) is still a plain downward
+// dropdown for now. The wheel listener is attached natively + non-passive (React 19
+// delegates `wheel` passively, so an `onWheel` prop could not preventDefault page scroll);
+// every tuning decision is delegated to the pure `applyNotch`, so this stays a thin shell.
+function CooldownPicker({
+  catalog,
+  onStart,
+  onTune,
+}: {
+  catalog: CooldownDef[];
+  onStart: (defId: string) => void;
+  onTune: (defId: string, durationMs: number) => void;
+}) {
   const [open, setOpen] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  // Latest catalog, read inside the native listener without re-subscribing on every tune.
+  const catalogRef = useRef(catalog);
+  useEffect(() => {
+    catalogRef.current = catalog;
+  });
+  // Per-spin state the pure engine needs: streak, which row, when the last notch landed,
+  // and the working duration (so a fast burst of notches accumulates before React commits
+  // the catalog change). All refs — they steer feel, never the render.
+  const streak = useRef(0);
+  const lastRow = useRef<string | null>(null);
+  const lastAt = useRef(0);
+  const working = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+    const el = menuRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      const row = (e.target as HTMLElement).closest<HTMLElement>("[data-defid]");
+      if (!row) return;
+      const defId = row.dataset.defid!;
+      const def = catalogRef.current.find((d) => d.id === defId);
+      if (!def || e.deltaY === 0) return;
+      e.preventDefault(); // hold the page still while the wheel tunes
+
+      const now = Date.now();
+      const gapMs = now - lastAt.current;
+      const sameRow = lastRow.current === defId;
+      const direction: 1 | -1 = e.deltaY < 0 ? 1 : -1; // scroll up = add, down = subtract
+      // Continue from the working value during a fast same-row burst; otherwise (re)seed
+      // from the committed catalog duration so a fresh spin starts from the truth on screen.
+      const base = sameRow && gapMs < GAP_MS ? working.current : def.durationMs;
+      const out = applyNotch(base, streak.current, direction, gapMs, sameRow);
+
+      working.current = out.durationMs;
+      streak.current = out.streak;
+      lastRow.current = defId;
+      lastAt.current = now;
+      onTune(defId, out.durationMs);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [open, onTune]);
+
   return (
     <div className="cooldown-picker">
       <button
@@ -59,15 +119,18 @@ function CooldownPicker({ catalog, onStart }: { catalog: CooldownDef[]; onStart:
         +
       </button>
       {open && (
-        <div className="cooldown-menu">
+        <div className="cooldown-menu" ref={menuRef}>
+          <div className="cooldown-menu__hint">scroll to change time</div>
           {catalog.map((d) => (
             <button
               key={d.id}
               className="cooldown-menu__item"
+              data-defid={d.id}
               onClick={() => {
                 onStart(d.id);
                 setOpen(false);
               }}
+              title="click to start · scroll to tune duration"
             >
               <span className="cooldown-menu__tag">{d.tag}</span>
               <span className="cooldown-menu__name">{d.name}</span>

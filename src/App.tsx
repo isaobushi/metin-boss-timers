@@ -79,6 +79,7 @@ export default function App() {
           onStart={cd.start}
           onRestart={cd.restart}
           onClear={cd.clear}
+          onTune={cd.tune}
         />
         {body}
       </div>

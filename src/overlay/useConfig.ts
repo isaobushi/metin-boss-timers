@@ -13,6 +13,7 @@ import {
   setSkillSound,
   startCooldown,
   restartCooldown,
+  setCooldownDuration,
   clearCooldown,
   type Boss,
   type Config,
@@ -131,6 +132,13 @@ export function useConfig() {
     [],
   );
   const stopCooldown = useCallback((defId: string) => setConfig((c) => clearCooldown(c, defId)), []);
+  // Velocity-wheel tuning in the + picker: persist the tuned catalog duration so it sticks
+  // and cross-window syncs like any other edit. The wheel math (engine/cooldownTuning) is
+  // the picker's; this only commits the result.
+  const tuneCooldown = useCallback(
+    (defId: string, durationMs: number) => setConfig((c) => setCooldownDuration(c, defId, durationMs)),
+    [],
+  );
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
@@ -157,6 +165,7 @@ export function useConfig() {
     beginCooldown,
     reCooldown,
     stopCooldown,
+    tuneCooldown,
     selectBoss,
     resetConfig,
   };

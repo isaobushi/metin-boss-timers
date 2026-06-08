@@ -15,6 +15,7 @@ import {
   setSkillSound,
   startCooldown,
   restartCooldown,
+  setCooldownDuration,
   clearCooldown,
   type Config,
 } from "./config";
@@ -252,6 +253,38 @@ describe("restartCooldown", () => {
     const started = startCooldown(c, def.id, 1_000_000, 60_000);
     const after = restartCooldown(started, def.id, 2_000_000);
     expect(after.running[0].expiry).toBe(2_000_000 + def.durationMs);
+  });
+});
+
+describe("setCooldownDuration", () => {
+  it("tunes a definition's catalog duration so it sticks for future starts", () => {
+    const c = makeConfig();
+    const def = c.cooldowns[0]; // Hydra, 15m
+    const after = setCooldownDuration(c, def.id, 20 * 60_000);
+    expect(after.cooldowns[0].durationMs).toBe(20 * 60_000);
+    // and a fresh start now uses the tuned catalog length, not the old 15m
+    const started = startCooldown(after, def.id, 1_000_000);
+    expect(started.running[0].expiry).toBe(1_000_000 + 20 * 60_000);
+  });
+
+  it("leaves the other definitions and the running set untouched", () => {
+    const c = makeConfig();
+    const [a, b] = c.cooldowns;
+    const after = setCooldownDuration(c, a.id, 30 * 60_000);
+    expect(after.cooldowns[1]).toEqual(b);
+    expect(after.running).toBe(c.running);
+  });
+
+  it("clamps the tuned duration to [1m, 12h]", () => {
+    const c = makeConfig();
+    const id = c.cooldowns[0].id;
+    expect(setCooldownDuration(c, id, 0).cooldowns[0].durationMs).toBe(60_000);
+    expect(setCooldownDuration(c, id, 99 * 3_600_000).cooldowns[0].durationMs).toBe(12 * 3_600_000);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(setCooldownDuration(c, "cooldown-999", 60_000)).toBe(c);
   });
 });
 

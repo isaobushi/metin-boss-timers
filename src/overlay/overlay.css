@@ -810,6 +810,15 @@ body[data-window="settings"] {
   box-shadow: 0 12px 30px #000c;
   backdrop-filter: blur(8px);
 }
+.cooldown-menu__hint {
+  /* Always present, so it never reflows the rows mid-scroll. A quiet how-to header. */
+  padding: 2px 4px 4px;
+  text-align: center;
+  color: #b9aee6;
+  opacity: 0.65;
+  font: 600 9px/1.2 inherit;
+  letter-spacing: 0.3px;
+}
 .cooldown-menu__item {
   display: flex;
   align-items: center;

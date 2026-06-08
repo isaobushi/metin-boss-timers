@@ -7,6 +7,7 @@
 import type { TimerInit } from "./timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
 import { type CooldownDef, type RunningCooldown, clear, deriveTag, restart, start } from "./cooldown";
+import { clampDuration } from "./cooldownTuning";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -226,6 +227,21 @@ export function startCooldown(c: Config, defId: string, now: number, durationMs?
   const def = cooldownById(c, defId);
   if (!def) return c;
   return { ...c, running: start(c.running, def, now, durationMs ?? def.durationMs) };
+}
+
+/**
+ * Tune a definition's *catalog* duration (the velocity-wheel gesture in the `+` picker).
+ * Unlike `startCooldown`'s per-start `durationMs`, this mutates the definition itself, so
+ * the tuned length sticks and persists — future starts and restarts use it. The value is
+ * clamped to the tunable [1m, 12h] band (shared with the wheel). An unknown `defId` is a
+ * no-op (the same config is returned).
+ */
+export function setCooldownDuration(c: Config, defId: string, durationMs: number): Config {
+  if (!cooldownById(c, defId)) return c;
+  return {
+    ...c,
+    cooldowns: c.cooldowns.map((d) => (d.id === defId ? { ...d, durationMs: clampDuration(durationMs) } : d)),
+  };
 }
 
 /**
