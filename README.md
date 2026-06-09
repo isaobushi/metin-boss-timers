@@ -48,8 +48,8 @@ DungeonAid is a paid app on the **Microsoft Store**. Distributing through the
 Store means Microsoft signs the package — so there's no "unknown publisher" /
 SmartScreen warning to click through, and updates arrive automatically.
 
-<!-- STORE LINK: replace this line with the apps.microsoft.com listing once the app is published (#17 / #18). -->
-**→ Microsoft Store listing — _link goes live when the app is published._**
+<!-- STORE LINK: replace __STORE_URL__ below with the real apps.microsoft.com URL, then mark this PR ready & merge (closes #18 / completes #10). -->
+**→ [Get DungeonAid on the Microsoft Store](__STORE_URL__)**
 
 Prefer to try before you buy? The [free web demo](https://metin-boss-timers.vercel.app)
 runs the same UI in your browser — no install, no account.
