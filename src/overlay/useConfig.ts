@@ -102,6 +102,7 @@ export function useConfig() {
   const createBoss = useCallback((): string => {
     // Seam: refuse a new boss when over the tier cap (no-op + return the existing last boss so the
     // caller never navigates to a boss that wasn't created). Always allowed under dev `subscribed`.
+    // TODO(#56): silent return is a placeholder — replace with the cap-hit nudge ("what Pro unlocks").
     if (!allows(entitlement, config, "addBoss")) return config.bosses[config.bosses.length - 1].id;
     const next = addBoss(config);
     setConfig(next);
