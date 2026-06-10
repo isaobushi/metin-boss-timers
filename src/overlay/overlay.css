@@ -1011,6 +1011,37 @@ body[data-window="settings"] {
 .dock-acc__row.is-done .dock-acc__done {
   opacity: 0.5;
 }
+/* The ladder read-outcome pair (#45): ✓ success + ✗ fail, shown only on a ready ladder row. The ✗
+   is the ✓'s sibling glyph button, tinted toward the loss accent so the two outcomes read apart. */
+.dock-acc__reads {
+  flex: none;
+  display: flex;
+  gap: 2px;
+}
+.dock-acc__fail {
+  flex: none;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #ff6b8b;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dock-acc__fail:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+/* A capped ladder row — the inert trophy. No gesture, no gate countdown; the rung readout under
+   the name reads `… ✓ max`. Dimmed and gold-tinted so a maxed ladder reads as done-and-proud. */
+.dock-acc__row.is-capped .dock-acc__name {
+  opacity: 0.7;
+}
+.dock-acc__row.is-capped .dock-acc__ladder {
+  color: #ffd166;
+  opacity: 1;
+}
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */
 /* An app-level strip above the boss panel, present on every overlay screen. 316px to

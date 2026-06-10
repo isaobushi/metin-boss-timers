@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { badge, readout } from "../engine/cooldown";
 import {
   alarmCrossings,
-  doneCount,
   inAlarm,
   isDue,
   ladderProgress,
@@ -10,6 +9,7 @@ import {
   positionOf,
   readyCrossings,
   remainingMs,
+  routineToDo,
   type RunningRecurring,
 } from "../engine/recurring";
 import { playCooldownReady } from "./audio";
@@ -79,7 +79,7 @@ export type RoutineDatum = { ready: number; total: number };
  */
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
-  const { config, markRecurringDone } = cfg;
+  const { config, markRecurringDone, markReadOutcome } = cfg;
   const catalog = config.recurring;
   const running = config.recurringRunning;
   const progress = config.recurringProgress;
@@ -160,15 +160,19 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     };
   });
 
-  // The ✓ bar nudge — how many gate routines still need doing. `doneCount` gives the satisfied
-  // count; the to-do count is the rest (every gate def is either done or ready), so the bar shows
-  // what's left and falls quiet at zero instead of sitting full.
-  const { done, total } = doneCount(running, gateDefs, now);
-  const routineDatum: RoutineDatum = { ready: total - done, total };
+  // The ✓ bar nudge — how many gate routines still need doing, of the total. A capped ladder def is
+  // a finished trophy, not an outstanding to-do, so `routineToDo` drops it from the count entirely
+  // (#45) — otherwise the bar would sit forever nudging a ladder you've maxed.
+  const routineDatum: RoutineDatum = routineToDo(running, gateDefs, progress, now);
 
   // Both gestures are the one `markDone` restamp: ↻ "feed/re-project" for deadlines, ✓ "mark done"
   // for routines. Same transform, surfaced under names that read right for each tool.
   const markDone = useCallback((defId: string) => markRecurringDone(defId, Date.now()), [markRecurringDone]);
+  // The ladder read-outcome gesture (#45): ✓ advances the rank + restamps the gate, ✗ restamps only.
+  const markRead = useCallback(
+    (defId: string, success: boolean) => markReadOutcome(defId, Date.now(), success),
+    [markReadOutcome],
+  );
 
-  return { rows, datum, refresh: markDone, routineRows, routineDatum, markDone };
+  return { rows, datum, refresh: markDone, routineRows, routineDatum, markDone, markRead };
 }

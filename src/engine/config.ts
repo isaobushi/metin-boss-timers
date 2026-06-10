@@ -13,6 +13,8 @@ import {
   type RecurringProgress,
   type RunningRecurring,
   markDone,
+  positionOf,
+  setPosition,
 } from "./recurring";
 import { clampDuration } from "./cooldownTuning";
 
@@ -458,6 +460,25 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
   const def = recurringById(c, defId);
   if (!def) return c;
   return { ...c, recurringRunning: markDone(c.recurringRunning, def, now) };
+}
+
+/**
+ * Log the outcome of a ladder read for `defId` (issue #45) — the two-outcome gesture a ladder row
+ * shows in place of the plain gate's single ✓. Either outcome restamps the 24h gate (`markDone` —
+ * a read happened, so the daily cooldown starts), but only `success` advances the rank: `position +
+ * 1`, clamped to the ladder's cap (a ✓ at the cap is a no-op on position — the row is already the
+ * inert trophy). A `fail` burns the book with no advance — gate only. An unknown `defId` is a no-op.
+ *
+ * Used only on ladder-bearing gates; a plain gate keeps `markRecurring`. The gate restamp is the
+ * same transform, so the live cue and the routine counter treat a read exactly like a mark-done.
+ */
+export function markRead(c: Config, defId: string, now: number, success: boolean): Config {
+  const def = recurringById(c, defId);
+  if (!def) return c;
+  const recurringRunning = markDone(c.recurringRunning, def, now);
+  if (!success) return { ...c, recurringRunning }; // failed read — gate restamped, rank untouched
+  const next = positionOf(c.recurringProgress, defId) + 1;
+  return { ...c, recurringRunning, recurringProgress: setPosition(c.recurringProgress, defId, next, def.ladderId) };
 }
 
 // ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----

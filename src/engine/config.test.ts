@@ -23,6 +23,7 @@ import {
   removeCooldown,
   clearCooldown,
   markRecurring,
+  markRead,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -612,5 +613,49 @@ describe("markRecurring (refresh / start gesture)", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(markRecurring(c, "recurring-999", 1_000)).toBe(c);
+  });
+});
+
+describe("markRead (ladder read-outcome gesture, #45)", () => {
+  // Skill Books is the first ladder def (recurring-4, ladderId class-skill, cap 55). Both outcomes
+  // restamp the 24h gate (a read happened either way); only a success advances the rank.
+  const books = (c: Config) => c.recurring[3];
+
+  it("✓ (success) advances the rank by one AND restamps the gate", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 1 }]); // rank advanced
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("✗ (fail) restamps the gate only — the book is burned, the rank is untouched", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = markRead(c, def.id, 1_000, false);
+    expect(after.recurringProgress).toEqual([]); // no advance
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("accumulates successive successful reads", () => {
+    const c = makeConfig();
+    const def = books(c);
+    let after = markRead(c, def.id, 1_000, true);
+    after = markRead(after, def.id, 2_000, false); // a fail in between doesn't advance
+    after = markRead(after, def.id, 3_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 2 }]);
+  });
+
+  it("✓ at the cap is a no-op on position (clamped to the book-relevant cap)", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = { ...base, recurringProgress: [{ defId: def.id, position: 55 }] }; // already at G1, the cap
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 55 }]); // clamped, no overshoot
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(markRead(c, "recurring-999", 1_000, true)).toBe(c);
   });
 });

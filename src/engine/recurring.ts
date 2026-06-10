@@ -355,3 +355,25 @@ export function setPosition(
   const without = progress.filter((p) => p.defId !== defId);
   return [...without, { defId, position: clamped }];
 }
+
+/** Whether a def's ladder has reached its cap — the inert/trophy end state (false for a plain gate). */
+export const isCapped = (def: RecurringDef, progress: RecurringProgress[]): boolean =>
+  ladderProgress(def.ladderId, positionOf(progress, def.id))?.capped ?? false;
+
+/**
+ * The ✓ routine nudge (issue #45): how many gate routines still need doing, of the total — but with
+ * capped ladder defs dropped entirely. A maxed ladder is a finished trophy, not an outstanding chore,
+ * so it counts toward neither `ready` nor `total` (otherwise the bar would nudge a ladder forever).
+ * Over the surviving defs the to-do count is `total - done` (every gate is either done or ready),
+ * reusing `doneCount`. Kind-free like its siblings: the caller hands in the gate defs + progress.
+ */
+export function routineToDo(
+  running: RunningRecurring[],
+  defs: RecurringDef[],
+  progress: RecurringProgress[],
+  now: number,
+): { ready: number; total: number } {
+  const active = defs.filter((d) => !isCapped(d, progress));
+  const { done, total } = doneCount(running, active, now);
+  return { ready: total - done, total };
+}

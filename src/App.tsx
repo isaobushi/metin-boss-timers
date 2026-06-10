@@ -123,7 +123,7 @@ export default function App() {
   } else if (panel === "routine") {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
-    belowPanel = <RoutineAccordion rows={rec.routineRows} onDone={rec.markDone} />;
+    belowPanel = <RoutineAccordion rows={rec.routineRows} onDone={rec.markDone} onRead={rec.markRead} />;
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).
     belowPanel = <SequenceScreen onBack={() => setPanel("skills")} />;

@@ -8,6 +8,7 @@ import {
   alarmCrossings,
   doneCount,
   inAlarm,
+  isCapped,
   isDue,
   ladderCap,
   ladderProgress,
@@ -16,6 +17,7 @@ import {
   positionOf,
   readyCrossings,
   remainingMs,
+  routineToDo,
   setPosition,
 } from "./recurring";
 
@@ -416,5 +418,35 @@ describe("positionOf / setPosition (the progress map)", () => {
   it("clamps to [0, cap] for the ladder", () => {
     expect(positionOf(setPosition([], "d", 999, "class-skill"), "d")).toBe(55); // capped
     expect(positionOf(setPosition([], "d", -4, "class-skill"), "d")).toBe(0); // floored
+  });
+});
+
+describe("isCapped / routineToDo (the ✓ nudge, #45)", () => {
+  // A ladder def at its cap is a finished trophy — it must drop out of the routine to-do nudge so
+  // the bar doesn't sit forever counting a maxed ladder as an outstanding chore.
+  const HOUR = 3_600_000;
+  const ladderDef = (id: string, ladderId: string): RecurringDef => ({ id, name: id, durationMs: 24 * HOUR, kind: "gate", ladderId });
+  const plainGate = (id: string): RecurringDef => def(id, 24 * HOUR, "gate");
+
+  it("isCapped is true only at the ladder cap, false for a plain gate", () => {
+    const lang = ladderDef("lang", "language"); // cap 20
+    expect(isCapped(lang, [{ defId: "lang", position: 20 }])).toBe(true);
+    expect(isCapped(lang, [{ defId: "lang", position: 19 }])).toBe(false);
+    expect(isCapped(lang, [])).toBe(false); // unstarted
+    expect(isCapped(plainGate("books"), [{ defId: "books", position: 999 }])).toBe(false); // no ladder → never capped
+  });
+
+  it("counts ready gate defs as to-do, excluding capped ladders from both ready and total", () => {
+    const defs = [ladderDef("lang", "language"), plainGate("bio")];
+    const progress = [{ defId: "lang", position: 20 }]; // lang is maxed → excluded entirely
+    // bio is unstarted (ready, not done); lang is capped (dropped). So 1 to-do of 1, not 2.
+    expect(routineToDo([], defs, progress, 0)).toEqual({ ready: 1, total: 1 });
+  });
+
+  it("falls quiet (0 to-do) once every surviving def is satisfied", () => {
+    const defs = [ladderDef("lang", "language"), plainGate("bio")];
+    const running = [{ defId: "bio", expiry: 10 * HOUR, startedAt: 0 }]; // bio satisfied
+    const progress = [{ defId: "lang", position: 20 }]; // lang capped → excluded
+    expect(routineToDo(running, defs, progress, 0)).toEqual({ ready: 0, total: 1 });
   });
 });

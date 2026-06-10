@@ -21,6 +21,7 @@ import {
   removeCooldown,
   clearCooldown,
   markRecurring,
+  markRead,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -180,6 +181,12 @@ export function useConfig() {
     (defId: string, now: number) => setConfig((c) => markRecurring(c, defId, now)),
     [],
   );
+  // The ladder read-outcome gesture (#45): ✓ (success) restamps the gate AND advances the rank, ✗
+  // (fail) restamps the gate only. Same setConfig → persist + configSync path as every other edit.
+  const markReadOutcome = useCallback(
+    (defId: string, now: number, success: boolean) => setConfig((c) => markRead(c, defId, now, success)),
+    [],
+  );
 
   // Recurring catalog CRUD for the settings Items section (issue #37): add a blank deadline
   // definition, rename it, set its day-scale duration, or remove it. Mirrors the cooldown catalog
@@ -233,6 +240,7 @@ export function useConfig() {
     editCooldownDuration,
     deleteCooldown,
     markRecurringDone,
+    markReadOutcome,
     createRecurring,
     createRoutine,
     editRecurringName,
