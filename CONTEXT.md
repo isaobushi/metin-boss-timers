@@ -25,6 +25,27 @@ or a mob/boss spawn — that the user starts manually, anchored to an absolute
 wall-clock time, and that persists across app sessions until it elapses.
 _Avoid_: alarm, reminder, dungeon timer, respawn (respawn names the Boss/Skill side)
 
+**Recurring**:
+A real-world chore that repeats on a day scale and is tracked across sessions —
+the umbrella over **Routine** (gate-kind) and **Elapsable item** (deadline-kind).
+A recurring _sibling_ of **Cooldown**, not a fourth category: all three are
+persistent waits to an absolute moment; a **Cooldown** is started once and then
+elapses for good, a **Recurring** rolls and is restamped each cycle. Lives in the
+dock shell (ADR-0003).
+_Avoid_: chore (too informal), reminder
+
+**Routine**:
+A gate-kind **Recurring** — a "can I do this today?" chore (skill-book read,
+Biologist consign) shown as an `x/n` to-do nudge, with a ✓ that restamps its
+rolling cooldown to the next window. May carry a ladder rank ("how far am I?").
+_Avoid_: daily, quest
+
+**Elapsable item**:
+A deadline-kind **Recurring** — a consumable that expires at an absolute moment
+(pet, costume, mount), which alarms once it drops under 24h and is restamped by a
+refresh (↻ "feed"/re-project) to a fresh cycle.
+_Avoid_: buff, expiry timer
+
 **Tag**:
 The short, user-editable label that identifies a **Cooldown** in the compact
 strip — initials auto-derived from its name (Hydra → "Hyd", Balathor → "Bal").
@@ -35,8 +56,10 @@ _Avoid_: icon (there is no image; the Tag is text)
 - A **Boss** groups one or more **Skills**
 - A **Skill** has exactly one **Timer** (its running state)
 - A **Timer** is relative + cyclic + session-only; a **Cooldown** is absolute + one-shot + persistent — they are deliberately distinct categories
+- A **Routine** and an **Elapsable item** are the two kinds of **Recurring** chore — persistent + absolute like a **Cooldown**, but rolling (restamped each cycle) rather than one-shot
 
 ## Flagged ambiguities
 
 - "dungeon cooldown" vs "mob spawn" — both resolved as one concept, **Cooldown**: a one-shot wait for a future moment that survives app restarts.
 - **Timer** vs **Cooldown** — not the same thing: a Timer loops within a session; a Cooldown counts down once to an absolute deadline and persists.
+- **Cooldown** vs **Recurring** — a Cooldown is started once and elapses for good; a Recurring (**Routine** / **Elapsable item**) rolls and is restamped each cycle. Same persistent + absolute nature, different cadence — not a fourth category.
