@@ -68,19 +68,22 @@ describe("makeConfig", () => {
     expect(c.running).toEqual([]); // nothing running on a fresh install
   });
 
-  it("seeds the example recurring items (elapsable chores) with tags, durations and kind", () => {
+  it("seeds the example recurring items — deadline elapsables AND gate routines — with tags, durations, kind", () => {
     const H = 3_600_000;
     const D = 86_400_000;
     const c = makeConfig();
-    // examples-not-gospel defaults: name, auto-tag, duration, kind (items are all deadlines)
+    // examples-not-gospel defaults: name, auto-tag, duration, kind. Deadlines (👘 items) seed
+    // first, then the gate routines (✓) — both flavours ship so each tool reads non-empty.
     expect(c.recurring.map((r) => [r.name, r.tag, r.durationMs, r.kind])).toEqual([
       ["Snow Wolf", "Sno", 3 * D, "deadline"],
       ["Costume of Flame", "Cos", 14 * D, "deadline"],
       ["Battle Horse", "Bat", 18 * H, "deadline"],
+      ["Biologist", "Bio", 22 * H, "gate"],
+      ["Daily Books", "Dai", 24 * H, "gate"],
     ]);
-    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(3); // ids are distinct
-    expect(c.recurringSeq).toBe(3); // seq seeded past the last seeded id
-    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (refresh starts an item)
+    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(5); // ids are distinct
+    expect(c.recurringSeq).toBe(5); // seq seeded past the last seeded id
+    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (mark-done starts an item)
   });
 });
 
@@ -476,13 +479,21 @@ describe("addRecurring", () => {
     const def = after.recurring[after.recurring.length - 1];
     expect(after.recurring.length).toBe(c.recurring.length + 1);
     expect([def.id, def.name, def.tag, def.durationMs, def.kind]).toEqual([
-      "recurring-4",
-      "Item 4",
+      "recurring-6",
+      "Item 6",
       "Ite",
       DAY,
       "deadline",
     ]);
-    expect(after.recurringSeq).toBe(4); // seq advanced past the new id
+    expect(after.recurringSeq).toBe(6); // seq advanced past the new id
+  });
+
+  it("creates a gate-kind definition when asked (the ROUTINE section's add)", () => {
+    const c = makeConfig();
+    const after = addRecurring(c, "gate");
+    const def = after.recurring[after.recurring.length - 1];
+    expect([def.id, def.name, def.kind]).toEqual(["recurring-6", "Routine 6", "gate"]);
+    expect(after.recurringSeq).toBe(6);
   });
 
   it("leaves the existing catalog, bosses and running set untouched", () => {

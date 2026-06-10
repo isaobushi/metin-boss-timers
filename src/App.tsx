@@ -17,6 +17,7 @@ import { useConfig } from "./overlay/useConfig";
 import { useCooldowns } from "./overlay/useCooldowns";
 import { useRecurring } from "./overlay/useRecurring";
 import { ElapsableAccordion } from "./overlay/ElapsableAccordion";
+import { RoutineAccordion } from "./overlay/RoutineAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
@@ -120,11 +121,9 @@ export default function App() {
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
     belowPanel = <ElapsableAccordion rows={rec.rows} onRefresh={rec.refresh} />;
   } else if (panel === "routine") {
-    belowPanel = (
-      <div className="dock-acc">
-        <div className="dock-acc__empty">no routine yet</div>
-      </div>
-    );
+    // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
+    // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
+    belowPanel = <RoutineAccordion rows={rec.routineRows} onDone={rec.markDone} />;
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).
     belowPanel = <SequenceScreen onBack={() => setPanel("skills")} />;
@@ -150,6 +149,7 @@ export default function App() {
         open={openSegs}
         activeBossName={cfg.activeBoss?.name}
         itemsDatum={rec.datum}
+        routineDatum={rec.routineDatum}
         onSkills={() => setPanel(skillsOpen ? null : cfg.activeBoss ? "timers" : "skills")}
         onCooldowns={() => {
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).

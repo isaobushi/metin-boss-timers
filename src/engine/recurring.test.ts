@@ -5,9 +5,11 @@ import {
   ALARM_THRESHOLD_MS,
   MAX_RUNNING,
   alarmCrossings,
+  doneCount,
   inAlarm,
   isDue,
   markDone,
+  readyCrossings,
   remainingMs,
 } from "./recurring";
 
@@ -140,6 +142,91 @@ describe("alarmCrossings", () => {
     const r = [running("pet", 3 * HOUR + 1_000)];
     expect(alarmCrossings(r, 0, r, 1_001, 3 * HOUR)).toEqual(["pet"]); // crosses a 3h window
     expect(alarmCrossings(r, 0, r, 1_001, 1 * HOUR)).toEqual([]); // still outside a 1h window
+  });
+});
+
+describe("readyCrossings", () => {
+  // The GATE analogue of the cue: identical to cooldown.readyCrossings but over recurring
+  // items — the defIds whose item crossed the ZERO boundary (became `isDue` = "ready" for a
+  // gate) between two consecutive observations: due in `cur`, present-and-not-due in `prev`.
+  // This is the per-kind cue split from `alarmCrossings`: a `deadline` fires on the under-24h
+  // alarm crossing, a `gate` fires here, on the zero crossing (when the chore becomes do-able
+  // again). Live-only (ADR-0002 / ADR-0003 §3): silent on restore-past-zero, never re-fires a
+  // sitting-ready item, re-arms across a mark-done (identity is `(defId, expiry)`).
+  const HOUR = 3_600_000;
+
+  it("reports an item that counted down to ready (zero) between two observations", () => {
+    const r = [running("books", 10_000)];
+    expect(readyCrossings(r, 9_000, r, 10_000)).toEqual(["books"]); // 1s-before → exactly due: crossed
+  });
+
+  it("does not re-fire an item already sitting ready", () => {
+    const r = [running("books", 10_000)];
+    expect(readyCrossings(r, 11_000, r, 12_000)).toEqual([]); // due in both observations
+  });
+
+  it("stays silent on restore — an item already past zero at mount has no prior not-due tick", () => {
+    const restored = [running("books", 10_000)];
+    expect(readyCrossings(restored, 20_000, restored, 21_000)).toEqual([]); // prev === cur, both due
+    expect(readyCrossings([], 20_000, restored, 21_000)).toEqual([]); // no prior running set at all
+  });
+
+  it("re-arms across a mark-done: the re-stamp is silent, the fresh instance can cross afresh", () => {
+    const d = def("books", 24 * HOUR, "gate");
+    const ready = [running("books", 10_000)]; // due at now=11_000
+    const refreshed = markDone(ready, d, 11_000); // mark done → new expiry 24h out
+    expect(readyCrossings(ready, 10_000, refreshed, 11_000)).toEqual([]); // ready → not-due: no cue
+    const exp = 11_000 + 24 * HOUR;
+    expect(readyCrossings(refreshed, exp - 1_000, refreshed, exp)).toEqual(["books"]); // drains to ready again
+  });
+
+  it("reports every item crossing zero in the same tick", () => {
+    const items = [running("books", 10_000), running("bio", 10_000), running("mat", 50_000)];
+    expect(readyCrossings(items, 9_000, items, 10_000).sort()).toEqual(["bio", "books"]); // mat still far out
+  });
+});
+
+describe("doneCount", () => {
+  // The `✓ x/n` routine counter: over a set of gate definitions, how many are currently
+  // "done" (satisfied) — i.e. have a running instance that has NOT yet come due again. A gate
+  // item that is `isDue` reads as "ready" (needs doing, so NOT done); an unstarted def has no
+  // instance at all (never done, so NOT done either). `total` is just the count of defs given,
+  // so the caller passes the gate defs and the counter reads `done/total`. Pure: `now` in.
+  const HOUR = 3_600_000;
+  const gate = (id: string) => def(id, 24 * HOUR, "gate");
+
+  it("counts gate defs whose instance is running and not yet due as done", () => {
+    const defs = [gate("books"), gate("bio")];
+    const running = [{ defId: "books", expiry: 10 * HOUR, startedAt: 0 }]; // books satisfied, bio unstarted
+    expect(doneCount(running, defs, 0)).toEqual({ done: 1, total: 2 });
+  });
+
+  it("treats a due (ready) item as NOT done — it needs doing again", () => {
+    const defs = [gate("books")];
+    const running = [{ defId: "books", expiry: 10_000, startedAt: 0 }];
+    expect(doneCount(running, defs, 10_000)).toEqual({ done: 0, total: 1 }); // exactly due → ready, not done
+  });
+
+  it("treats an unstarted def as NOT done", () => {
+    expect(doneCount([], [gate("books"), gate("bio")], 0)).toEqual({ done: 0, total: 2 });
+  });
+
+  it("is all-done when every gate def has a satisfied instance", () => {
+    const defs = [gate("books"), gate("bio")];
+    const running = [
+      { defId: "books", expiry: 10 * HOUR, startedAt: 0 },
+      { defId: "bio", expiry: 20 * HOUR, startedAt: 0 },
+    ];
+    expect(doneCount(running, defs, 0)).toEqual({ done: 2, total: 2 });
+  });
+
+  it("is 0/0 over an empty def set", () => {
+    expect(doneCount([], [], 0)).toEqual({ done: 0, total: 0 });
+  });
+
+  it("ignores running instances whose def isn't in the given set", () => {
+    const running = [{ defId: "stray", expiry: 10 * HOUR, startedAt: 0 }];
+    expect(doneCount(running, [gate("books")], 0)).toEqual({ done: 0, total: 1 });
   });
 });
 

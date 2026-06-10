@@ -1,4 +1,4 @@
-import type { RecurringDatum } from "./useRecurring";
+import type { RecurringDatum, RoutineDatum } from "./useRecurring";
 
 /** Which tools' panels are open (for each segment's open-highlight). Cooldowns is a pinned strip,
  *  so it can read as open alongside one of the others (ADR-0003). */
@@ -11,13 +11,15 @@ type Props = {
   activeBossName?: string;
   /** 👘 — the soonest elapsable item's compact datum, shown inline on the bar (null = none running). */
   itemsDatum: RecurringDatum;
+  /** ✓ — the routine done counter (`x/n`), shown inline on the bar; reads `ready` when any are do-able. */
+  routineDatum: RoutineDatum;
   /** ⚔ — toggle the skills panel (active boss's timers, or the dungeon picker). */
   onSkills: () => void;
   /** ⏱ — toggle the cooldown strip (pinned above the panel). */
   onCooldowns: () => void;
   /** 👘 — toggle the elapsable-items panel (live: countdowns + alarm + refresh, #37). */
   onItems: () => void;
-  /** ✓ — toggle the routine panel (inert until #36+). */
+  /** ✓ — toggle the routine panel (live: gate checklist + x/n counter, #38). */
   onRoutine: () => void;
   /** ⚙ — open the settings window (not a panel; doesn't change what's open below). */
   onSettings: () => void;
@@ -35,7 +37,9 @@ type Props = {
  * honest. A leading ⠿ grip carries the window drag region; the clickable segments sit outside it so
  * a tap never starts a drag.
  */
-export function DockBar({ open, activeBossName, itemsDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
+export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
+  // Any gate routine do-able now (done < total) reads the green "ready" cue on the counter.
+  const routineReady = routineDatum.done < routineDatum.total;
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
@@ -69,7 +73,9 @@ export function DockBar({ open, activeBossName, itemsDatum, onSkills, onCooldown
 
       <button className={`dock-seg${open.has("routine") ? " is-open" : ""}`} onClick={onRoutine} title="routine">
         <span className="dock-seg__icon">✓</span>
-        <span className="dock-seg__val dock-muted">0/0</span>
+        <span className={`dock-seg__val${routineReady ? " dock-ready" : " dock-muted"}`}>
+          {routineDatum.done}/{routineDatum.total}
+        </span>
       </button>
 
       <button className="dock-seg" onClick={onSettings} title="settings">

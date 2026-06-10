@@ -87,14 +87,17 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
   { name: "Northwind War Chief", durationMs: 1 * MS_PER_HOUR },
 ];
 
-// The example recurring items a fresh install ships with — the player's standing elapsable
-// chores (pet, costume, mount). Like the cooldown seed these are "examples not gospel": the
-// user retunes durations and adds their own in settings (a later slice). All seeded items are
-// `deadline` (you lose the thing if it elapses); `gate`-kind chores (routine) seed separately.
+// The example recurring items a fresh install ships with. Like the cooldown seed these are
+// "examples not gospel": the user retunes durations and adds their own in settings. Two flavours
+// ship so each dock tool reads non-empty: the standing `deadline` elapsables (pet, costume, mount
+// — you lose the thing if it elapses, 👘 Items) first, then the `gate` routines (a chore that
+// rolls back into "do it now" each cycle — biologist hand-in, daily book reading, ✓ Routine).
 const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind }> = [
   { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
   { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
+  { name: "Biologist", durationMs: 22 * MS_PER_HOUR, kind: "gate" }, // hand-in cooldown
+  { name: "Daily Books", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // daily reading
 ];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
@@ -427,26 +430,28 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
   return { ...c, recurringRunning: markDone(c.recurringRunning, def, now) };
 }
 
-// ---- recurring catalog CRUD (issue #37) — the day-scale sibling of the cooldown editor ----
-// Edits to the editable recurring *definitions*, mirroring addCooldown/rename/retag/remove so
-// the settings editor can manage elapsable items without touching the running set (bar a
-// remove, which also stops any running instance). New items are `deadline` kind — the `gate`
-// (routine) editor lands with its slice; duration uses the day-scale clamp above.
+// ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----
+// Edits to the editable recurring *definitions*, mirroring addCooldown/rename/retag/remove so the
+// settings editor can manage both flavours without touching the running set (bar a remove, which
+// also stops any running instance). `addRecurring` takes the `kind`, so the ELAPSABLE ITEMS
+// section adds `deadline`s and the ROUTINE section adds `gate`s; duration uses the day-scale clamp.
 
 /**
- * Append a blank deadline definition (the "+ add item" gesture), mirroring `addCooldown`: a
- * generic `Item N` name with its auto-derived tag and a one-day default duration, carrying a
- * fresh non-colliding `recurring-N` id. The user then renames / retags / retunes it.
+ * Append a blank definition (the settings "+ add" gesture), mirroring `addCooldown`: a generic
+ * name with its auto-derived tag and a one-day default duration, carrying a fresh non-colliding
+ * `recurring-N` id. `kind` selects which editor section it belongs to — a `deadline` reads as an
+ * "Item N" elapsable, a `gate` as a "Routine N" chore — and defaults to `deadline` (the #37
+ * caller). The user then renames / retags / retunes it.
  */
-export function addRecurring(c: Config): Config {
+export function addRecurring(c: Config, kind: RecurringKind = "deadline"): Config {
   const recurringSeq = c.recurringSeq + 1;
-  const name = `Item ${recurringSeq}`;
+  const name = `${kind === "gate" ? "Routine" : "Item"} ${recurringSeq}`;
   const def: RecurringDef = {
     id: `recurring-${recurringSeq}`,
     name,
     tag: deriveTag(name),
     durationMs: DEFAULT_RECURRING_MS,
-    kind: "deadline",
+    kind,
   };
   return { ...c, recurring: [...c.recurring, def], recurringSeq };
 }

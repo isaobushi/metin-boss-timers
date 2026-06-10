@@ -945,6 +945,30 @@ body[data-window="settings"] {
   background: #ffffff12;
   color: #fff;
 }
+/* The ✓ mark-done at a routine row's end — the refresh glyph's sibling. Green at rest when the
+   item is do-able now (the row carries `is-ready`), so the actionable tick pulls the eye; quiet
+   and muted once the chore is satisfied (`is-done`). */
+.dock-acc__done {
+  flex: none;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9b8cff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dock-acc__done:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.dock-acc__row.is-ready .dock-acc__done {
+  color: #39ff88;
+}
+.dock-acc__row.is-done .dock-acc__done {
+  opacity: 0.5;
+}
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */
 /* An app-level strip above the boss panel, present on every overlay screen. 316px to

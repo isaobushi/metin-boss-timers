@@ -86,6 +86,50 @@ export function alarmCrossings(
     .map((r) => r.defId);
 }
 
+/**
+ * The `gate` analogue of `alarmCrossings` — identical to `cooldown.readyCrossings`, swapping in
+ * `isDue` so it watches the ZERO boundary instead of the under-window one: the defIds whose item
+ * became due (`isDue` = "ready" for a gate) between two consecutive observations — due in `cur`
+ * (at `now`), present-and-not-yet-due in `prev` (at `prevNow`). This is the per-kind cue split: a
+ * `deadline` fires on the under-24h alarm crossing (`alarmCrossings`), a `gate` fires here, when
+ * the chore rolls back into "do it now". Live-only exactly like its siblings (ADR-0002 /
+ * ADR-0003 §3): an item already past zero on restore has no prior not-due observation and stays
+ * silent; a sitting-ready item was already due last tick and never re-fires; the `(defId, expiry)`
+ * identity means a mark-done is a fresh instance that re-arms and can cross afresh.
+ */
+export function readyCrossings(
+  prev: RunningRecurring[],
+  prevNow: number,
+  cur: RunningRecurring[],
+  now: number,
+): string[] {
+  return cur
+    .filter((r) => isDue(r, now))
+    .filter((r) => prev.some((p) => p.defId === r.defId && p.expiry === r.expiry && !isDue(p, prevNow)))
+    .map((r) => r.defId);
+}
+
+/**
+ * The `✓ x/n` routine counter over a set of (gate) definitions: how many are currently "done"
+ * (satisfied) versus the total. An item counts as done when it has a running instance that has
+ * NOT yet come due again — you completed the chore and it sits on its rolling cooldown until the
+ * next window. A `isDue` item reads as "ready" (needs doing → not done); an unstarted def has no
+ * instance (never done → not done). `total` is simply the count of defs passed, so the caller
+ * hands in the gate defs and reads `done/total`. Kind-free like every derivation: the engine
+ * counts over whatever defs it is given; the UI decides those are the gate ones.
+ */
+export function doneCount(
+  running: RunningRecurring[],
+  defs: RecurringDef[],
+  now: number,
+): { done: number; total: number } {
+  const done = defs.filter((d) => {
+    const r = running.find((x) => x.defId === d.id);
+    return r != null && !isDue(r, now);
+  }).length;
+  return { done, total: defs.length };
+}
+
 // ---- running-set operations (pure `(RunningRecurring[], ...) -> RunningRecurring[]`) ----
 
 /** The most recurring items that may run at once; a fresh one beyond this is refused. */

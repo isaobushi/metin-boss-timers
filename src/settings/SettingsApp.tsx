@@ -88,7 +88,24 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
 
       <RecurringSettings
         recurring={cfg.config.recurring}
+        kind="deadline"
+        title="ELAPSABLE ITEMS"
+        addLabel="+ ADD ITEM"
+        emptyLabel="no elapsable items yet"
         onAdd={() => cfg.createRecurring()}
+        onRename={(defId, name) => cfg.editRecurringName(defId, name)}
+        onRetag={(defId, tag) => cfg.editRecurringTag(defId, tag)}
+        onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
+        onRemove={(defId) => cfg.deleteRecurring(defId)}
+      />
+
+      <RecurringSettings
+        recurring={cfg.config.recurring}
+        kind="gate"
+        title="ROUTINE"
+        addLabel="+ ADD ROUTINE"
+        emptyLabel="no routine items yet"
+        onAdd={() => cfg.createRoutine()}
         onRename={(defId, name) => cfg.editRecurringName(defId, name)}
         onRetag={(defId, tag) => cfg.editRecurringTag(defId, tag)}
         onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}

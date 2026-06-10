@@ -186,7 +186,10 @@ export function useConfig() {
   // definition, rename it (re-deriving its tag), override the tag, set its day-scale duration,
   // or remove it. Mirrors the cooldown catalog CRUD; each rides the same setConfig → persist +
   // configSync path.
-  const createRecurring = useCallback(() => setConfig((c) => addRecurring(c)), []);
+  const createRecurring = useCallback(() => setConfig((c) => addRecurring(c, "deadline")), []);
+  // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/retag/duration/remove
+  // are kind-agnostic, so both sections share editRecurringName/Tag/Duration + deleteRecurring.
+  const createRoutine = useCallback(() => setConfig((c) => addRecurring(c, "gate")), []);
   const editRecurringName = useCallback(
     (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
     [],
@@ -236,6 +239,7 @@ export function useConfig() {
     deleteCooldown,
     markRecurringDone,
     createRecurring,
+    createRoutine,
     editRecurringName,
     editRecurringTag,
     editRecurringDuration,
