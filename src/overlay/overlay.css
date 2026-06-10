@@ -1650,3 +1650,176 @@ body[data-window="settings"] {
 .char-wizard__next:disabled:hover {
   background: color-mix(in srgb, #7c6cff 70%, transparent);
 }
+
+/* ---- Pro subscribe screen + upgrade banner (#58) ---- */
+/* The subscribe screen reuses .panel; a violet/gold accent marks it as the "Pro" surface. */
+.subscribe {
+  --accent: #b89bff;
+  gap: 11px;
+}
+.subscribe__lede {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  opacity: 0.85;
+}
+.subscribe__unlocks {
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.subscribe__unlocks li {
+  font-size: 11.5px;
+  line-height: 1.35;
+  padding-left: 18px;
+  position: relative;
+  opacity: 0.92;
+}
+.subscribe__unlocks li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: #e8c66a; /* gold tick — the "premium" cue */
+  opacity: 0.9;
+}
+.subscribe__plans {
+  display: flex;
+  gap: 8px;
+}
+.subscribe__plan {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #f5f3ff;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.subscribe__plan.is-selected {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.subscribe__plan-tag {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #e8c66a;
+  font-weight: 700;
+}
+.subscribe__plan-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.subscribe__plan-price {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.subscribe__primary {
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #1a1226;
+  border: none;
+  background: linear-gradient(180deg, #f0d98a, #e8c66a);
+  box-shadow: 0 0 16px color-mix(in srgb, #e8c66a 35%, transparent);
+}
+.subscribe__primary:hover {
+  background: linear-gradient(180deg, #f6e29a, #efce76);
+}
+.subscribe__secondary,
+.subscribe__close {
+  padding: 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #d9d2f5;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.subscribe__close {
+  border-color: transparent;
+  opacity: 0.6;
+}
+.subscribe__secondary:hover,
+.subscribe__close:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* Slim standing entry to Pro below the dock. Subdued so it never nags. */
+.upgrade-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(20, 16, 30, 0.7);
+  border: 1px solid color-mix(in srgb, #b89bff 28%, transparent);
+}
+.upgrade-banner--lapsed {
+  border-color: color-mix(in srgb, #ff9b6c 32%, transparent);
+}
+.upgrade-banner__label {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.upgrade-banner__cta {
+  padding: 4px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #1a1226;
+  border: none;
+  background: linear-gradient(180deg, #f0d98a, #e8c66a);
+}
+.upgrade-banner__cta:hover {
+  background: linear-gradient(180deg, #f6e29a, #efce76);
+}
+
+/* Dev-only tier switcher (browser demo) — fixed bottom-left, never shipped in the desktop app. */
+.dev-ent-switch {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px dashed #5a4b8a;
+}
+.dev-ent-switch__label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  color: #cfc6ff;
+}
+.dev-ent-switch__btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #cfc6ff;
+  background: transparent;
+  border: 1px solid #3a3160;
+}
+.dev-ent-switch__btn.is-active {
+  background: #6c5ce0;
+  color: #fff;
+  border-color: #6c5ce0;
+}
