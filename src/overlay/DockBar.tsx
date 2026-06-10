@@ -11,7 +11,7 @@ type Props = {
   activeBossName?: string;
   /** ♻ — the soonest elapsable item's compact datum, shown inline on the bar (null = none running). */
   itemsDatum: RecurringDatum;
-  /** ✓ — the routine done counter (`x/n`), shown inline on the bar; reads `ready` when any are do-able. */
+  /** ✓ — the routine to-do nudge: the count of routines that need doing now (calm when none). */
   routineDatum: RoutineDatum;
   /** ⚔ — toggle the skills panel (active boss's timers, or the dungeon picker). */
   onSkills: () => void;
@@ -38,8 +38,9 @@ type Props = {
  * a tap never starts a drag.
  */
 export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
-  // Any gate routine do-able now (done < total) reads the green "ready" cue on the counter.
-  const routineReady = routineDatum.done < routineDatum.total;
+  // The ✓ segment is a to-do nudge: show the count of routines that need doing now, green, and fall
+  // back to just the calm ✓ icon (no number) when you're all caught up — so it never sits at "n/n".
+  const routineToDo = routineDatum.ready;
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
@@ -73,9 +74,7 @@ export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkil
 
       <button className={`dock-seg${open.has("routine") ? " is-open" : ""}`} onClick={onRoutine} title="routine">
         <span className="dock-seg__icon">✓</span>
-        <span className={`dock-seg__val${routineReady ? " dock-ready" : " dock-muted"}`}>
-          {routineDatum.done}/{routineDatum.total}
-        </span>
+        {routineToDo > 0 && <span className="dock-seg__val dock-ready">{routineToDo}</span>}
       </button>
 
       <button className="dock-seg" onClick={onSettings} title="settings">

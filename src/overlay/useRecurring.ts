@@ -44,8 +44,12 @@ export type RoutineRow = {
   running: boolean;
 };
 
-/** The ✓ bar segment's counter: how many gate routines are done (satisfied) of the total. */
-export type RoutineDatum = { done: number; total: number };
+/**
+ * The ✓ bar segment's nudge: how many gate routines are `ready` (need doing now) of the total. A
+ * to-do count, not a completion meter — it reads `ready` so the bar shows what's left to do and
+ * goes calm when you're caught up, rather than sitting "full" once everything's done.
+ */
+export type RoutineDatum = { ready: number; total: number };
 
 /**
  * The recurring-chore control layer for the overlay — both tools (#37 deadline write path, #38
@@ -146,8 +150,11 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     };
   });
 
-  // The ✓ bar counter — how many gate routines are done (satisfied) of the total (engine: doneCount).
-  const routineDatum: RoutineDatum = doneCount(running, gateDefs, now);
+  // The ✓ bar nudge — how many gate routines still need doing. `doneCount` gives the satisfied
+  // count; the to-do count is the rest (every gate def is either done or ready), so the bar shows
+  // what's left and falls quiet at zero instead of sitting full.
+  const { done, total } = doneCount(running, gateDefs, now);
+  const routineDatum: RoutineDatum = { ready: total - done, total };
 
   // Both gestures are the one `markDone` restamp: ↻ "feed/re-project" for deadlines, ✓ "mark done"
   // for routines. Same transform, surfaced under names that read right for each tool.
