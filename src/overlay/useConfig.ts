@@ -40,6 +40,7 @@ import type { SoundId } from "../engine/sounds";
 import { allows, DEV_ENTITLEMENT, type Entitlement } from "../engine/entitlement";
 import { deserialize, serialize } from "../engine/persist";
 import { loadPersisted, savePersisted } from "./configStore";
+import { resolveLaunchEntitlement } from "./entitlementSource";
 import { broadcastConfig, subscribeConfig } from "./configSync";
 
 /**
@@ -62,10 +63,11 @@ import { broadcastConfig, subscribeConfig } from "./configSync";
 export function useConfig() {
   const [config, setConfig] = useState<Config>(makeConfig);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
-  // The paid state driving every cap (PRD #48). A later slice's `storeLicense` adapter will set this from
-  // the OS-cached Store license; for now it's the dev default (`subscribed` → uncapped), settable here so
-  // the entitlement gate is exercisable. The create paths below consult `allows` before mutating — the
-  // seam that keeps caps from being retrofitted (issue #53). Under `subscribed` every check passes.
+  // The paid state driving every cap (PRD #48). Seeded with the dev default for the first synchronous
+  // render, then replaced on mount by the real `storeLicense` adapter, which reads the OS-cached Store
+  // license + grace memory (issue #55). Still settable here so the gate is exercisable in dev. The
+  // create paths below consult `allows` before mutating — the seam that keeps caps from being
+  // retrofitted (issue #53).
   const [entitlement, setEntitlement] = useState<Entitlement>(DEV_ENTITLEMENT);
   // Gate saves until the on-disk config has been read, so the initial in-memory
   // defaults can never clobber a stored config before it loads.
@@ -79,6 +81,18 @@ export function useConfig() {
       if (!alive) return;
       setConfig(deserialize(raw)); // null/corrupt → shipped defaults; ids seeded past max
       setHydrated(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Resolve the real paid state at launch from the OS-cached Store license (issue #55), replacing the
+  // dev seed. One-shot on mount; the adapter is best-effort (resolves to `never`/Lite, never throws).
+  useEffect(() => {
+    let alive = true;
+    resolveLaunchEntitlement().then((e) => {
+      if (alive) setEntitlement(e);
     });
     return () => {
       alive = false;
@@ -277,7 +291,7 @@ export function useConfig() {
     config,
     hydrated,
     // The current paid state + its dev setter — read by cap-aware UI (nudges, frozen rendering) and
-    // set by the future `storeLicense` adapter. The create paths above already gate on it.
+    // set on mount by the `storeLicense` adapter. The create paths above already gate on it.
     entitlement,
     setEntitlement,
     activeBoss,
