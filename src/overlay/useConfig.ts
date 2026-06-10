@@ -27,7 +27,13 @@ import {
   renameRecurring,
   setRecurringDuration,
   removeRecurring,
+  addCharacter,
+  renameCharacter,
+  deleteCharacter,
+  selectCharacter,
+  classifyCharacter,
   type Boss,
+  type CharacterDraft,
   type Config,
 } from "../engine/config";
 import type { SoundId } from "../engine/sounds";
@@ -232,6 +238,31 @@ export function useConfig() {
   );
   const deleteRecurring = useCallback((defId: string) => setConfig((c) => removeRecurring(c, defId)), []);
 
+  // Character actions (PRD #47, create flow #54). `createCharacter` mirrors `createBoss`: it runs the
+  // transform on this render's `config` so it can hand the new id back synchronously — the caller
+  // lands the dock on the freshly-created character. Seam: refuse over the tier cap (return null so the
+  // caller stays put). Always allowed under dev `subscribed`.
+  // TODO(#56): the null return is a placeholder — replace with the cap-hit nudge ("what Pro unlocks").
+  const createCharacter = useCallback(
+    (draft: CharacterDraft): string | null => {
+      if (!allows(entitlement, config, "addCharacter")) return null;
+      const next = addCharacter(config, draft);
+      setConfig(next);
+      return next.characters[next.characters.length - 1].id;
+    },
+    [config, entitlement],
+  );
+  // Switch which character the dock shows — swaps only the recurring surface (bosses/cooldowns are global).
+  const switchCharacter = useCallback((id: string) => setConfig((c) => selectCharacter(c, id)), []);
+  const editCharacterName = useCallback((id: string, name: string) => setConfig((c) => renameCharacter(c, id, name)), []);
+  // The ✎ edit flow: set/change a character's name + class. Changing the class re-seeds its skill books
+  // (keeping deadline items); a name-only edit just renames. Classifies the unclassified migrated default.
+  const editCharacter = useCallback(
+    (id: string, draft: CharacterDraft) => setConfig((c) => classifyCharacter(c, id, draft)),
+    [],
+  );
+  const removeCharacter = useCallback((id: string) => setConfig((c) => deleteCharacter(c, id)), []);
+
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
   // Wipe all customization back to the shipped defaults (persisted by the save effect).
@@ -277,6 +308,11 @@ export function useConfig() {
     editRecurringName,
     editRecurringDuration,
     deleteRecurring,
+    createCharacter,
+    switchCharacter,
+    editCharacterName,
+    editCharacter,
+    removeCharacter,
     selectBoss,
     resetConfig,
   };

@@ -24,11 +24,20 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end; /* everything right-anchored (ADR-0003) */
-  gap: 8px;
   padding: 10px;
-  /* Hold a stable 316px content column (panel width + 2×10 padding) so the right edge never moves
-     when the panel below the dock opens or closes — otherwise the bar jumps left/right. */
-  min-width: 336px;
+}
+/* The right-anchored content column. `max-content` lets the dock grow to fit full names (no
+   truncation); `min-width` floors it at the 316px panel width so opening/closing a panel never
+   changes the column's width — only its height — keeping the right edge stable. Under Tauri the
+   window is sized to this element (useOverlayAutosize); in the browser the fixed `.overlay` shrink-
+   wraps it. */
+.overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: max-content;
+  min-width: 316px;
 }
 
 /* ---- panels (one screen at a time) ---- */
@@ -835,10 +844,13 @@ body[data-window="settings"] {
    (left-aligned, capped at the panel width) rather than stretching to the panel below it. */
 .dock-bar {
   align-self: flex-end;
-  max-width: 316px;
+  /* No width cap — the bar sizes to its segments so full character/boss names show (the window grows
+     to fit, useOverlayAutosize). Right-anchored, so it stays aligned with the panels' right edge. */
   display: flex;
   align-items: stretch;
   border-radius: 12px;
+  /* Clips the segment row to the rounded corners; long names stay contained instead of spilling. The
+     character switcher's dropdown escapes this via a portal (CharacterSwitcher), not by un-clipping. */
   overflow: hidden;
   background: rgba(14, 11, 22, 0.86);
   border: 1px solid rgba(124, 108, 255, 0.4);
@@ -891,11 +903,9 @@ body[data-window="settings"] {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-/* The boss name can be long; cap it so one long dungeon can't blow out the bar width. */
+/* Names show in full — the bar (and window) grow to fit rather than truncating. */
 .dock-seg__name {
-  max-width: 96px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dock-ready {
   color: #39ff88;
@@ -1367,4 +1377,247 @@ body[data-window="settings"] {
   50% {
     opacity: 0.55;
   }
+}
+
+/* ---- character switcher + create wizard (#54) ---- */
+/* The 👤 active-character chip — a dock segment whose name reads like the ⚔ boss name (capped width). */
+.dock-char .dock-seg__name {
+  color: #cdbcff;
+}
+/* Portalled to <body> (so the bar's `overflow: hidden` never clips it) and positioned `fixed` from
+   the chip's rect — the inline style sets the exact top/left/bottom/right per the edge-aware anchor. */
+.char-menu {
+  position: fixed;
+  z-index: 50;
+  width: max-content;
+  min-width: 180px;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(14, 11, 22, 0.96);
+  border: 1px solid #ffffff22;
+  box-shadow: 0 12px 30px #000c;
+  backdrop-filter: blur(8px);
+}
+.char-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.char-menu__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 7px;
+}
+.char-menu__row.is-active {
+  background: color-mix(in srgb, #7c6cff 18%, transparent);
+}
+/* The tap target that switches character — name flexes, race tag sits quietly to its right. */
+.char-menu__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border: none;
+  background: transparent;
+  color: #e9e5f5;
+  font: 600 12px/1 inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.char-menu__pick:hover {
+  color: #fff;
+}
+.char-menu__check {
+  flex: none;
+  width: 10px;
+  color: #39ff88;
+  font-size: 11px;
+}
+.char-menu__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.char-menu__race {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  color: #9b8cff;
+  opacity: 0.85;
+}
+/* The ✎ edit / 🗑 delete glyph buttons — quiet at rest, light on hover (the dock's subordinate feel). */
+.char-menu__act {
+  flex: none;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9b8cff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.char-menu__act:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.char-menu__del:hover {
+  background: #ff7b9618;
+  color: #ff7b96;
+}
+.char-menu__act:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.char-menu__act:disabled:hover {
+  background: transparent;
+  color: #9b8cff;
+}
+/* "+ New character" — the dashed add affordance, matching the settings/add idiom but dock-sized. */
+.char-menu__new {
+  padding: 8px 0;
+  border: 1px dashed color-mix(in srgb, #7c6cff 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #7c6cff 14%, transparent);
+  color: #fff;
+  font: 700 11px/1 inherit;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+}
+.char-menu__new:hover {
+  background: color-mix(in srgb, #7c6cff 26%, transparent);
+}
+
+/* The create wizard — an inline panel below the dock (reuses .dock-acc's frame/width). */
+.char-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.char-wizard__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.char-wizard__title {
+  font: 800 11px/1 inherit;
+  letter-spacing: 1.2px;
+  color: #cdbcff;
+}
+.char-wizard__steps {
+  display: flex;
+  gap: 4px;
+}
+/* One dot per step, the current one accented — a quiet "where am I in the flow" readout. */
+.char-wizard__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff22;
+}
+.char-wizard__dot.is-active {
+  background: #7c6cff;
+}
+.char-wizard__x {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9a93ad;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.char-wizard__x:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.char-wizard__name {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid #ffffff22;
+  background: #ffffff0d;
+  color: #e9e5f5;
+  font: 600 13px/1 inherit;
+  outline: none;
+}
+.char-wizard__name:focus {
+  border-color: color-mix(in srgb, #7c6cff 60%, transparent);
+}
+/* Empire/race/build choices — a wrapping chip grid; selected chips read accented. */
+.char-wizard__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.char-wizard__opt {
+  flex: none;
+  padding: 7px 11px;
+  border: 1px solid #ffffff1f;
+  border-radius: 8px;
+  background: #ffffff0d;
+  color: #e9e5f5;
+  font: 600 12px/1 inherit;
+  cursor: pointer;
+}
+.char-wizard__opt:hover {
+  background: #ffffff1a;
+  color: #fff;
+}
+.char-wizard__opt.is-sel {
+  border-color: color-mix(in srgb, #7c6cff 70%, transparent);
+  background: color-mix(in srgb, #7c6cff 34%, transparent);
+  color: #fff;
+}
+.char-wizard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.char-wizard__back {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #cfc8e0;
+  font: 600 12px/1 inherit;
+  cursor: pointer;
+}
+.char-wizard__back:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.char-wizard__next {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, #7c6cff 70%, transparent);
+  color: #fff;
+  font: 700 12px/1 inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.char-wizard__next:hover {
+  background: #7c6cff;
+}
+.char-wizard__next:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.char-wizard__next:disabled:hover {
+  background: color-mix(in srgb, #7c6cff 70%, transparent);
 }

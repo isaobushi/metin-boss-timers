@@ -33,9 +33,15 @@ import {
   activeRecurringRunning,
   activeRecurringProgress,
   activeCharacter,
+  addCharacter,
+  renameCharacter,
+  deleteCharacter,
+  selectCharacter,
+  classifyCharacter,
   type Config,
 } from "./config";
 import { inAlarm, type RecurringProgress } from "./recurring";
+import { subsetFor } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
@@ -743,5 +749,206 @@ describe("setRung (set-rung curtain, #46)", () => {
     expect(setRung(c, "recurring-999", "M4")).toBe(c); // unknown def
     expect(setRung(c, rec(c)[0].id, "M4")).toBe(c); // Snow Wolf — a deadline, no ladder
     expect(setRung(c, books(c).id, "P")).toBe(c); // P isn't a rung on the class-skill ladder (caps at G1)
+  });
+});
+
+// ── Multi-character write path (#54) ───────────────────────────────────────────────────────────
+// The create flow's pure core: `addCharacter` seeds a new character's recurring chores from
+// `skillCatalog.subsetFor`, mints fresh ids off the global `recurringSeq`, and lands the user on it.
+// Rename/select/delete round out the dock switcher; delete never leaves `activeCharacterId` dangling.
+
+const chars = (c: Config) => c.characters;
+const lastChar = (c: Config) => c.characters[c.characters.length - 1];
+
+describe("addCharacter", () => {
+  it("appends a character with a character-N id minted off characterSeq, and lands the user on it", () => {
+    const c = makeConfig(); // ships one default character (character-1), characterSeq = 1
+    const next = addCharacter(c, { name: "Alt", empire: "Jinno", race: "Warrior", builds: ["Body"] });
+    expect(chars(next)).toHaveLength(2);
+    expect(lastChar(next).id).toBe("character-2");
+    expect(next.characterSeq).toBe(2);
+    expect(lastChar(next).name).toBe("Alt");
+    expect(next.activeCharacterId).toBe("character-2"); // create → you're now on the new character
+  });
+
+  it("records the chosen empire/race/builds on the new character", () => {
+    const next = addCharacter(makeConfig(), { name: "Alt", empire: "Chunjo", race: "Sura", builds: ["Weaponry"] });
+    const ch = lastChar(next);
+    expect(ch.empire).toBe("Chunjo");
+    expect(ch.race).toBe("Sura");
+    expect(ch.builds).toEqual(["Weaponry"]);
+  });
+
+  it("seeds chores exactly equal to the skillCatalog subset for its (empire, race, builds)", () => {
+    const draft = { name: "Alt", empire: "Jinno" as const, race: "Ninja" as const, builds: ["Archery" as const] };
+    const ch = lastChar(addCharacter(makeConfig(), draft));
+    const want = subsetFor(draft.empire, draft.race, draft.builds);
+    // name/duration/kind/ladderId all carry across from the preform; only the id is freshly minted
+    expect(ch.recurring.map((r) => [r.name, r.durationMs, r.kind, r.ladderId])).toEqual(
+      want.map((p) => [p.name, p.durationMs, p.kind, p.ladderId]),
+    );
+  });
+
+  it("mints recurring ids off the GLOBAL recurringSeq so they never collide across characters", () => {
+    const c = makeConfig(); // default character holds 13 seeded chores; recurringSeq = 13
+    const next = addCharacter(c, { name: "Alt", empire: "Shinsoo", race: "Lycan", builds: ["Instinct"] });
+    const seededCount = subsetFor("Shinsoo", "Lycan", ["Instinct"]).length;
+    const newIds = lastChar(next).recurring.map((r) => r.id);
+    expect(newIds[0]).toBe("recurring-14"); // first id past the existing 13
+    expect(next.recurringSeq).toBe(13 + seededCount);
+    // no id is shared with the default character's catalog
+    const existing = new Set(c.characters[0].recurring.map((r) => r.id));
+    expect(newIds.some((id) => existing.has(id))).toBe(false);
+  });
+
+  it("honours the Lycan single-build invariant — only Instinct abilities, no second build", () => {
+    const ch = lastChar(addCharacter(makeConfig(), { name: "Wolf", empire: "Jinno", race: "Lycan", builds: ["Instinct"] }));
+    expect(ch.recurring.map((r) => r.name)).toEqual(subsetFor("Jinno", "Lycan", ["Instinct"]).map((p) => p.name));
+  });
+
+  it("seeds only the universal chores for an unclassified draft (name only)", () => {
+    const ch = lastChar(addCharacter(makeConfig(), { name: "Blank" }));
+    expect(ch.empire).toBeUndefined();
+    expect(ch.race).toBeUndefined();
+    expect(ch.builds).toEqual([]);
+    expect(ch.recurring.map((r) => r.name)).toEqual(subsetFor(undefined, undefined, []).map((p) => p.name));
+  });
+});
+
+describe("renameCharacter", () => {
+  it("renames the matching character and leaves the others untouched", () => {
+    const c = addCharacter(makeConfig(), { name: "Alt" });
+    const next = renameCharacter(c, "character-2", "Renamed");
+    expect(next.characters.find((ch) => ch.id === "character-2")!.name).toBe("Renamed");
+    expect(next.characters.find((ch) => ch.id === "character-1")!.name).toBe("Main");
+  });
+
+  it("is a no-op for an unknown id", () => {
+    const c = makeConfig();
+    expect(renameCharacter(c, "character-999", "X")).toEqual(c);
+  });
+});
+
+describe("selectCharacter", () => {
+  it("switches the active character to a known id", () => {
+    const c = addCharacter(makeConfig(), { name: "Alt" }); // active is now character-2
+    expect(selectCharacter(c, "character-1").activeCharacterId).toBe("character-1");
+  });
+
+  it("is a no-op for an unknown id — never points active at a non-existent character", () => {
+    const c = makeConfig(); // active character-1
+    expect(selectCharacter(c, "character-999").activeCharacterId).toBe("character-1");
+  });
+});
+
+describe("deleteCharacter", () => {
+  it("removes the character by id", () => {
+    const c = addCharacter(makeConfig(), { name: "Alt" });
+    const next = deleteCharacter(c, "character-2");
+    expect(next.characters.map((ch) => ch.id)).toEqual(["character-1"]);
+  });
+
+  it("re-points active to a survivor when the active character is deleted (never dangles)", () => {
+    const c = addCharacter(makeConfig(), { name: "Alt" }); // active is character-2
+    const next = deleteCharacter(c, "character-2");
+    expect(next.activeCharacterId).toBe("character-1");
+    expect(activeCharacter(next)).toBeDefined();
+  });
+
+  it("leaves active untouched when a non-active character is deleted", () => {
+    const c = addCharacter(makeConfig(), { name: "Alt" }); // active is character-2
+    const next = deleteCharacter(c, "character-1");
+    expect(next.activeCharacterId).toBe("character-2");
+  });
+
+  it("drops active to null when the last character is deleted (first-run create flow then shows)", () => {
+    const c = makeConfig(); // a single character
+    const next = deleteCharacter(c, "character-1");
+    expect(next.characters).toEqual([]);
+    expect(next.activeCharacterId).toBeNull();
+  });
+
+  it("is a no-op for an unknown id", () => {
+    const c = makeConfig();
+    expect(deleteCharacter(c, "character-999")).toBe(c);
+  });
+});
+
+describe("classifyCharacter", () => {
+  it("classifies the unclassified default — sets axes, seeds the class books, keeps deadlines", () => {
+    const c = makeConfig(); // character-1 'Main', unclassified: 3 deadline items + 10 example gates
+    const next = classifyCharacter(c, "character-1", { name: "Main", empire: "Jinno", race: "Warrior", builds: ["Body"] });
+    const ch = next.characters[0];
+    expect(ch.empire).toBe("Jinno");
+    expect(ch.race).toBe("Warrior");
+    expect(ch.builds).toEqual(["Body"]);
+    const gates = ch.recurring.filter((d) => d.kind === "gate");
+    const deadlines = ch.recurring.filter((d) => d.kind === "deadline");
+    expect(gates.map((d) => d.name)).toEqual(subsetFor("Jinno", "Warrior", ["Body"]).map((p) => p.name));
+    expect(deadlines.map((d) => d.name)).toEqual(["Snow Wolf", "Costume of Flame", "Battle Horse"]);
+  });
+
+  it("re-seeds the gates off recurringSeq while deadline ids stay stable", () => {
+    const c = makeConfig(); // recurringSeq 13; deadlines are recurring-1..3
+    const before = c.characters[0].recurring.filter((d) => d.kind === "deadline").map((d) => d.id);
+    const next = classifyCharacter(c, "character-1", { name: "Main", empire: "Shinsoo", race: "Lycan", builds: ["Instinct"] });
+    const ch = next.characters[0];
+    expect(ch.recurring.filter((d) => d.kind === "deadline").map((d) => d.id)).toEqual(before);
+    expect(ch.recurring.filter((d) => d.kind === "gate")[0].id).toBe("recurring-14");
+    expect(next.recurringSeq).toBe(13 + subsetFor("Shinsoo", "Lycan", ["Instinct"]).length);
+  });
+
+  it("a name-only edit (axes unchanged) just renames — chores untouched, no reseed", () => {
+    const classified = classifyCharacter(makeConfig(), "character-1", {
+      name: "Main",
+      empire: "Jinno",
+      race: "Sura",
+      builds: ["Weaponry"],
+    });
+    const before = classified.characters[0].recurring;
+    const renamed = classifyCharacter(classified, "character-1", {
+      name: "Sir",
+      empire: "Jinno",
+      race: "Sura",
+      builds: ["Weaponry"],
+    });
+    expect(renamed.characters[0].name).toBe("Sir");
+    expect(renamed.characters[0].recurring).toBe(before); // same reference — not re-seeded
+    expect(renamed.recurringSeq).toBe(classified.recurringSeq);
+  });
+
+  it("drops running/progress on replaced gates but keeps them for surviving deadlines", () => {
+    const base = makeConfig();
+    const ch0 = base.characters[0];
+    const deadlineId = ch0.recurring.find((d) => d.kind === "deadline")!.id;
+    const gateId = ch0.recurring.find((d) => d.kind === "gate")!.id;
+    const seeded: Config = {
+      ...base,
+      characters: base.characters.map((ch) =>
+        ch.id === "character-1"
+          ? {
+              ...ch,
+              recurringRunning: [
+                { defId: deadlineId, expiry: 1000, startedAt: 0 },
+                { defId: gateId, expiry: 2000, startedAt: 0 },
+              ],
+              recurringProgress: [{ defId: gateId, position: 5 }],
+            }
+          : ch,
+      ),
+    };
+    const ch = classifyCharacter(seeded, "character-1", {
+      name: "Main",
+      empire: "Chunjo",
+      race: "Ninja",
+      builds: ["Archery"],
+    }).characters[0];
+    expect(ch.recurringRunning.map((r) => r.defId)).toEqual([deadlineId]); // the gate's running dropped
+    expect(ch.recurringProgress).toEqual([]); // the gate's progress dropped
+  });
+
+  it("is a no-op for an unknown id", () => {
+    const c = makeConfig();
+    expect(classifyCharacter(c, "character-999", { name: "X", empire: "Jinno", race: "Warrior", builds: ["Body"] })).toBe(c);
   });
 });
