@@ -7,6 +7,7 @@
 // replaced the demo host with the overlay app, which left the live demo on a blank page.
 
 const REPO_URL = "https://github.com/isaobushi/metin-boss-timers";
+const PRIVACY_URL = "/privacy.html";
 
 // Spread embers deterministically across the width so the scene is stable across renders.
 const EMBERS = Array.from({ length: 16 }, (_, i) => ({
@@ -225,6 +226,14 @@ export function DemoScene() {
         >
           ★ View the source on GitHub ↗
         </a>
+        <div>
+          <a
+            href={PRIVACY_URL}
+            style={{ color: "#cdbfa8", textDecoration: "none", opacity: 0.7 }}
+          >
+            Privacy policy
+          </a>
+        </div>
       </div>
     </div>
   );
