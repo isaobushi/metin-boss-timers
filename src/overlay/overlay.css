@@ -1033,6 +1033,11 @@ body[data-window="settings"] {
   background: #ffffff12;
   color: #fff;
 }
+/* While the gate counts down, both read-outcome buttons dim — a tapped read here is the deliberate
+   "skipped the cooldown" early read, mirroring the plain gate's muted done-early ✓. */
+.dock-acc__row.is-done .dock-acc__fail {
+  opacity: 0.5;
+}
 /* A capped ladder row — the inert trophy. No gesture, no gate countdown; the rung readout under
    the name reads `… ✓ max`. Dimmed and gold-tinted so a maxed ladder reads as done-and-proud. */
 .dock-acc__row.is-capped .dock-acc__name {

@@ -21,11 +21,13 @@ type Props = {
  *
  * A row carrying a ladder (#44/#45/#46) shows its rung readout (`M3 · 2→M4`, or the `… ✓ max`
  * trophy) beneath the name — tappable to open the set-rung curtain (#46) — and swaps the single ✓
- * for a two-outcome **✓/✗** read gesture, but only while its gate is **ready**: a ladder row
- * deliberately drops the plain gate's permissive "done early", because you cannot read the same book
- * twice in 24h and `position` is real progress data, so it shows just the countdown + readout while
- * the gate counts down. A **capped** ladder is the inert trophy end state: no gesture, no gate
- * countdown — just the `… ✓ max` readout (still tappable, since the curtain is the misclick fix).
+ * for a two-outcome **✓/✗** read gesture: ✓ a successful read (advance the rung + restamp the gate),
+ * ✗ a failed read (book burned, gate restamped, no advance). The gesture keeps the plain gate's
+ * permissive "read early" — in-game items can skip/shorten the 24h cooldown, so a read really can
+ * happen while the gate counts down; the buttons stay live and read as an explicit "skipped the
+ * cooldown" early read (dimmed while counting down). The #46 curtain corrects any mistaken advance.
+ * A **capped** ladder is the inert trophy end state: no gesture, no gate countdown — just the
+ * `… ✓ max` readout (still tappable, since the curtain is the misclick fix).
  */
 export function RoutineAccordion({ rows, onDone, onRead, onSetRung }: Props) {
   if (rows.length === 0) {
@@ -59,22 +61,31 @@ export function RoutineAccordion({ rows, onDone, onRead, onSetRung }: Props) {
               <span className={`dock-acc__val${row.ready ? " dock-ready" : " dock-muted"}`}>{row.text}</span>
             )}
             {row.ladder ? (
-              // Ladder row: ✓/✗ only when the gate is ready (no early logging — it would record a
-              // read that couldn't have happened); nothing while it counts down or once capped.
-              !capped &&
-              row.ready && (
+              // Ladder row: ✓/✗ for the two read outcomes, live whether or not the gate is ready —
+              // in-game skips mean a read can happen mid-cooldown. While counting down they read as
+              // an explicit "skipped the cooldown" early read (restamps from now). Gone only at the
+              // cap (the inert trophy). The tooltip flips to spell out the early-read sense.
+              !capped && (
                 <span className="dock-acc__reads">
                   <button
                     className="dock-acc__done"
                     onClick={() => onRead(row.defId, true)}
-                    title="successful read — advance the rung and restamp the 24h gate"
+                    title={
+                      row.ready
+                        ? "successful read — advance the rung and restamp the 24h gate"
+                        : "read now (skipped the cooldown) — advance the rung and restamp from now"
+                    }
                   >
                     ✓
                   </button>
                   <button
                     className="dock-acc__fail"
                     onClick={() => onRead(row.defId, false)}
-                    title="failed read — book burned, no advance; restamp the 24h gate"
+                    title={
+                      row.ready
+                        ? "failed read — book burned, no advance; restamp the 24h gate"
+                        : "read now (skipped the cooldown) but failed — book burned, no advance; restamp from now"
+                    }
                   >
                     ✗
                   </button>
