@@ -305,7 +305,7 @@ describe("LADDERS table", () => {
     expect(ladderCap("transformation")).toBe(40); // 0→P (20 to M1, then 1/step)
     expect(ladderCap("leadership")).toBe(230); // 20 + 55 + 155 across three Art-of-War books
     expect(ladderCap("language")).toBe(20); // 20 reads to the M1 ceiling
-    expect(ladderCap("biologist")).toBe(9); // 10 stages, one hand-in each → 9 advances to Stage 10
+    expect(ladderCap("biologist")).toBe(235); // sum of the 10 per-stage consignment quantities
   });
 
   it("builds rungs with monotonically rising entry thresholds", () => {
@@ -325,9 +325,13 @@ describe("LADDERS table", () => {
     ]);
   });
 
-  it("gives Biologist a per-stage item hint (display-only metadata, no counter)", () => {
-    expect(LADDERS["biologist"].hints?.[4]).toBe("Zelkova Branch ×25"); // Stage 5
+  it("gives Biologist a per-stage item name + required quantity", () => {
+    expect(LADDERS["biologist"].hints?.[4]).toBe("Zelkova Branch"); // Stage 5 item
+    expect(LADDERS["biologist"].quantities?.[4]).toBe(25); // Stage 5 needs 25
     expect(LADDERS["biologist"].hints).toHaveLength(10);
+    expect(LADDERS["biologist"].quantities).toHaveLength(10);
+    // Stage entries are the cumulative item counts at which each stage opens (0, 10, 25, …).
+    expect(LADDERS["biologist"].rungs.map((r) => r.entry)).toEqual([0, 10, 25, 40, 60, 85, 115, 155, 205, 215]);
   });
 });
 
@@ -383,13 +387,18 @@ describe("ladderText", () => {
     expect(ladderText("language", 20)).toBe("M1 ✓ max");
   });
 
-  it("formats Biologist as `Stage n/10 · <item>` from the seeded hints", () => {
-    expect(ladderText("biologist", 0)).toBe("Stage 1/10 · Orc Tooth ×10");
-    expect(ladderText("biologist", 4)).toBe("Stage 5/10 · Zelkova Branch ×25");
+  it("formats Biologist as `Stage n/10 · <item> x/qty`, counting items within the current stage", () => {
+    expect(ladderText("biologist", 0)).toBe("Stage 1/10 · Orc Tooth 0/10"); // start of stage 1
+    expect(ladderText("biologist", 3)).toBe("Stage 1/10 · Orc Tooth 3/10"); // 3 teeth in, still stage 1
+    expect(ladderText("biologist", 10)).toBe("Stage 2/10 · Curse Book 0/15"); // 10 teeth done → stage 2 opens
+    expect(ladderText("biologist", 63)).toBe("Stage 5/10 · Zelkova Branch 3/25"); // entry 60 + 3
+    expect(ladderText("biologist", 234)).toBe("Stage 10/10 · Wisdom Jewel 19/20"); // last item of the chain
   });
 
-  it("formats the Biologist cap as `Stage 10/10 ✓`", () => {
-    expect(ladderText("biologist", 9)).toBe("Stage 10/10 ✓");
+  it("formats the Biologist trophy only once the final stage's items are all in (no off-by-one)", () => {
+    expect(ladderText("biologist", 215)).toBe("Stage 10/10 · Wisdom Jewel 0/20"); // final stage just opened
+    expect(ladderText("biologist", 224)).toBe("Stage 10/10 · Wisdom Jewel 9/20"); // still working stage 10
+    expect(ladderText("biologist", 235)).toBe("Stage 10/10 ✓"); // all 235 consigned → trophy
   });
 
   it("is null for an unknown or absent ladder", () => {

@@ -178,12 +178,19 @@ export type LadderRung = { label: string; entry: number };
 /** A fixed seeded ladder structure (keyed by `ladderId`). The last rung is the book-relevant cap. */
 export type LadderStructure = {
   id: string;
-  /** `rung` → "<rung> · <n>→<next>"; `stage` → "Stage n/N · <item>" (Biologist). */
+  /** `rung` → "<rung> · <n>→<next>"; `stage` → "Stage n/N · <item> x/qty" (Biologist). */
   style: "rung" | "stage";
-  /** Ordered ascending by `entry`; rungs[0] is the floor, the last rung is the cap. */
+  /**
+   * `rung` style: ordered ascending by `entry`, the last rung is the cap (`position` = successful
+   * reads). `stage` style: one rung per stage, `entry` = the cumulative item count at which that
+   * stage *opens* (`position` = total items consigned); the cap is the sum of all `quantities`,
+   * beyond the last stage's entry — so the final stage is a real working stage, not the trophy.
+   */
   rungs: LadderRung[];
-  /** `stage`-style per-rung display hint (Biologist's consignment item ×qty), index-aligned to rungs. */
+  /** `stage`-style per-stage display name (the consignment item), index-aligned to rungs (Biologist). */
   hints?: string[];
+  /** `stage`-style per-stage required item count — the `x/qty` denominator; the cap is their sum. */
+  quantities?: number[];
   /** Suffix on the trophy readout, e.g. " (books)" — Skill Books cap at G1 because G→P is Soul Stones. */
   capNote?: string;
 };
@@ -222,20 +229,23 @@ const mTier = Array.from({ length: 10 }, (_, i) => `M${i + 1}`); // M1..M10
 const gTier = Array.from({ length: 10 }, (_, i) => `G${i + 1}`); // G1..G10
 const triangular10 = Array.from({ length: 10 }, (_, i) => i + 1); // [1..10], sums to 55 (skill-book M-tier)
 
-// Biologist's 10-stage consignment chain (item ×qty per stage; late names carry localization
-// aliases — primary shown, alt in the trailing comment). Display-only metadata, no collection counter.
+// Biologist's 10-stage consignment chain. Each stage requires a quantity of one item, consigned
+// before the chain opens the next — so the app tracks a real per-stage counter (item x/qty), not a
+// one-tap-per-stage hint. Item names (late ones carry localization aliases — primary shown, alt in
+// the trailing comment) are index-aligned with their required counts below.
 const BIOLOGIST_HINTS = [
-  "Orc Tooth ×10",
-  "Curse Book ×15",
-  "Demon's Keepsake ×15",
-  "Ice Marble ×20",
-  "Zelkova Branch ×25",
-  "Tugyi's Tablet ×30",
-  "Red Ghost Tree Branch ×40",
-  "Leaders' Notes ×50",
-  "Malevolence Jewel ×10",
-  "Wisdom Jewel ×20",
+  "Orc Tooth",
+  "Curse Book",
+  "Demon's Keepsake",
+  "Ice Marble",
+  "Zelkova Branch",
+  "Tugyi's Tablet",
+  "Red Ghost Tree Branch",
+  "Leaders' Notes",
+  "Malevolence Jewel",
+  "Wisdom Jewel",
 ];
+const BIOLOGIST_QTYS = [10, 15, 15, 20, 25, 30, 40, 50, 10, 20]; // per-stage required count; cap = sum = 235
 
 /** The five fixed seeded ladder structures, keyed by `ladderId` (see module note for sourcing). */
 export const LADDERS: Record<string, LadderStructure> = {
@@ -269,15 +279,18 @@ export const LADDERS: Record<string, LadderStructure> = {
     style: "rung",
     rungs: buildRungs(["0", "M1"], [20]),
   },
-  // Biologist: 10 sequential stages, one hand-in (can fail) each. Stage shown = position + 1.
+  // Biologist: 10 sequential stages, each needing a quantity of an item consigned (can fail — a bad
+  // hand-in burns the item) before the next stage opens. Stage entries are the cumulative counts;
+  // the cap is their sum (235), so the last stage is a real working stage, not the trophy.
   biologist: {
     id: "biologist",
     style: "stage",
     rungs: buildRungs(
       Array.from({ length: 10 }, (_, i) => `Stage ${i + 1}`),
-      Array(9).fill(1),
+      BIOLOGIST_QTYS.slice(0, 9), // 9 steps between 10 stages; the 10th qty rolls into the cap
     ),
     hints: BIOLOGIST_HINTS,
+    quantities: BIOLOGIST_QTYS,
   },
 };
 
@@ -285,10 +298,16 @@ export const LADDERS: Record<string, LadderStructure> = {
 export const ladderById = (ladderId: string | undefined): LadderStructure | undefined =>
   ladderId == null ? undefined : LADDERS[ladderId];
 
-/** A ladder's cap — the maximum meaningful `position` (the last rung's entry). */
+/**
+ * A ladder's cap — the maximum meaningful `position`. For a `rung` ladder that's the last rung's
+ * entry; for a `stage` ladder it's the sum of all stage `quantities` (one past the final stage's
+ * entry), so completing the last stage's consignment is what tips it into the trophy.
+ */
 export const ladderCap = (ladderId: string | undefined): number => {
   const l = ladderById(ladderId);
-  return l ? l.rungs[l.rungs.length - 1].entry : 0;
+  if (!l) return 0;
+  if (l.style === "stage") return (l.quantities ?? []).reduce((a, b) => a + b, 0);
+  return l.rungs[l.rungs.length - 1].entry;
 };
 
 /** A ladder's rungs (for the set-rung curtain, #46), or `[]` for a plain (ladder-less) gate. */
@@ -311,25 +330,28 @@ export const rungEntry = (ladderId: string | undefined, label: string): number |
 export function ladderProgress(ladderId: string | undefined, position: number): LadderProgress | null {
   const l = ladderById(ladderId);
   if (!l) return null;
-  const pos = Math.max(0, position);
-  const capEntry = l.rungs[l.rungs.length - 1].entry;
-  const capped = pos >= capEntry;
-  // highest rung whose entry <= pos (rungs are ascending; the last is the cap)
+  const cap = ladderCap(ladderId);
+  const pos = Math.max(0, Math.min(position, cap)); // clamp into [0, cap]
+  const capped = pos >= cap;
+  // highest rung whose entry <= pos (rungs are ascending). The final boundary is the cap, which for
+  // a stage ladder sits beyond the last rung's entry — so the last stage counts up toward it.
   let i = 0;
   for (let k = 0; k < l.rungs.length; k++) if (l.rungs[k].entry <= pos) i = k;
-  const next = capped ? null : l.rungs[i + 1];
+  const next = i + 1 < l.rungs.length ? l.rungs[i + 1] : null;
+  const nextEntry = next ? next.entry : cap;
   return {
     rungLabel: l.rungs[i].label,
-    nextRungLabel: next ? next.label : null,
-    readsToNextRung: next ? next.entry - pos : 0,
+    nextRungLabel: capped ? null : next ? next.label : null,
+    readsToNextRung: capped ? 0 : nextEntry - pos,
     capped,
   };
 }
 
 /**
  * The formatted ladder readout for a `position` (what the Routine row shows beside the gate state).
- * `rung` style reads "M3 · 2→M4", capping to a quiet trophy "G1 ✓ max (books)"; `stage` style (Biologist)
- * reads "Stage 5/10 · Zelkova Branch ×25", capping to "Stage 10/10 ✓". Null for an unknown ladder.
+ * `rung` style reads "M3 · 2→M4", capping to a quiet trophy "G1 ✓ max (books)"; `stage` style
+ * (Biologist) reads "Stage 5/10 · Zelkova Branch 3/25" — the current stage plus how many of its
+ * required items are in — capping to "Stage 10/10 ✓". Null for an unknown ladder.
  */
 export function ladderText(ladderId: string | undefined, position: number): string | null {
   const l = ladderById(ladderId);
@@ -337,10 +359,14 @@ export function ladderText(ladderId: string | undefined, position: number): stri
   if (!l || !p) return null;
   if (l.style === "stage") {
     const total = l.rungs.length;
-    const stage = Math.min(total, Math.max(0, position) + 1);
     if (p.capped) return `Stage ${total}/${total} ✓`;
-    const hint = l.hints?.[stage - 1];
-    return hint ? `Stage ${stage}/${total} · ${hint}` : `Stage ${stage}/${total}`;
+    const pos = Math.max(0, Math.min(position, ladderCap(ladderId)));
+    let i = 0;
+    for (let k = 0; k < l.rungs.length; k++) if (l.rungs[k].entry <= pos) i = k;
+    const inStage = pos - l.rungs[i].entry; // items consigned toward this stage
+    const qty = l.quantities?.[i] ?? 0;
+    const item = l.hints?.[i];
+    return item ? `Stage ${i + 1}/${total} · ${item} ${inStage}/${qty}` : `Stage ${i + 1}/${total}`;
   }
   if (p.capped) return `${p.rungLabel} ✓ max${l.capNote ?? ""}`;
   return `${p.rungLabel} · ${p.readsToNextRung}→${p.nextRungLabel}`;
