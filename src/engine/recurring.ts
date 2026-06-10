@@ -27,6 +27,13 @@ export type RecurringDef = {
    * the engine's running-set behaviour never branches on it. Absent = a plain gate with no rank.
    */
   ladderId?: string;
+  /**
+   * An optional presentation sub-group label, OPAQUE to the engine (same pure-presentation status as
+   * `ladderId`/`kind`). The skill catalog stamps a class Ability with its in-game *school* (the Build
+   * tree it belongs to, e.g. "Black Magic") so the ✓ Routine panel can band the Skill Books by school
+   * (#57). Nothing in the running-set engine reads it; absent on every non-ability gate.
+   */
+  school?: string;
 };
 
 /** A running recurring item: its absolute `expiry`, plus `startedAt` for progress derivation. */
@@ -249,9 +256,19 @@ const BIOLOGIST_QTYS = [10, 15, 15, 20, 25, 30, 40, 50, 10, 20]; // per-stage re
 
 /** The five fixed seeded ladder structures, keyed by `ladderId` (see module note for sourcing). */
 export const LADDERS: Record<string, LadderStructure> = {
-  // Skill Books: M1→G1 = 55 reads (triangular). G→P is Soul Stones, not books → cap at G1.
+  // Skill Books: M1→G1 = 55 reads (triangular). G→P is Soul Stones, not books → cap at G1. (The
+  // G1→P tier reads every 12h vs 24h in-game, but since we cap at G1 that never enters the range.)
   "class-skill": {
     id: "class-skill",
+    style: "rung",
+    rungs: buildRungs([...mTier, "G1"], triangular10),
+    capNote: " (books)",
+  },
+  // Ward skill (#57): the 7th skill reads exactly like a class skill book (M1→G1 = 55) — a clone of
+  // the ability ladder under its own id, so the school-independent Ward keeps the book progression
+  // while banding under Utilities (it is neither the `class-skill` nor `language` ladder).
+  ward: {
+    id: "ward",
     style: "rung",
     rungs: buildRungs([...mTier, "G1"], triangular10),
     capNote: " (books)",
@@ -413,4 +430,26 @@ export function routineToDo(
   const active = defs.filter((d) => !isCapped(d, progress));
   const { done, total } = doneCount(running, active, now);
   return { ready: total - done, total };
+}
+
+// ---- routine sectioning (issue #57) — presentation grouping of the gate checklist, by ladder ----
+// Once a Character is classified its gate routines split into three readable bands: the race-filtered
+// class Abilities (each on the 55-rung `class-skill` ladder), the two foreign Languages, and the
+// universal chores. The split is a pure function of the def's `ladderId` — the same seam `kind`/
+// `ladderId` already are (pure presentation; nothing in the running-set engine branches on it).
+
+/** Which band of the ✓ Routine panel a gate belongs to (presentation grouping, #57). */
+export type RoutineSection = "books" | "languages" | "chores";
+
+/**
+ * Classify a gate into its Routine section by `ladderId` (#57): the race-filtered class Abilities
+ * (the `class-skill` ladder) read as `books`; the foreign `language` ladders as `languages`; every
+ * other gate — the universal Transformation/Leadership/Biologist ladders and any plain user-added
+ * gate (no ladder) — as `chores`. Pure presentation, like `ladderId` itself. The ladder-id literals
+ * match `skillCatalog`'s `LADDER_ABILITY`/`LADDER_LANGUAGE` and `config`'s seed.
+ */
+export function routineSection(ladderId: string | undefined): RoutineSection {
+  if (ladderId === "class-skill") return "books";
+  if (ladderId === "language") return "languages";
+  return "chores";
 }

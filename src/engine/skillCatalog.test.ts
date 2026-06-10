@@ -43,17 +43,19 @@ describe("subsetFor — class abilities", () => {
   });
 
   it("never leaks one race's abilities into another's subset", () => {
-    // Collect each race's full ability-name set, then assert pairwise disjointness.
-    const namesByRace = new Map<Race, Set<string>>();
+    // Non-leakage is STRUCTURAL — by an ability's owning (race, build), not its display name. Two
+    // races can legitimately share a skill *name* (Warrior·Mental and Sura·Black Magic both have a
+    // "Spirit Strike"), which is not a leak. So assert every ability a race resolves is tagged with
+    // THAT race and one of ITS builds, and that each build belongs to exactly one race (build sets
+    // are race-exclusive) — together that means no race's build list can pull in another's abilities.
+    const buildOwner = new Map<Build, Race>();
     for (const race of ALL_RACES) {
-      const names = abilities(subsetFor("Shinsoo", race, buildsFor(race))).map((p) => p.name);
-      namesByRace.set(race, new Set(names));
-    }
-    for (const a of ALL_RACES) {
-      for (const b of ALL_RACES) {
-        if (a === b) continue;
-        const overlap = [...namesByRace.get(a)!].filter((n) => namesByRace.get(b)!.has(n));
-        expect(overlap).toEqual([]);
+      const own = new Set<Build>(buildsFor(race));
+      for (const p of abilities(subsetFor("Shinsoo", race, buildsFor(race)))) {
+        expect(p.race).toBe(race);
+        expect(p.build != null && own.has(p.build)).toBe(true);
+        expect(buildOwner.get(p.build!) ?? race).toBe(race); // a build never spans two races
+        buildOwner.set(p.build!, race);
       }
     }
   });
@@ -71,6 +73,23 @@ describe("subsetFor — class abilities", () => {
     // "Dragon" is a Shaman build, not a Warrior one — passing it yields no abilities.
     const got = abilities(subsetFor("Jinno", "Warrior", ["Dragon" as Build]));
     expect(got).toEqual([]);
+  });
+
+  it("lists Warrior's shared 9th skill (Earthquake) once even for a both-schools Warrior", () => {
+    const names = abilities(subsetFor("Jinno", "Warrior", buildsFor("Warrior"))).map((p) => p.name);
+    expect(names.filter((n) => n === "Earthquake")).toHaveLength(1); // de-duped across Body + Mental
+    expect(names).toContain("Earthquake");
+    // a single-school Warrior still gets it (it belongs to both schools, not just one)
+    expect(abilities(subsetFor("Jinno", "Warrior", ["Mental"])).map((p) => p.name)).toContain("Earthquake");
+  });
+
+  it("carries the Boost (8th) and 9th skill as school abilities on the 55-book ladder", () => {
+    const bm = abilities(subsetFor("Chunjo", "Sura", ["Black Magic"]));
+    const names = bm.map((p) => p.name);
+    expect(names).toContain("Dark Strike Boost"); // 8th — the school's boost
+    expect(names).toContain("Lethal Wave"); // 9th
+    expect(bm.every((p) => p.build === "Black Magic")).toBe(true); // both tagged to the school
+    for (const p of bm) expect(ladderCap(p.ladderId)).toBe(55); // all read like skill books
   });
 
   it("yields only Instinct abilities for a Lycan", () => {
@@ -103,7 +122,7 @@ describe("subsetFor — languages", () => {
 });
 
 describe("subsetFor — universal chores", () => {
-  const universalNames = ["Leadership", "Transformation", "Inspiration", "Charisma", "Mining", "Biologist"];
+  const universalNames = ["Leadership", "Transformation", "Inspiration", "Charisma", "Mining", "Biologist", "Ward Skill"];
 
   it("includes every universal chore regardless of race/empire", () => {
     for (const empire of ALL_EMPIRES) {

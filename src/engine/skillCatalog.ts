@@ -38,7 +38,7 @@ export type Build =
  * and gate metadata ride on the preform (via `ladderId` + `kind`), never on the Race — keeping the
  * two axes (Empire ⊥ Race) independent of the progression structures.
  */
-export type PreformCategory = "class-ability" | "language" | "leadership" | "transformation" | "biologist";
+export type PreformCategory = "class-ability" | "language" | "leadership" | "transformation" | "biologist" | "ward";
 
 /**
  * A chore preform: the catalog's pre-seed description of one recurring chore, mintable into a
@@ -76,6 +76,10 @@ const LADDER_LANGUAGE = "language";
 const LADDER_LEADERSHIP = "leadership";
 const LADDER_TRANSFORMATION = "transformation";
 const LADDER_BIOLOGIST = "biologist";
+// The Ward (7th) reads like a class skill book (M1→G1, 55) but is school-INDEPENDENT, so it climbs
+// its own ladder (a clone of the ability ladder in `recurring.ts`) — keeping it out of the per-school
+// Skill Books band: as a non-`class-skill`/`language` ladder it bands under Utilities like the universals.
+const LADDER_WARD = "ward";
 
 /**
  * The Builds each Race can specialise into — the data fact behind "a Race has a subset of
@@ -89,24 +93,29 @@ const BUILDS_BY_RACE: Record<Race, Build[]> = {
   Lycan: ["Instinct"],
 };
 
-// The Abilities each Build levels — a faithful ~6-per-build set. Exact names vary by server/version
-// and correcting them is data maintenance, not part of this module (PRD #47, "Out of Scope"); what
-// is load-bearing is that each Build yields its own distinct set and no other Race's.
+// The Abilities each Build (the in-game "school") levels, sourced from the official Gameforge wiki's
+// per-class skill pages plus the Boost- and 9th-skill catalogues. Each school carries 8 entries: the
+// 6 main actives, then the **Boost** (8th, named after the school's signature skill), then the **9th
+// skill** (Conquerors of Yohara). All read identically — books to lvl 17, then M1→G1 = 55 books — so
+// they share the one `class-skill` ladder; the Ward (7th) is school-INDEPENDENT and lives in
+// `UNIVERSAL` instead. Warrior's two schools share the same 9th skill ("Earthquake"); `subsetFor`
+// de-dupes abilities by name so a (rare) both-schools Warrior never lists it twice. Names still vary
+// by server/version — this stays data the user can retune; what's load-bearing is the per-school split.
 const ABILITIES: Record<Build, string[]> = {
-  // Warrior
-  Body: ["Aura of the Sword", "Sword Spin", "Berserker", "Dash", "Three-Way Cut", "Strong Body"],
-  Mental: ["Bash", "Stump", "Wild Slash", "Heaven Strike", "Mighty Strike", "Death Blow"],
+  // Warrior — main 6, Boost (8th), 9th. Both schools share the 9th, "Earthquake".
+  Body: ["Aura of the Sword", "Berserk", "Dash", "Sword Spin", "Three-Way Cut", "Life Force", "Sword Spin Boost", "Earthquake"],
+  Mental: ["Bash", "Stump", "Sword Strike", "Sword Orb", "Spirit Strike", "Strong Body", "Spirit Strike Boost", "Earthquake"],
   // Ninja
-  "Blade-Fight": ["Stealth", "Dagger Stab", "Insidious Cut", "Poison Field", "Spark", "Roll"],
-  Archery: ["Repetitive Shot", "Arrow Shower", "Fire Arrow", "Poison Arrow", "Eagle Eyes", "Feather Walk"],
+  "Blade-Fight": ["Ambush", "Fast Attack", "Rolling Dagger", "Poisonous Cloud", "Insidious Poison", "Stealth", "Ambush Boost", "Astral Light"],
+  Archery: ["Repetitive Shot", "Arrow Shower", "Fire Arrow", "Poison Arrow", "Spark", "Feather Walk", "Fire Arrow Boost", "Tempestus"],
   // Sura
-  Weaponry: ["Dark Strike", "Sword Aura", "Fear", "Enchanted Blade", "Dispel", "Blood Pumping"],
-  "Black Magic": ["Dark Orb", "Flame Spirit", "Flame Strike", "Spirit Strike", "Dark Protection", "Magic Shield"],
+  Weaponry: ["Finger Strike", "Hell Strike", "Dragon Swirl", "Enchanted Blade", "Fear", "Dispel", "Finger Strike Boost", "Infernus"],
+  "Black Magic": ["Dark Orb", "Dark Strike", "Flame Strike", "Flame Spirit", "Spirit Strike", "Death Wave", "Dark Strike Boost", "Lethal Wave"],
   // Shaman
-  Dragon: ["Dragon's Roar", "Dragon's Strike", "Lightning Claw", "Lightning Throw", "Dragon Strength", "Cloud Spirit"],
-  Healing: ["Cure", "Heal", "Blessing", "Reflect", "Attack Up", "Magic Up"],
+  Dragon: ["Dragon's Roar", "Shooting Dragon", "Flying Talisman", "Dragon's Aid", "Blessing", "Reflect", "Shooting Dragon Boost", "Meteor"],
+  Healing: ["Cure", "Swiftness", "Attack Up", "Lightning Claw", "Lightning Throw", "Summon Lightning", "Summon Lightning Boost", "Ethereal Shield"],
   // Lycan
-  Instinct: ["Wolf Howl", "Claw Tearing", "Crescent Strike", "Lycan Rush", "Pulverize", "Sharp Wolf"],
+  Instinct: ["Crimson Wolf Soul", "Indigo Wolf Soul", "Shred", "Wolf's Breath", "Wolf's Claw", "Wolf Pounce", "Wolf's Breath Boost", "Cicatrix"],
 };
 
 // The three Language chores, one per Empire. A character reads the *other two* empires' languages
@@ -129,6 +138,10 @@ const UNIVERSAL: ChorePreform[] = [
   { name: "Charisma", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_TRANSFORMATION, category: "transformation" },
   { name: "Mining", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_TRANSFORMATION, category: "transformation" },
   { name: "Biologist", durationMs: BIOLOGIST_MS, kind: "gate", ladderId: LADDER_BIOLOGIST, category: "biologist" },
+  // The Ward skill (7th): one per character, freely chosen from a cross-class pool — so it's universal
+  // (school-independent), not a per-school book. A single generic entry; reads like a 55-book skill (its
+  // own `ward` ladder), banding under Utilities rather than the per-school Skill Books.
+  { name: "Ward Skill", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_WARD, category: "ward" },
 ];
 
 /** Build one `class-ability` preform from its Race + Build + Ability name (55-rung M1→G1 ladder). */
@@ -166,8 +179,15 @@ export function subsetFor(empire: Empire | undefined, race: Race | undefined, bu
     // Only builds that actually belong to this race count — this is where the Lycan single-build
     // invariant bites (its only valid build is "Instinct"), and where a stray foreign build is dropped.
     const valid = buildsFor(race).filter((b) => builds.includes(b));
+    // De-dupe by name: Warrior's two schools share the 9th skill ("Earthquake"), so a both-schools
+    // Warrior would otherwise list it twice — the first school to yield it keeps it (and its school tag).
+    const seen = new Set<string>();
     for (const build of valid) {
-      for (const name of ABILITIES[build]) abilities.push(abilityPreform(race, build, name));
+      for (const name of ABILITIES[build]) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        abilities.push(abilityPreform(race, build, name));
+      }
     }
   }
   // The two foreign languages: every language whose empire isn't the character's own. With no empire

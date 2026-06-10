@@ -182,7 +182,7 @@ function seedCooldowns(): CooldownDef[] {
  * def (it may carry catalog facets like `category`); only the def fields are copied across.
  */
 function mintRecurring(
-  sources: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }>,
+  sources: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string; build?: string }>,
   seq: number,
 ): { defs: RecurringDef[]; seq: number } {
   const defs = sources.map((r, i) => ({
@@ -191,6 +191,9 @@ function mintRecurring(
     durationMs: r.durationMs,
     kind: r.kind,
     ...(r.ladderId ? { ladderId: r.ladderId } : {}),
+    // A class Ability carries its school (the catalog preform's `build`) so the dock can band the
+    // Skill Books by school (#57); pure presentation, like `ladderId`. Non-ability sources have none.
+    ...(r.build ? { school: r.build } : {}),
   }));
   return { defs, seq: seq + sources.length };
 }

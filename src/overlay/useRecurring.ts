@@ -9,10 +9,12 @@ import {
   positionOf,
   readyCrossings,
   remainingMs,
+  routineSection,
   routineToDo,
+  type RoutineSection,
   type RunningRecurring,
 } from "../engine/recurring";
-import { activeRecurring, activeRecurringProgress, activeRecurringRunning } from "../engine/config";
+import { activeCharacter, activeRecurring, activeRecurringProgress, activeRecurringRunning } from "../engine/config";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
@@ -44,6 +46,10 @@ export type RoutineRow = {
   ready: boolean;
   /** Has a running instance (done-for-now / on its rolling cooldown) — false when never done. */
   running: boolean;
+  /** Which band of the panel this gate belongs to (#57): race Abilities, Languages, or universal chores. */
+  section: RoutineSection;
+  /** The class school (Build tree) this Ability belongs to — set only on `books` rows; bands the Skill Books (#57). */
+  school?: string;
   /**
    * The ladder rank layer (#44/#46), present only on a def carrying a `ladderId`. `text` is the
    * formatted rung readout (`M3 · 2→M4`, or `Stage 5/10 · …`, or the `… ✓ max` trophy); `capped`
@@ -85,6 +91,9 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   // The recurring side belongs to the ACTIVE character now (#47): read its slices, not the (gone)
   // top-level Config fields. Everything downstream is unchanged — it's the same shapes, re-scoped.
   const catalog = activeRecurring(config);
+  // The active character's race prefixes the Skill Books school sub-headers (#57: "Sura - Black Magic").
+  // Undefined on an unclassified character — which also has no school'd abilities, so no sub-header shows.
+  const activeRace = activeCharacter(config)?.race;
   const running = activeRecurringRunning(config);
   const progress = activeRecurringProgress(config);
 
@@ -161,6 +170,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,
       running: r != null,
+      section: routineSection(def.ladderId),
+      ...(def.school ? { school: def.school } : {}),
       ...(lp
         ? { ladder: { text: ladderText(def.ladderId, pos)!, capped: lp.capped, ladderId: def.ladderId!, rungLabel: lp.rungLabel } }
         : {}),
@@ -183,5 +194,5 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   // The set-rung curtain (#46): snap a def's rank to a chosen rung; gate untouched (no Date.now()).
   const setRung = useCallback((defId: string, rungLabel: string) => setLadderRung(defId, rungLabel), [setLadderRung]);
 
-  return { rows, datum, refresh: markDone, routineRows, routineDatum, markDone, markRead, setRung };
+  return { rows, datum, refresh: markDone, routineRows, routineDatum, activeRace, markDone, markRead, setRung };
 }
