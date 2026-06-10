@@ -19,6 +19,7 @@ import {
   positionOf,
   readyCrossings,
   remainingMs,
+  routineSection,
   routineToDo,
   setPosition,
 } from "./recurring";
@@ -479,5 +480,20 @@ describe("ladderRungs / rungEntry (the curtain's snap targets, #46)", () => {
     expect(rungEntry("class-skill", "P")).toBeNull(); // class skill books cap at G1
     expect(rungEntry("language", "G1")).toBeNull();
     expect(rungEntry(undefined, "M1")).toBeNull();
+  });
+});
+
+describe("routineSection (the #57 panel banding)", () => {
+  it("bands the race Abilities under books, the foreign languages under languages", () => {
+    expect(routineSection("class-skill")).toBe("books");
+    expect(routineSection("language")).toBe("languages");
+  });
+
+  it("bands every universal ladder — and a plain ladder-less gate — under chores", () => {
+    expect(routineSection("transformation")).toBe("chores");
+    expect(routineSection("leadership")).toBe("chores");
+    expect(routineSection("biologist")).toBe("chores");
+    expect(routineSection(undefined)).toBe("chores"); // a user-added plain gate
+    expect(routineSection("not-a-ladder")).toBe("chores");
   });
 });

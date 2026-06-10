@@ -41,7 +41,7 @@ import {
   type Config,
 } from "./config";
 import { inAlarm, type RecurringProgress } from "./recurring";
-import { subsetFor } from "./skillCatalog";
+import { buildsFor, subsetFor } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
@@ -787,6 +787,17 @@ describe("addCharacter", () => {
     expect(ch.recurring.map((r) => [r.name, r.durationMs, r.kind, r.ladderId])).toEqual(
       want.map((p) => [p.name, p.durationMs, p.kind, p.ladderId]),
     );
+  });
+
+  it("stamps each class Ability with its school (the preform's build), and nothing else (#57)", () => {
+    const draft = { name: "Alt", empire: "Chunjo" as const, race: "Sura" as const, builds: buildsFor("Sura") };
+    const ch = lastChar(addCharacter(makeConfig(), draft));
+    // Every class-ability def carries its school = its build; languages and universals carry none.
+    const want = subsetFor(draft.empire, draft.race, draft.builds);
+    expect(ch.recurring.map((r) => r.school)).toEqual(want.map((p) => p.build));
+    // And the schools that show up are exactly Sura's two builds (Black Magic, Weaponry).
+    const schools = [...new Set(ch.recurring.map((r) => r.school).filter(Boolean))];
+    expect(schools.sort()).toEqual(["Black Magic", "Weaponry"]);
   });
 
   it("mints recurring ids off the GLOBAL recurringSeq so they never collide across characters", () => {
