@@ -5,9 +5,11 @@
 // settings window (overlay/settingsWindow.ts → settings/SettingsApp.tsx); edits there reflect here
 // live via configSync. Config flows through useConfig, persisted to disk; per-skill global hotkeys
 // are registered while a boss's timer screen is active.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { DockBar, type DockSegment } from "./overlay/DockBar";
+import { CharacterSwitcher } from "./overlay/CharacterSwitcher";
+import { CharacterWizard } from "./overlay/CharacterWizard";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
@@ -21,6 +23,7 @@ import { RoutineAccordion } from "./overlay/RoutineAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
+import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
 import { quitApp } from "./overlay/quitApp";
 import { unlockAudio } from "./overlay/audio";
@@ -42,6 +45,9 @@ export default function App() {
   const cd = useCooldowns(cfg);
   const rec = useRecurring(cfg);
   const [panel, setPanel] = useState<Panel>(null);
+  // The character wizard's open state, separate from `panel` so it can override any tool panel: null =
+  // closed, { id: null } = create a new character, { id } = edit/classify that character.
+  const [charEdit, setCharEdit] = useState<{ id: string | null } | null>(null);
   // The cooldown strip is pinned independently of `panel`, so it coexists with the boss timers.
   const [cooldownsPinned, setCooldownsPinned] = useState(false);
   // Whether the add-cooldown picker menu is open (controlled so ⏱ can open it directly).
@@ -53,6 +59,10 @@ export default function App() {
   // Restore the overlay's last position and persist it as it's dragged; in the browser the
   // returned ref turns the .overlay element into a draggable floating panel.
   const overlayRef = useOverlayPosition();
+  // Size the (Tauri) window to fit the content column so full names show without clipping; no-op in
+  // the browser, where the .overlay element shrink-wraps its content via CSS.
+  const contentRef = useRef<HTMLDivElement>(null);
+  useOverlayAutosize(contentRef);
 
   // Browsers/webviews gate audio behind a user gesture — unlock on the first interaction.
   useEffect(() => {
@@ -78,6 +88,12 @@ export default function App() {
   if (panel === "routine") openSegs.add("routine");
   // items/routine share the single exclusive panel, so they toggle it; cooldowns toggles its pin.
   const toggle = (seg: Panel) => setPanel((p) => (p === seg ? null : seg));
+  // The cooldown strip + its add-picker float above the panel; opening another tool should dismiss
+  // them so they don't sit over (and block) the panel being opened.
+  const closeCooldownStrip = () => {
+    setCooldownsPinned(false);
+    setAddOpen(false);
+  };
 
   // One controlled add-picker instance. `addOpen` lets the ⏱ segment jump straight to the menu. It
   // always lives with the cooldown strip (never on the timer row), so the + stays lined up with the
@@ -114,9 +130,55 @@ export default function App() {
     )
   ) : null;
 
+  // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
+  // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
+  const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
+
+  // The active-character chip + switcher, pinned at the dock's left (#54). Switching swaps only the
+  // recurring surface; ✎ opens the edit/classify flow; "+ New" opens the create wizard below the bar.
+  const characterSwitcher = (
+    <CharacterSwitcher
+      characters={cfg.config.characters.map((c) => ({ id: c.id, name: c.name, race: c.race }))}
+      activeId={cfg.config.activeCharacterId}
+      onSwitch={cfg.switchCharacter}
+      onEdit={(id) => {
+        closeCooldownStrip();
+        setCharEdit({ id });
+      }}
+      onDelete={cfg.removeCharacter}
+      onNew={() => {
+        closeCooldownStrip();
+        setCharEdit({ id: null });
+      }}
+    />
+  );
+
+  // The character wizard, shared by three entry points: "+ New" (create, cancellable), ✎ (edit/classify
+  // an existing character, pre-filled), and first-run (create, no cancel — nothing to fall back to).
+  const editingChar = charEdit?.id != null ? cfg.config.characters.find((c) => c.id === charEdit.id) : undefined;
+  const showWizard = firstRun || charEdit != null;
+  const characterWizard = (
+    <CharacterWizard
+      mode={editingChar ? "edit" : "new"}
+      initial={
+        editingChar
+          ? { name: editingChar.name, empire: editingChar.empire, race: editingChar.race, builds: editingChar.builds }
+          : undefined
+      }
+      onCreate={(draft) => {
+        if (editingChar) cfg.editCharacter(editingChar.id, draft);
+        else cfg.createCharacter(draft);
+        setCharEdit(null);
+      }}
+      onCancel={firstRun ? undefined : () => setCharEdit(null)}
+    />
+  );
+
   // The one exclusive tool panel rendered below the pinned strip (null = only bar + strip show).
   let belowPanel = null;
-  if (panel === "items") {
+  if (showWizard) {
+    belowPanel = characterWizard;
+  } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
     belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} />;
@@ -148,6 +210,7 @@ export default function App() {
   const body = (
     <>
       <DockBar
+        leading={characterSwitcher}
         open={openSegs}
         activeBossName={cfg.activeBoss?.name}
         itemsDatum={rec.datum}
@@ -165,8 +228,14 @@ export default function App() {
           setCooldownsPinned(!showing);
           setAddOpen(!showing);
         }}
-        onItems={() => toggle("items")}
-        onRoutine={() => toggle("routine")}
+        onItems={() => {
+          closeCooldownStrip();
+          toggle("items");
+        }}
+        onRoutine={() => {
+          closeCooldownStrip();
+          toggle("routine");
+        }}
         onSettings={openSettings}
         onQuit={quitApp}
       />
@@ -179,7 +248,9 @@ export default function App() {
     <>
       {inBrowser && <DemoScene />}
       <div className="overlay" ref={overlayRef}>
-        {body}
+        <div className="overlay__content" ref={contentRef}>
+          {body}
+        </div>
       </div>
       {showSettings && (
         <div className="settings-modal">

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { RecurringDatum, RoutineDatum } from "./useRecurring";
 
 /** Which tools' panels are open (for each segment's open-highlight). Cooldowns is a pinned strip,
@@ -5,6 +6,8 @@ import type { RecurringDatum, RoutineDatum } from "./useRecurring";
 export type DockSegment = "skills" | "cooldowns" | "items" | "routine";
 
 type Props = {
+  /** The active-character chip + switcher, pinned at the bar's left (its dropdown escapes the bar). */
+  leading?: ReactNode;
   /** The set of open tool groups, so each reads as active independently. Empty when only the bar shows. */
   open: ReadonlySet<DockSegment>;
   /** Active boss's name, shown on the ⚔ segment when a boss is selected. */
@@ -37,7 +40,7 @@ type Props = {
  * honest. A leading ⠿ grip carries the window drag region; the clickable segments sit outside it so
  * a tap never starts a drag.
  */
-export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
+export function DockBar({ leading, open, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
   // The ✓ segment is a to-do nudge: show the count of routines that need doing now, green, and fall
   // back to just the calm ✓ icon (no number) when you're all caught up — so it never sits at "n/n".
   const routineToDo = routineDatum.ready;
@@ -47,6 +50,8 @@ export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkil
       <span className="dock-grip" data-tauri-drag-region title="drag to move">
         ⠿
       </span>
+
+      {leading}
 
       <button className={`dock-seg${open.has("skills") ? " is-open" : ""}`} onClick={onSkills} title="skills">
         <span className="dock-seg__icon">⚔</span>

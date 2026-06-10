@@ -18,6 +18,7 @@ import {
   setPosition,
 } from "./recurring";
 import { type Character, DEFAULT_CHARACTER_NAME, activeCharacter, makeCharacter } from "./character";
+import { type Build, type Empire, type Race, subsetFor } from "./skillCatalog";
 import { clampDuration } from "./cooldownTuning";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
@@ -174,15 +175,29 @@ function seedCooldowns(): CooldownDef[] {
   }));
 }
 
-/** The seeded recurring catalog: each example chore with a deterministic `recurring-N` id. */
-function seedRecurring(): RecurringDef[] {
-  return RECURRING_SEED.map((r, i) => ({
-    id: `recurring-${i + 1}`,
+/**
+ * Mint `RecurringDef`s from any catalog/seed sources (the shipped seed or a `skillCatalog` preform
+ * subset), numbering each id off `seq` — the global `recurringSeq` — so recurring ids stay unique
+ * across every character. Returns the new defs plus the advanced `seq`. A source is a superset of a
+ * def (it may carry catalog facets like `category`); only the def fields are copied across.
+ */
+function mintRecurring(
+  sources: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }>,
+  seq: number,
+): { defs: RecurringDef[]; seq: number } {
+  const defs = sources.map((r, i) => ({
+    id: `recurring-${seq + i + 1}`,
     name: r.name,
     durationMs: r.durationMs,
     kind: r.kind,
     ...(r.ladderId ? { ladderId: r.ladderId } : {}),
   }));
+  return { defs, seq: seq + sources.length };
+}
+
+/** The seeded recurring catalog: each example chore with a deterministic `recurring-N` id. */
+function seedRecurring(): RecurringDef[] {
+  return mintRecurring(RECURRING_SEED, 0).defs;
 }
 
 /**
@@ -436,6 +451,98 @@ export function restartCooldown(c: Config, defId: string, now: number): Config {
 /** Stop and remove the running cooldown for `defId`; a no-op if it isn't running. */
 export function clearCooldown(c: Config, defId: string): Config {
   return { ...c, running: clear(c.running, defId) };
+}
+
+// ---- character lifecycle (PRD #47, create flow #54) ----
+// The write path the create flow + dock switcher drive. `addCharacter` is the mirror of `addBoss`:
+// mint a fresh `character-N` id, seed its recurring chores from the `skillCatalog` subset for the
+// chosen axes, and append it. Rename/select/delete round out the switcher. Entitlement gating lives
+// at the call site (`allows(…, "addCharacter")` in useConfig), not here — these stay pure.
+
+/** The classification a create flow collects: a name plus the optional Empire ⊥ Race ⊥ Builds axes. */
+export type CharacterDraft = { name: string; empire?: Empire; race?: Race; builds?: Build[] };
+
+/**
+ * Append a new character built from `draft`, seeding its recurring catalog from
+ * `skillCatalog.subsetFor(empire, race, builds)` — the universal chores, the race/build Abilities,
+ * and the two foreign Languages — with ids minted off the global `recurringSeq`. The new character
+ * becomes active (you land on what you just created); first-run create flows through this same path.
+ */
+export function addCharacter(c: Config, draft: CharacterDraft): Config {
+  const characterSeq = c.characterSeq + 1;
+  const id = `character-${characterSeq}`;
+  const builds = draft.builds ?? [];
+  const { defs: recurring, seq: recurringSeq } = mintRecurring(
+    subsetFor(draft.empire, draft.race, builds),
+    c.recurringSeq,
+  );
+  const character: Character = {
+    ...makeCharacter(id, draft.name, { recurring }),
+    ...(draft.empire ? { empire: draft.empire } : {}),
+    ...(draft.race ? { race: draft.race } : {}),
+    builds,
+  };
+  return { ...c, characters: [...c.characters, character], characterSeq, recurringSeq, activeCharacterId: id };
+}
+
+/** Rename a character by id; siblings (and an unknown id) are left untouched. */
+export function renameCharacter(c: Config, id: string, name: string): Config {
+  return { ...c, characters: c.characters.map((ch) => (ch.id === id ? { ...ch, name } : ch)) };
+}
+
+/** Order-insensitive Build set equality — the create flow can toggle builds in any order. */
+const sameBuilds = (a: Build[], b: Build[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
+
+/**
+ * Set (or change) an existing character's name and class axes (empire/race/builds) — the edit path
+ * the ✎ flow drives, including classifying the unclassified migrated default. When the axes actually
+ * change, the character's GATE chores are re-seeded from `skillCatalog.subsetFor` for the new class
+ * (fresh ids off `recurringSeq`), while its `deadline` "expiring items" (pet/costume/mount — not
+ * class-bound) are kept; running timers and ladder progress on the replaced gates reset. A name-only
+ * edit (axes unchanged) just renames, touching no chores. A no-op for an unknown id.
+ */
+export function classifyCharacter(c: Config, id: string, draft: CharacterDraft): Config {
+  const target = c.characters.find((ch) => ch.id === id);
+  if (!target) return c;
+  const builds = draft.builds ?? [];
+  const axesChanged =
+    draft.empire !== target.empire || draft.race !== target.race || !sameBuilds(builds, target.builds);
+  if (!axesChanged) return renameCharacter(c, id, draft.name);
+
+  // Keep the deadline items; replace the gate chores with the new class's skill books.
+  const deadlines = target.recurring.filter((d) => d.kind === "deadline");
+  const { defs: gates, seq: recurringSeq } = mintRecurring(subsetFor(draft.empire, draft.race, builds), c.recurringSeq);
+  const kept = new Set(deadlines.map((d) => d.id));
+  const updated: Character = {
+    ...target,
+    name: draft.name,
+    empire: draft.empire,
+    race: draft.race,
+    builds,
+    recurring: [...deadlines, ...gates],
+    recurringRunning: target.recurringRunning.filter((r) => kept.has(r.defId)),
+    recurringProgress: target.recurringProgress.filter((p) => kept.has(p.defId)),
+  };
+  return { ...c, characters: c.characters.map((ch) => (ch.id === id ? updated : ch)), recurringSeq };
+}
+
+/** Switch the active character. A no-op for an unknown id, so the switcher can never point at a ghost. */
+export function selectCharacter(c: Config, id: string): Config {
+  if (!c.characters.some((ch) => ch.id === id)) return c;
+  return { ...c, activeCharacterId: id };
+}
+
+/**
+ * Delete a character by id. If that removed the active one (or left `activeCharacterId` dangling),
+ * re-point active to the first survivor — or null when none remain (the overlay then shows the
+ * first-run create flow). An unknown id is a no-op.
+ */
+export function deleteCharacter(c: Config, id: string): Config {
+  const characters = c.characters.filter((ch) => ch.id !== id);
+  if (characters.length === c.characters.length) return c;
+  const activeSurvives = characters.some((ch) => ch.id === c.activeCharacterId);
+  const activeCharacterId = activeSurvives ? c.activeCharacterId : (characters[0]?.id ?? null);
+  return { ...c, characters, activeCharacterId };
 }
 
 // ---- active-character recurring scoping (PRD #47) ----

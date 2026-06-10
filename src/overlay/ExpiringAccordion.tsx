@@ -25,7 +25,10 @@ export function ExpiringAccordion({ rows, onRefresh }: Props) {
     <div className="dock-acc">
       {rows.map((row) => (
         <div className="dock-acc__row" key={row.defId}>
-          <span className="dock-acc__name">{row.name}</span>
+          {/* name flexes (via __main, like the routine rows) so the readout + ↻ sit at the right edge */}
+          <span className="dock-acc__main">
+            <span className="dock-acc__name">{row.name}</span>
+          </span>
           <span className={`dock-acc__val${row.alarm ? " dock-alarm" : row.due ? " dock-due" : ""}`}>
             {row.text}
           </span>
