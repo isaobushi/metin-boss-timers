@@ -44,11 +44,12 @@ export type RoutineRow = {
   /** Has a running instance (done-for-now / on its rolling cooldown) — false when never done. */
   running: boolean;
   /**
-   * The ladder rank layer (#44), present only on a def carrying a `ladderId`. `text` is the formatted
-   * rung readout (`M3 · 2→M4`, or `Stage 5/10 · …`, or the `… ✓ max` trophy); `capped` marks the inert
-   * end state. A plain gate has no `ladder` — it keeps its single ✓ and permissive done-early.
+   * The ladder rank layer (#44/#46), present only on a def carrying a `ladderId`. `text` is the
+   * formatted rung readout (`M3 · 2→M4`, or `Stage 5/10 · …`, or the `… ✓ max` trophy); `capped`
+   * marks the inert end state; `ladderId` + `rungLabel` (the current rung) scope the set-rung
+   * curtain. A plain gate has no `ladder` — it keeps its single ✓ and permissive done-early.
    */
-  ladder?: { text: string; capped: boolean };
+  ladder?: { text: string; capped: boolean; ladderId: string; rungLabel: string };
 };
 
 /**
@@ -79,7 +80,7 @@ export type RoutineDatum = { ready: number; total: number };
  */
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
-  const { config, markRecurringDone, markReadOutcome } = cfg;
+  const { config, markRecurringDone, markReadOutcome, setLadderRung } = cfg;
   const catalog = config.recurring;
   const running = config.recurringRunning;
   const progress = config.recurringProgress;
@@ -149,14 +150,17 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     // Ladder layer (#44): a def carrying a `ladderId` gets the rung readout projected onto the row;
     // `ladderProgress` returns null for a plain gate, so `ladder` stays undefined and the row reads
     // exactly as before. Rank lives in the parallel `recurringProgress` map, independent of the gate.
-    const lp = ladderProgress(def.ladderId, positionOf(progress, def.id));
+    const pos = positionOf(progress, def.id);
+    const lp = ladderProgress(def.ladderId, pos);
     return {
       defId: def.id,
       name: def.name,
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,
       running: r != null,
-      ...(lp ? { ladder: { text: ladderText(def.ladderId, positionOf(progress, def.id))!, capped: lp.capped } } : {}),
+      ...(lp
+        ? { ladder: { text: ladderText(def.ladderId, pos)!, capped: lp.capped, ladderId: def.ladderId!, rungLabel: lp.rungLabel } }
+        : {}),
     };
   });
 
@@ -173,6 +177,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     (defId: string, success: boolean) => markReadOutcome(defId, Date.now(), success),
     [markReadOutcome],
   );
+  // The set-rung curtain (#46): snap a def's rank to a chosen rung; gate untouched (no Date.now()).
+  const setRung = useCallback((defId: string, rungLabel: string) => setLadderRung(defId, rungLabel), [setLadderRung]);
 
-  return { rows, datum, refresh: markDone, routineRows, routineDatum, markDone, markRead };
+  return { rows, datum, refresh: markDone, routineRows, routineDatum, markDone, markRead, setRung };
 }

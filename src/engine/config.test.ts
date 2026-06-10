@@ -24,6 +24,7 @@ import {
   clearCooldown,
   markRecurring,
   markRead,
+  setRung,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -657,5 +658,40 @@ describe("markRead (ladder read-outcome gesture, #45)", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(markRead(c, "recurring-999", 1_000, true)).toBe(c);
+  });
+});
+
+describe("setRung (set-rung curtain, #46)", () => {
+  const books = (c: Config) => c.recurring[3]; // Skill Books, class-skill (M4 entry = 1+2+3 = 6)
+
+  it("maps a chosen rung to its entry-threshold position", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = setRung(c, def.id, "M4");
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 6 }]); // M1=0,M2=1,M3=3,M4=6
+  });
+
+  it("writes the progress map ONLY — the daily gate is untouched", () => {
+    const c = markRecurring(makeConfig(), books(makeConfig()).id, 1_000); // gate already running
+    const def = books(c);
+    const before = c.recurringRunning;
+    const after = setRung(c, def.id, "M4");
+    expect(after.recurringRunning).toBe(before); // same reference — gate not re-stamped
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 6 }]);
+  });
+
+  it("doubles as the misclick fix — retargeting down to an earlier rung", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = { ...base, recurringProgress: [{ defId: def.id, position: 45 }] }; // mistakenly at M10
+    const after = setRung(c, def.id, "M2");
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 1 }]); // snapped back to M2's entry
+  });
+
+  it("is a no-op for an unknown def, a plain gate, or a label not on the ladder", () => {
+    const c = makeConfig();
+    expect(setRung(c, "recurring-999", "M4")).toBe(c); // unknown def
+    expect(setRung(c, c.recurring[0].id, "M4")).toBe(c); // Snow Wolf — a deadline, no ladder
+    expect(setRung(c, books(c).id, "P")).toBe(c); // P isn't a rung on the class-skill ladder (caps at G1)
   });
 });

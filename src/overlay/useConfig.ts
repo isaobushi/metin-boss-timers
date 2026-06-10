@@ -22,6 +22,7 @@ import {
   clearCooldown,
   markRecurring,
   markRead,
+  setRung,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -187,6 +188,12 @@ export function useConfig() {
     (defId: string, now: number, success: boolean) => setConfig((c) => markRead(c, defId, now, success)),
     [],
   );
+  // The set-rung curtain (#46): snap a ladder def's rank to a chosen rung's entry threshold,
+  // writing the progress map only (the daily gate is untouched). Also the misclick-correction path.
+  const setLadderRung = useCallback(
+    (defId: string, rungLabel: string) => setConfig((c) => setRung(c, defId, rungLabel)),
+    [],
+  );
 
   // Recurring catalog CRUD for the settings Items section (issue #37): add a blank deadline
   // definition, rename it, set its day-scale duration, or remove it. Mirrors the cooldown catalog
@@ -241,6 +248,7 @@ export function useConfig() {
     deleteCooldown,
     markRecurringDone,
     markReadOutcome,
+    setLadderRung,
     createRecurring,
     createRoutine,
     editRecurringName,

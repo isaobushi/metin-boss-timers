@@ -14,6 +14,7 @@ import {
   type RunningRecurring,
   markDone,
   positionOf,
+  rungEntry,
   setPosition,
 } from "./recurring";
 import { clampDuration } from "./cooldownTuning";
@@ -479,6 +480,22 @@ export function markRead(c: Config, defId: string, now: number, success: boolean
   if (!success) return { ...c, recurringRunning }; // failed read — gate restamped, rank untouched
   const next = positionOf(c.recurringProgress, defId) + 1;
   return { ...c, recurringRunning, recurringProgress: setPosition(c.recurringProgress, defId, next, def.ladderId) };
+}
+
+/**
+ * Set a ladder def's current rung (issue #46) — players install with progress already in hand, and
+ * this is also the only path to correct a mis-tapped ✓. It maps the chosen rung *label* to that
+ * rung's entry-threshold `position` (rung granularity — the first few ✓s true up the within-rung
+ * count) and writes the `recurringProgress` map ONLY: the daily gate (`recurringRunning`) is left
+ * untouched, so setting your rank never spends today's read. A no-op for an unknown def, a def with
+ * no ladder, or a label not on that ladder.
+ */
+export function setRung(c: Config, defId: string, rungLabel: string): Config {
+  const def = recurringById(c, defId);
+  if (!def) return c;
+  const entry = rungEntry(def.ladderId, rungLabel);
+  if (entry == null) return c; // not a rung on this def's ladder (or no ladder) → no-op
+  return { ...c, recurringProgress: setPosition(c.recurringProgress, defId, entry, def.ladderId) };
 }
 
 // ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----

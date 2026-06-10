@@ -291,6 +291,17 @@ export const ladderCap = (ladderId: string | undefined): number => {
   return l ? l.rungs[l.rungs.length - 1].entry : 0;
 };
 
+/** A ladder's rungs (for the set-rung curtain, #46), or `[]` for a plain (ladder-less) gate. */
+export const ladderRungs = (ladderId: string | undefined): LadderRung[] => ladderById(ladderId)?.rungs ?? [];
+
+/**
+ * The entry-threshold `position` for a rung label on a ladder (the set-rung curtain's snap target,
+ * #46 — picking a rung snaps to its *entry*, the first reads true it up). Null if the label isn't
+ * on the ladder (or the ladder is unknown).
+ */
+export const rungEntry = (ladderId: string | undefined, label: string): number | null =>
+  ladderById(ladderId)?.rungs.find((r) => r.label === label)?.entry ?? null;
+
 /**
  * Derive the rung readout for a `position` on a ladder. Pure: the current rung is the highest whose
  * `entry` is at or below the (clamped, non-negative) position; `capped` is true once the position

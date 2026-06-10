@@ -1043,6 +1043,105 @@ body[data-window="settings"] {
   opacity: 1;
 }
 
+/* ---- set-rung curtain (#46) — a per-row searchable rung picker, CooldownPicker's sibling ---- */
+.rung-curtain {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+/* The trigger is the ladder readout itself, made tappable — a borderless text button that brightens
+   on hover so it reads as actionable without shouting. Inherits the `.dock-acc__ladder` styling. */
+.rung-curtain__trigger {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+}
+.rung-curtain__trigger:hover {
+  color: #fff;
+  opacity: 1;
+}
+.rung-menu {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  z-index: 50;
+  width: max-content;
+  min-width: 150px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(14, 11, 22, 0.96);
+  border: 1px solid #ffffff22;
+  box-shadow: 0 12px 30px #000c;
+  backdrop-filter: blur(8px);
+}
+/* Edge-aware open direction (#27), mirroring the cooldown menu. */
+.rung-menu--right {
+  left: auto;
+  right: 0;
+}
+.rung-menu--up {
+  top: auto;
+  bottom: 20px;
+}
+.rung-menu__search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border-radius: 7px;
+  border: 1px solid #ffffff22;
+  background: #ffffff0d;
+  color: #e9e5f5;
+  font: 500 11px/1 inherit;
+  outline: none;
+}
+.rung-menu__search:focus {
+  border-color: color-mix(in srgb, #7c6cff 60%, transparent);
+}
+/* The rungs wrap into a chip grid (a ladder can run to ~40 rungs); the box scrolls past a few rows. */
+.rung-menu__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.rung-menu__item {
+  flex: none;
+  min-width: 30px;
+  padding: 5px 7px;
+  border: none;
+  border-radius: 6px;
+  background: #ffffff10;
+  color: #e9e5f5;
+  font: 600 11px/1 inherit;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  text-align: center;
+}
+.rung-menu__item:hover {
+  background: #ffffff22;
+  color: #fff;
+}
+/* The rung the def currently sits on — accented so the player sees where they are before retargeting. */
+.rung-menu__item.is-current {
+  background: color-mix(in srgb, #7c6cff 38%, transparent);
+  color: #fff;
+}
+.rung-menu__empty {
+  padding: 4px 6px;
+  text-align: center;
+  color: #b9aee6;
+  opacity: 0.6;
+  font: 500 10px/1.2 inherit;
+}
+
 /* ---- cooldown strip (Variant A "whisper row") ---- */
 /* An app-level strip above the boss panel, present on every overlay screen. 316px to
    align flush with the panel edge. Deliberately subordinate to the boss-skill chips:

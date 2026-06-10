@@ -12,8 +12,10 @@ import {
   isDue,
   ladderCap,
   ladderProgress,
+  ladderRungs,
   ladderText,
   markDone,
+  rungEntry,
   positionOf,
   readyCrossings,
   remainingMs,
@@ -448,5 +450,25 @@ describe("isCapped / routineToDo (the ✓ nudge, #45)", () => {
     const running = [{ defId: "bio", expiry: 10 * HOUR, startedAt: 0 }]; // bio satisfied
     const progress = [{ defId: "lang", position: 20 }]; // lang capped → excluded
     expect(routineToDo(running, defs, progress, 0)).toEqual({ ready: 0, total: 1 });
+  });
+});
+
+describe("ladderRungs / rungEntry (the curtain's snap targets, #46)", () => {
+  it("lists a ladder's rungs (and is empty for a plain gate)", () => {
+    expect(ladderRungs("language").map((r) => r.label)).toEqual(["0", "M1"]);
+    expect(ladderRungs("leadership")).toHaveLength(40); // 1–19 → M1–M10 → G1–G10 → P
+    expect(ladderRungs(undefined)).toEqual([]);
+  });
+
+  it("maps a rung label to its entry threshold", () => {
+    expect(rungEntry("class-skill", "M4")).toBe(6); // 1+2+3
+    expect(rungEntry("class-skill", "G1")).toBe(55); // the cap
+    expect(rungEntry("transformation", "M1")).toBe(20);
+  });
+
+  it("is null for a label not on the ladder (or an unknown ladder)", () => {
+    expect(rungEntry("class-skill", "P")).toBeNull(); // class skill books cap at G1
+    expect(rungEntry("language", "G1")).toBeNull();
+    expect(rungEntry(undefined, "M1")).toBeNull();
   });
 });
