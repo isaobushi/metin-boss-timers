@@ -12,6 +12,7 @@ import {
   routineToDo,
   type RunningRecurring,
 } from "../engine/recurring";
+import { activeRecurring, activeRecurringProgress, activeRecurringRunning } from "../engine/config";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
@@ -81,9 +82,11 @@ export type RoutineDatum = { ready: number; total: number };
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
   const { config, markRecurringDone, markReadOutcome, setLadderRung } = cfg;
-  const catalog = config.recurring;
-  const running = config.recurringRunning;
-  const progress = config.recurringProgress;
+  // The recurring side belongs to the ACTIVE character now (#47): read its slices, not the (gone)
+  // top-level Config fields. Everything downstream is unchanged — it's the same shapes, re-scoped.
+  const catalog = activeRecurring(config);
+  const running = activeRecurringRunning(config);
+  const progress = activeRecurringProgress(config);
 
   // Live-only cue, split by kind (ADR-0003 §3): a `deadline` chimes on the crossing INTO the
   // under-24h alarm window (`alarmCrossings`), a `gate` on the ZERO crossing into ready

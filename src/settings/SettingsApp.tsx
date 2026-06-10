@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
 import { RecurringSettings } from "../overlay/RecurringSettings";
+import { activeRecurring } from "../engine/config";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
@@ -125,7 +126,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
 
       {tab === "items" && (
         <RecurringSettings
-          recurring={cfg.config.recurring}
+          recurring={activeRecurring(cfg.config)}
           kind="deadline"
           title="EXPIRING ITEMS"
           addLabel="+ ADD ITEM"
@@ -139,7 +140,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
 
       {tab === "routine" && (
         <RecurringSettings
-          recurring={cfg.config.recurring}
+          recurring={activeRecurring(cfg.config)}
           kind="gate"
           title="ROUTINE"
           addLabel="+ ADD ROUTINE"
