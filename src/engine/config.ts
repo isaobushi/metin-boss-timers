@@ -17,6 +17,7 @@ import {
   rungEntry,
   setPosition,
 } from "./recurring";
+import { type Character, DEFAULT_CHARACTER_NAME, activeCharacter, makeCharacter } from "./character";
 import { clampDuration } from "./cooldownTuning";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
@@ -42,20 +43,22 @@ export type Config = {
   cooldowns: CooldownDef[];
   /** The currently-running cooldowns (absolute expiries); persisted across sessions. */
   running: RunningCooldown[];
-  /** The editable catalog of recurring-chore definitions (expiring items + routine). */
-  recurring: RecurringDef[];
-  /** The currently-running recurring items (absolute expiries); persisted across sessions. */
-  recurringRunning: RunningRecurring[];
   /**
-   * Per-def ladder rank (count of successful reads) — parallel to `recurringRunning` and
-   * independent of the daily gate's lifecycle (issue #44). Additive/lenient: absent → empty.
+   * The player's characters (PRD #47). Each owns the RECURRING side of the app — its own Routine/
+   * Elapsable-item catalog, running set, and ladder progress. The recurring fields that used to live
+   * at the top of `Config` now live per-character (see `engine/character.ts`); bosses/cooldowns stay
+   * global. A fresh or migrated config always has at least one (default) character.
    */
-  recurringProgress: RecurringProgress[];
-  /** Monotonic counters owned here so ids never collide (even after deletes). */
+  characters: Character[];
+  /** Which character the dock shows and every recurring read resolves against (null = none). */
+  activeCharacterId: string | null;
+  /** Monotonic counters owned here so ids never collide (even after deletes). `recurringSeq` stays
+   *  global so recurring ids are unique across every character (the progress/running maps key on it). */
   bossSeq: number;
   skillSeq: number;
   cooldownSeq: number;
   recurringSeq: number;
+  characterSeq: number;
 };
 
 // Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
@@ -192,20 +195,30 @@ export function makeConfig(): Config {
     bosses: [],
     cooldowns: [],
     running: [],
-    recurring: [],
-    recurringRunning: [],
-    recurringProgress: [],
+    characters: [],
+    activeCharacterId: null,
     bossSeq: 0,
     skillSeq: 0,
     cooldownSeq: 0,
     recurringSeq: 0,
+    characterSeq: 0,
   };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
   c = addSkill(c, c.bosses[0].id);
   const cooldowns = seedCooldowns();
+  // The shipped recurring seed lives under a single default character; bosses/cooldowns stay global.
   const recurring = seedRecurring();
-  return { ...c, cooldowns, cooldownSeq: cooldowns.length, recurring, recurringSeq: recurring.length };
+  const character = makeCharacter("character-1", DEFAULT_CHARACTER_NAME, { recurring });
+  return {
+    ...c,
+    cooldowns,
+    cooldownSeq: cooldowns.length,
+    recurringSeq: recurring.length,
+    characters: [character],
+    activeCharacterId: character.id,
+    characterSeq: 1,
+  };
 }
 
 /** Append a new boss (with one default skill); its accent cycles from the palette. */
@@ -425,19 +438,37 @@ export function clearCooldown(c: Config, defId: string): Config {
   return { ...c, running: clear(c.running, defId) };
 }
 
+// ---- active-character recurring scoping (PRD #47) ----
+// The recurring side of the app belongs to the ACTIVE character: every wrapper below reads/writes
+// that character's `recurring*` slices, leaving bosses/cooldowns and every OTHER character untouched.
+// `editActiveCharacter` is the single write seam; the `active*` accessors are the read seam the
+// overlay/settings use instead of reaching into the shape. With no active character all reads are
+// empty and all writes are no-ops, so the engine degrades gracefully.
+export { type Character, activeCharacter } from "./character";
+
+const editActiveCharacter = (c: Config, fn: (ch: Character) => Character): Config => ({
+  ...c,
+  characters: c.characters.map((ch) => (ch.id === c.activeCharacterId ? fn(ch) : ch)),
+});
+
+/** The active character's recurring catalog (empty when there's no active character). */
+export const activeRecurring = (c: Config): RecurringDef[] => activeCharacter(c)?.recurring ?? [];
+/** The active character's currently-running recurring items. */
+export const activeRecurringRunning = (c: Config): RunningRecurring[] => activeCharacter(c)?.recurringRunning ?? [];
+/** The active character's per-def ladder progress map. */
+export const activeRecurringProgress = (c: Config): RecurringProgress[] => activeCharacter(c)?.recurringProgress ?? [];
+
 // ---- recurring actions (thin Config-level wrappers over the pure recurring ops) ----
-// Like the cooldown wrappers, each resolves a `defId` against the recurring catalog and
-// applies the matching `recurring.ts` transform to `c.recurringRunning`, leaving the catalog
-// and the rest of the config untouched. `now` is supplied by the caller (the 1s tick).
+// Like the cooldown wrappers, each resolves a `defId` against the active character's recurring
+// catalog and applies the matching `recurring.ts` transform to that character's running set, leaving
+// the catalog and the rest of the config untouched. `now` is supplied by the caller (the 1s tick).
 
 const recurringById = (c: Config, defId: string): RecurringDef | undefined =>
-  c.recurring.find((d) => d.id === defId);
+  activeRecurring(c).find((d) => d.id === defId);
 
-/** Map the matching recurring definition through `fn`, leaving siblings/bosses/running untouched. */
-const editRecurring = (c: Config, defId: string, fn: (d: RecurringDef) => RecurringDef): Config => ({
-  ...c,
-  recurring: c.recurring.map((d) => (d.id === defId ? fn(d) : d)),
-});
+/** Map the matching recurring definition (in the active character) through `fn`, siblings untouched. */
+const editRecurring = (c: Config, defId: string, fn: (d: RecurringDef) => RecurringDef): Config =>
+  editActiveCharacter(c, (ch) => ({ ...ch, recurring: ch.recurring.map((d) => (d.id === defId ? fn(d) : d)) }));
 
 // The day-scale band a recurring duration is held within — [1 minute, 365 days]. Far wider
 // than the cooldown wheel's [1m, 12h] (these chores drain over hours to weeks), so they get
@@ -460,7 +491,7 @@ const clampRecurringDuration = (ms: number): number =>
 export function markRecurring(c: Config, defId: string, now: number): Config {
   const def = recurringById(c, defId);
   if (!def) return c;
-  return { ...c, recurringRunning: markDone(c.recurringRunning, def, now) };
+  return editActiveCharacter(c, (ch) => ({ ...ch, recurringRunning: markDone(ch.recurringRunning, def, now) }));
 }
 
 /**
@@ -479,10 +510,12 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
 export function markRead(c: Config, defId: string, now: number, success: boolean): Config {
   const def = recurringById(c, defId);
   if (!def) return c;
-  const recurringRunning = markDone(c.recurringRunning, def, now);
-  if (!success) return { ...c, recurringRunning }; // failed read — gate restamped, rank untouched
-  const next = positionOf(c.recurringProgress, defId) + 1;
-  return { ...c, recurringRunning, recurringProgress: setPosition(c.recurringProgress, defId, next, def.ladderId) };
+  return editActiveCharacter(c, (ch) => {
+    const recurringRunning = markDone(ch.recurringRunning, def, now);
+    if (!success) return { ...ch, recurringRunning }; // failed read — gate restamped, rank untouched
+    const next = positionOf(ch.recurringProgress, defId) + 1;
+    return { ...ch, recurringRunning, recurringProgress: setPosition(ch.recurringProgress, defId, next, def.ladderId) };
+  });
 }
 
 /**
@@ -498,7 +531,10 @@ export function setRung(c: Config, defId: string, rungLabel: string): Config {
   if (!def) return c;
   const entry = rungEntry(def.ladderId, rungLabel);
   if (entry == null) return c; // not a rung on this def's ladder (or no ladder) → no-op
-  return { ...c, recurringProgress: setPosition(c.recurringProgress, defId, entry, def.ladderId) };
+  return editActiveCharacter(c, (ch) => ({
+    ...ch,
+    recurringProgress: setPosition(ch.recurringProgress, defId, entry, def.ladderId),
+  }));
 }
 
 // ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----
@@ -526,7 +562,8 @@ export function addRecurring(c: Config, kind: RecurringKind = "deadline"): Confi
     durationMs: DEFAULT_RECURRING_MS,
     kind,
   };
-  return { ...c, recurring: [...c.recurring, def], recurringSeq };
+  // `recurringSeq` stays global on Config (ids unique across characters); the def lands in the active one.
+  return editActiveCharacter({ ...c, recurringSeq }, (ch) => ({ ...ch, recurring: [...ch.recurring, def] }));
 }
 
 /** Rename a definition (like `renameCooldown`, minus the tag re-derive). An unknown `defId` is a no-op. */
@@ -547,9 +584,9 @@ export function setRecurringDuration(c: Config, defId: string, durationMs: numbe
  * and the rest of the running set are untouched; an unknown `defId` simply matches nothing.
  */
 export function removeRecurring(c: Config, defId: string): Config {
-  return {
-    ...c,
-    recurring: c.recurring.filter((d) => d.id !== defId),
-    recurringRunning: c.recurringRunning.filter((r) => r.defId !== defId),
-  };
+  return editActiveCharacter(c, (ch) => ({
+    ...ch,
+    recurring: ch.recurring.filter((d) => d.id !== defId),
+    recurringRunning: ch.recurringRunning.filter((r) => r.defId !== defId),
+  }));
 }

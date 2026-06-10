@@ -1,9 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { addBoss, addSkill, makeConfig, markRecurring, setSkillHotkey, setSkillSound, type Config } from "./config";
+import {
+  addBoss,
+  addSkill,
+  makeConfig,
+  markRecurring,
+  setSkillHotkey,
+  setSkillSound,
+  activeRecurring,
+  activeRecurringRunning,
+  activeRecurringProgress,
+  activeCharacter,
+  type Config,
+} from "./config";
+import { DEFAULT_CHARACTER_NAME } from "./character";
 import { readout, remainingMs, start } from "./cooldown";
 import { remainingMs as recurringRemainingMs } from "./recurring";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 import { DEFAULT_SOUND_ID } from "./sounds";
+
+// Read the active character's recurring slices (the recurring side relocated under a Character, #47).
+const rec = (c: Config) => activeRecurring(c);
+const recRun = (c: Config) => activeRecurringRunning(c);
+const recProg = (c: Config) => activeRecurringProgress(c);
 
 // A pre-feature persisted boss: a v1 skill that carries `pitch` and no `soundId`, exactly
 // as configs saved before this feature look on disk.
@@ -119,8 +137,8 @@ describe("cooldown persistence (additive, no version bump)", () => {
     expect(restored.cooldowns).toEqual([valid]); // bad entry dropped, good one kept
   });
 
-  it("does not bump the schema version (old configs must not route to the defaults wipe)", () => {
-    expect(SCHEMA_VERSION).toBe(1);
+  it("is at the multi-character schema version (v1 still migrates, never wipes — see migration suite)", () => {
+    expect(SCHEMA_VERSION).toBe(2);
   });
 
   it("restores a running cooldown whose expiry already passed as Ready", () => {
@@ -137,67 +155,190 @@ describe("cooldown persistence (additive, no version bump)", () => {
   });
 });
 
-describe("recurring persistence (additive, no version bump)", () => {
-  it("round-trips the recurring catalog and running instances through a disk hop", () => {
+// Install a rank on the active character (the "user already has progress in hand" disk setup).
+const withActiveProgress = (c: Config, progress: { defId: string; position: number }[]): Config => ({
+  ...c,
+  characters: c.characters.map((ch) => (ch.id === c.activeCharacterId ? { ...ch, recurringProgress: progress } : ch)),
+});
+
+describe("character persistence — v2 round-trip (#47)", () => {
+  it("round-trips the active character's recurring catalog and running instances through a disk hop", () => {
     let c = makeConfig();
     // mark one item done so both the catalog and the running set are exercised
-    c = markRecurring(c, c.recurring[0].id, 1_000);
+    c = markRecurring(c, rec(c)[0].id, 1_000);
 
     const restored = deserialize(throughDisk(c));
-    expect(restored.recurring).toEqual(c.recurring);
-    expect(restored.recurringRunning).toEqual(c.recurringRunning);
+    expect(restored.characters).toEqual(c.characters); // the whole character (incl. its slices) survives
+    expect(rec(restored)).toEqual(rec(c));
+    expect(recRun(restored)).toEqual(recRun(c));
+    expect(restored.activeCharacterId).toBe(c.activeCharacterId);
     expect(restored.recurringSeq).toBe(c.recurringSeq); // seq seeded past the persisted ids
-  });
-
-  it("keeps a pre-feature config intact with an empty recurring catalog (never wipes)", () => {
-    // a config saved before recurring existed: valid bosses + cooldowns, no recurring fields
-    const preFeature = serialize(makeConfig());
-    delete (preFeature as Partial<typeof preFeature>).recurring;
-    delete (preFeature as Partial<typeof preFeature>).recurringRunning;
-    const restored = deserialize(preFeature);
-    expect(restored.cooldowns.length).toBeGreaterThan(0); // the older cooldown feature survives
-    expect(restored.recurring).toEqual([]); // default empty, not the seeded catalog
-    expect(restored.recurringRunning).toEqual([]);
-    expect(restored.recurringSeq).toBe(0);
-  });
-
-  it("drops a malformed recurring entry (bad kind / missing duration) and a legacy tag without nuking the rest", () => {
-    // The `tag` field is from older configs (recurring items no longer carry one) — it should be
-    // tolerated on read and stripped, like any unknown extra field.
-    const legacy = { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" };
-    const expected = { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" };
-    const payload = {
-      version: SCHEMA_VERSION,
-      bosses: serialize(makeConfig()).bosses,
-      recurring: [
-        legacy,
-        { id: "recurring-2", name: "Bad kind", durationMs: 1000, kind: "weekly" }, // not gate|deadline
-        { id: "recurring-3", name: "No duration", kind: "gate" }, // missing durationMs
-      ],
-    };
-    const restored = deserialize(payload);
-    expect(restored.bosses.length).toBeGreaterThan(0); // config survives
-    expect(restored.recurring).toEqual([expected]); // legacy tag stripped, bad entries dropped, good one kept
+    expect(restored.characterSeq).toBe(c.characterSeq);
   });
 
   it("round-trips the ladder progress map and a def's ladderId (#44)", () => {
     const base = makeConfig();
-    const c = { ...base, recurringProgress: [{ defId: base.recurring[3].id, position: 12 }] }; // Skill Books rank
+    const c = withActiveProgress(base, [{ defId: rec(base)[3].id, position: 12 }]); // Skill Books rank
     const restored = deserialize(throughDisk(c));
-    expect(restored.recurringProgress).toEqual(c.recurringProgress);
-    expect(restored.recurring[3].ladderId).toBe("class-skill"); // ladderId survives the disk hop
+    expect(recProg(restored)).toEqual(recProg(c));
+    expect(rec(restored)[3].ladderId).toBe("class-skill"); // ladderId survives the disk hop
   });
 
-  it("keeps a pre-ladder config intact with an empty progress map (never wipes)", () => {
-    const preLadder = serialize(makeConfig());
-    delete (preLadder as Partial<typeof preLadder>).recurringProgress;
-    const restored = deserialize(preLadder);
-    expect(restored.recurringProgress).toEqual([]); // absent → empty, the config is preserved
-  });
-
-  it("drops a malformed progress entry without nuking the rest", () => {
+  it("keeps two characters' chore slices isolated and preserves the active id", () => {
     const payload = {
-      version: SCHEMA_VERSION,
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [],
+      running: [],
+      characters: [
+        {
+          id: "character-1",
+          name: "Warrior",
+          empire: "Shinsoo",
+          race: "Warrior",
+          builds: ["Body"],
+          recurring: [{ id: "recurring-1", name: "A", durationMs: 1000, kind: "gate" }],
+          recurringRunning: [],
+          recurringProgress: [],
+        },
+        {
+          id: "character-2",
+          name: "Sura",
+          recurring: [{ id: "recurring-2", name: "B", durationMs: 2000, kind: "deadline" }],
+          recurringRunning: [],
+          recurringProgress: [],
+        },
+      ],
+      activeCharacterId: "character-2",
+    };
+    const restored = deserialize(payload);
+    expect(restored.characters).toHaveLength(2);
+    expect(restored.activeCharacterId).toBe("character-2");
+    expect(restored.characters[0].empire).toBe("Shinsoo");
+    expect(restored.characters[0].race).toBe("Warrior");
+    expect(restored.characters[0].builds).toEqual(["Body"]);
+    expect(rec(restored).map((d) => d.id)).toEqual(["recurring-2"]); // active char's catalog only
+    expect(restored.characterSeq).toBe(2); // seeded past character-2
+    expect(restored.recurringSeq).toBe(2); // seeded past the max recurring id across all characters
+  });
+
+  it("re-points a dangling activeCharacterId to the first surviving character", () => {
+    const payload = {
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      characters: [{ id: "character-1", name: "Main", builds: [], recurring: [], recurringRunning: [], recurringProgress: [] }],
+      activeCharacterId: "character-999", // points at no surviving character
+    };
+    expect(deserialize(payload).activeCharacterId).toBe("character-1");
+  });
+
+  it("drops a malformed character (no id/name) without nuking the rest", () => {
+    const payload = {
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      characters: [
+        { id: "character-1", name: "Main", builds: [], recurring: [], recurringRunning: [], recurringProgress: [] },
+        { name: "no id" }, // malformed — dropped
+      ],
+      activeCharacterId: "character-1",
+    };
+    expect(deserialize(payload).characters).toHaveLength(1);
+  });
+
+  it("drops an unknown empire/race on a character but keeps the character (lenient)", () => {
+    const payload = {
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      characters: [
+        { id: "character-1", name: "Main", empire: "Atlantis", race: "Dragoon", builds: [], recurring: [], recurringRunning: [], recurringProgress: [] },
+      ],
+      activeCharacterId: "character-1",
+    };
+    const ch = activeCharacter(deserialize(payload))!;
+    expect(ch.empire).toBeUndefined(); // unknown empire dropped
+    expect(ch.race).toBeUndefined(); // unknown race dropped
+  });
+});
+
+describe("v1 → v2 migration (default-character wrap)", () => {
+  // A legacy singleton config exactly as it sat on disk before multi-character: recurring data at the
+  // TOP level, no `characters`. Bosses/cooldowns/running are global and must pass through untouched.
+  const legacyV1 = () => ({
+    version: 1,
+    bosses: serialize(makeConfig()).bosses,
+    cooldowns: serialize(makeConfig()).cooldowns,
+    running: [{ defId: "cooldown-1", expiry: 5_000, startedAt: 1_000 }],
+    recurring: [
+      { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+      { id: "recurring-4", name: "Skill Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill" },
+    ],
+    recurringRunning: [{ defId: "recurring-1", expiry: 9_000, startedAt: 1_000 }],
+    recurringProgress: [{ defId: "recurring-4", position: 12 }],
+  });
+
+  it("wraps the legacy recurring data into one active default character, empire/race unset", () => {
+    const legacy = legacyV1();
+    const restored = deserialize(legacy);
+
+    expect(restored.characters).toHaveLength(1);
+    const ch = activeCharacter(restored)!;
+    expect(restored.activeCharacterId).toBe(ch.id);
+    expect(ch.id).toBe("character-1");
+    expect(ch.name).toBe(DEFAULT_CHARACTER_NAME);
+    expect(ch.empire).toBeUndefined();
+    expect(ch.race).toBeUndefined();
+    expect(ch.builds).toEqual([]);
+    // the prior recurring/running/progress are now the default character's, intact
+    expect(ch.recurring).toEqual(legacy.recurring);
+    expect(ch.recurringRunning).toEqual(legacy.recurringRunning);
+    expect(ch.recurringProgress).toEqual(legacy.recurringProgress);
+    // seqs seeded past the migrated ids
+    expect(restored.characterSeq).toBe(1);
+    expect(restored.recurringSeq).toBe(4);
+  });
+
+  it("leaves bosses, cooldowns and the running cooldown set untouched by the migration", () => {
+    const legacy = legacyV1();
+    const restored = deserialize(legacy);
+    expect(restored.bosses).toEqual(legacy.bosses);
+    expect(restored.cooldowns).toEqual(legacy.cooldowns);
+    expect(restored.running).toEqual(legacy.running); // global side survives verbatim
+  });
+
+  it("migrates a pre-recurring v1 config into an empty default character (never wipes)", () => {
+    const v1NoRecurring = {
+      version: 1,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: serialize(makeConfig()).cooldowns,
+    };
+    const restored = deserialize(v1NoRecurring);
+    expect(restored.cooldowns.length).toBeGreaterThan(0); // the older cooldown feature survives
+    expect(restored.characters).toHaveLength(1); // an owner still exists for the recurring tools
+    expect(rec(restored)).toEqual([]); // empty bag, not the seeded catalog
+    expect(recRun(restored)).toEqual([]);
+    expect(restored.recurringSeq).toBe(0);
+    expect(restored.characterSeq).toBe(1);
+  });
+
+  it("drops a malformed recurring entry + legacy tag while migrating, without nuking the rest", () => {
+    const expected = { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" };
+    const payload = {
+      version: 1,
+      bosses: serialize(makeConfig()).bosses,
+      recurring: [
+        { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" }, // legacy tag stripped
+        { id: "recurring-2", name: "Bad kind", durationMs: 1000, kind: "weekly" }, // not gate|deadline → dropped
+        { id: "recurring-3", name: "No duration", kind: "gate" }, // missing durationMs → dropped
+      ],
+    };
+    const restored = deserialize(payload);
+    expect(restored.bosses.length).toBeGreaterThan(0); // config survives
+    expect(rec(restored)).toEqual([expected]); // tag stripped, bad entries dropped, good one kept
+  });
+
+  it("drops a malformed progress entry while migrating", () => {
+    const payload = {
+      version: 1,
       bosses: serialize(makeConfig()).bosses,
       recurringProgress: [
         { defId: "recurring-4", position: 7 },
@@ -205,17 +346,17 @@ describe("recurring persistence (additive, no version bump)", () => {
         { position: 3 }, // missing defId
       ],
     };
-    expect(deserialize(payload).recurringProgress).toEqual([{ defId: "recurring-4", position: 7 }]);
+    expect(recProg(deserialize(payload))).toEqual([{ defId: "recurring-4", position: 7 }]);
   });
 
-  it("restores a running recurring whose expiry already passed as past-zero (silent)", () => {
+  it("restores a migrated running recurring whose expiry already passed as past-zero (silent)", () => {
     const now = 10_000_000;
     const payload = {
-      version: SCHEMA_VERSION,
+      version: 1,
       bosses: serialize(makeConfig()).bosses,
       recurringRunning: [{ defId: "recurring-1", expiry: now - 30 * 60_000, startedAt: now - 90 * 60_000 }],
     };
-    const r = deserialize(payload).recurringRunning[0];
+    const r = recRun(deserialize(payload))[0];
     expect(r.expiry).toBe(now - 30 * 60_000); // absolute expiry restored verbatim
     expect(recurringRemainingMs(r, now)).toBe(0);
     expect(readout(recurringRemainingMs(r, now))).toBe("Ready"); // silent, sticky past-zero on launch

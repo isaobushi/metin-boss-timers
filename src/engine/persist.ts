@@ -5,15 +5,21 @@
 // plugin-store) lives separately and just hands raw values through these two functions.
 
 import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
+import { type Character, DEFAULT_CHARACTER_NAME, makeCharacter } from "./character";
 import type { CooldownDef, RunningCooldown } from "./cooldown";
 import type { RecurringDef, RecurringKind, RecurringProgress, RunningRecurring } from "./recurring";
+import type { Build, Empire, Race } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
 
 /**
- * Bumped whenever the persisted shape changes; future migrations branch on it. Only
- * v1 is understood today — an unrecognised version deserializes to shipped defaults.
+ * Bumped whenever the persisted shape changes; future migrations branch on it. v2 (multi-character,
+ * PRD #47) moves the recurring side under per-character bags; v1 is the legacy singleton shape, which
+ * `deserialize` MIGRATES rather than rejects. Any other version deserializes to shipped defaults.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+
+/** The persisted shapes `deserialize` understands: the current v2 and the migratable legacy v1. */
+const isKnownVersion = (v: unknown): boolean => v === 1 || v === 2;
 
 export type PersistedConfig = {
   version: number;
@@ -21,12 +27,10 @@ export type PersistedConfig = {
   cooldowns: CooldownDef[];
   /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
   running: RunningCooldown[];
-  /** The recurring-chore catalog (expiring items + routine). */
-  recurring: RecurringDef[];
-  /** Running recurring items persist their ABSOLUTE expiry, like cooldowns. */
-  recurringRunning: RunningRecurring[];
-  /** Per-def ladder rank (count of successful reads) — additive/lenient, no version bump (#44). */
-  recurringProgress: RecurringProgress[];
+  /** The player's characters — each owns its recurring catalog/running set/ladder progress (#47). */
+  characters: Character[];
+  /** Which character is active (null = none). Re-pointed to a survivor on load if it dangles. */
+  activeCharacterId: string | null;
 };
 
 /**
@@ -42,9 +46,8 @@ export function serialize(c: Config): PersistedConfig {
     bosses: c.bosses,
     cooldowns: c.cooldowns,
     running: c.running,
-    recurring: c.recurring,
-    recurringRunning: c.recurringRunning,
-    recurringProgress: c.recurringProgress,
+    characters: c.characters,
+    activeCharacterId: c.activeCharacterId,
   };
 }
 
@@ -63,23 +66,27 @@ export function deserialize(raw: unknown): Config {
   // never wiped), and a single malformed entry is dropped rather than nuking the config.
   const cooldowns = readCooldowns(raw);
   const running = readRunning(raw);
-  // Recurring chores are ADDITIVE and lenient too — same posture as cooldowns: absent → empty
-  // (a config saved before this feature is preserved, never wiped), and a malformed entry is
-  // dropped rather than nuking the config. Deliberately no SCHEMA_VERSION bump (ADR-0003).
-  const recurring = readRecurring(raw);
-  const recurringRunning = readRecurringRunning(raw);
-  const recurringProgress = readRecurringProgress(raw);
+  // Characters own the recurring side (PRD #47). A v2 payload carries an explicit `characters` list;
+  // a v1 (legacy singleton) payload is MIGRATED — its top-level recurring data is wrapped into one
+  // default character — so existing users lose no chores on upgrade. Bosses/cooldowns are global and
+  // deserialize identically for both versions.
+  const characters = readCharacters(raw);
+  const activeCharacterId = readActiveCharacterId(raw, characters);
+
+  // `recurringSeq` is global (ids unique across every character), so seed it past the max recurring
+  // id found in ANY character's catalog; `characterSeq` past the max `character-N`.
+  const recurringIds = characters.flatMap((ch) => ch.recurring.map((d) => d.id));
   return {
     bosses,
     cooldowns,
     running,
-    recurring,
-    recurringRunning,
-    recurringProgress,
+    characters,
+    activeCharacterId,
     bossSeq: maxIdSeq(bosses.map((b) => b.id), "boss"),
     skillSeq: maxIdSeq(skillIds, "skill"),
     cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),
-    recurringSeq: maxIdSeq(recurring.map((r) => r.id), "recurring"),
+    recurringSeq: maxIdSeq(recurringIds, "recurring"),
+    characterSeq: maxIdSeq(characters.map((ch) => ch.id), "character"),
   };
 }
 
@@ -100,7 +107,10 @@ const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFin
 
 /** Returns the validated boss list, or null if the payload isn't a recognised v1 config. */
 function readBosses(raw: unknown): Boss[] | null {
-  if (!isObj(raw) || raw.version !== SCHEMA_VERSION || !Array.isArray(raw.bosses)) return null;
+  // Accept BOTH the current v2 and the legacy v1 (which `readCharacters` migrates); any other version
+  // (missing/future/garbage) falls through to shipped defaults. This gate must admit v1 — rejecting it
+  // here would wipe every pre-multi-character config to defaults on first launch after upgrade.
+  if (!isObj(raw) || !isKnownVersion(raw.version) || !Array.isArray(raw.bosses)) return null;
   const out: Boss[] = [];
   for (const b of raw.bosses) {
     const boss = readBoss(b);
@@ -205,4 +215,59 @@ function readRecurringRunning(raw: unknown): RunningRecurring[] {
 function readRunningRecurring(r: unknown): RunningRecurring | null {
   if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
   return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
+}
+
+// ---- characters (#47) — the recurring side's owner; v2 reads them, v1 migrates into one default ----
+
+const EMPIRES: Empire[] = ["Shinsoo", "Chunjo", "Jinno"];
+const RACES: Race[] = ["Warrior", "Ninja", "Sura", "Shaman", "Lycan"];
+const isEmpire = (v: unknown): v is Empire => isStr(v) && (EMPIRES as string[]).includes(v);
+const isRace = (v: unknown): v is Race => isStr(v) && (RACES as string[]).includes(v);
+
+/**
+ * The characters list. A v2 payload carries an explicit `characters` array (validated per-item,
+ * lenient — a malformed character is dropped, the rest survive). Anything WITHOUT a `characters` array
+ * is treated as the legacy v1 singleton and MIGRATED: its top-level recurring/running/progress are
+ * wrapped into one default character (empire/race unset), so the recurring tools keep their data and
+ * gain an owner. The recurring sub-readers are reused verbatim — they read `.recurring`/etc. off
+ * whatever object they're handed: the top-level `raw` for the v1 migration, the character for v2.
+ */
+function readCharacters(raw: unknown): Character[] {
+  if (isObj(raw) && Array.isArray(raw.characters)) {
+    return raw.characters.map(readCharacter).filter((c): c is Character => c !== null);
+  }
+  return [
+    makeCharacter("character-1", DEFAULT_CHARACTER_NAME, {
+      recurring: readRecurring(raw),
+      recurringRunning: readRecurringRunning(raw),
+      recurringProgress: readRecurringProgress(raw),
+    }),
+  ];
+}
+
+/** Validate one persisted character; null (dropped) if it lacks an id/name. Slices are lenient. */
+function readCharacter(c: unknown): Character | null {
+  if (!isObj(c) || !isStr(c.id) || !isStr(c.name)) return null;
+  const ch = makeCharacter(c.id, c.name, {
+    recurring: readRecurring(c),
+    recurringRunning: readRecurringRunning(c),
+    recurringProgress: readRecurringProgress(c),
+  });
+  // empire/race are optional (unset on a migrated default) + lenient: keep only known values.
+  if (isEmpire(c.empire)) ch.empire = c.empire;
+  if (isRace(c.race)) ch.race = c.race;
+  // builds are the create flow's (#54) free-form strings; keep the string entries, drop anything else.
+  if (Array.isArray(c.builds)) ch.builds = c.builds.filter(isStr) as Build[];
+  return ch;
+}
+
+/**
+ * The active character id: the persisted value if it points at a surviving character, else the first
+ * character's id (the migrated default), else null. Keeps `activeCharacterId` from dangling after the
+ * character it referenced was dropped as malformed (or after a v1 migration that minted a fresh id).
+ */
+function readActiveCharacterId(raw: unknown, characters: Character[]): string | null {
+  const ids = new Set(characters.map((c) => c.id));
+  if (isObj(raw) && isStr(raw.activeCharacterId) && ids.has(raw.activeCharacterId)) return raw.activeCharacterId;
+  return characters[0]?.id ?? null;
 }
