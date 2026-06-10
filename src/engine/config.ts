@@ -90,7 +90,7 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
 // The example recurring items a fresh install ships with. Like the cooldown seed these are
 // "examples not gospel": the user retunes durations and adds their own in settings. Two flavours
 // ship so each dock tool reads non-empty: the standing `deadline` elapsables (pet, costume, mount
-// — you lose the thing if it elapses, 👘 Items) first, then the `gate` routines (a chore that
+// — you lose the thing if it elapses, ♻ Items) first, then the `gate` routines (a chore that
 // rolls back into "do it now" each cycle — biologist hand-in, daily book reading, ✓ Routine).
 const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind }> = [
   { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet

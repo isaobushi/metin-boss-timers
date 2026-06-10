@@ -1,7 +1,7 @@
 // v1 overlay — the compact, always-on-top play surface. Its home is the DOCK shell (ADR-0003):
 // one dense status line whose segments route to the existing surfaces. ⚔ opens the active boss's
 // TIMERS (or the SKILLS picker if none is active), ⏱ opens the COOLDOWNS strip, ⚙ the settings
-// window; 👘/✓ expand inline accordions (inert until #36+). All config editing lives in a separate
+// window; ♻/✓ expand inline accordions (inert until #36+). All config editing lives in a separate
 // settings window (overlay/settingsWindow.ts → settings/SettingsApp.tsx); edits there reflect here
 // live via configSync. Config flows through useConfig, persisted to disk; per-skill global hotkeys
 // are registered while a boss's timer screen is active.

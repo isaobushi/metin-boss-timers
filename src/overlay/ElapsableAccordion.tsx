@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * The 👘 Items panel expanded below the dock bar: each elapsable item (pet, costume, mount) with
+ * The ♻ Items panel expanded below the dock bar: each elapsable item (pet, costume, mount) with
  * its live day-scale countdown draining toward the moment it elapses, and a ↻ refresh that restamps
  * a fresh cycle ("feed" the pet / re-project the costume) — which also starts an unstarted item.
  * A `due` item reads the sticky `overdue` loss colour; an item under 24h reads the red/blink alarm.

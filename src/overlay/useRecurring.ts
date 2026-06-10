@@ -28,7 +28,7 @@ export type RecurringRow = {
   alarm: boolean;
 };
 
-/** The 👘 bar segment's most-urgent datum: the soonest running item's compact badge, or null. */
+/** The ♻ bar segment's most-urgent datum: the soonest running item's compact badge, or null. */
 export type RecurringDatum = { text: string; due: boolean; alarm: boolean } | null;
 
 /** A gate routine item projected for the ✓ Routine accordion: identity, label, live state. */
@@ -51,7 +51,7 @@ export type RoutineDatum = { done: number; total: number };
  * The recurring-chore control layer for the overlay — both tools (#37 deadline write path, #38
  * gate routine). Like `useCooldowns` it rides the shared 1-second app-level tick (`useNow`) over
  * the persisted recurring catalog + running set, re-deriving each item's readout every second. It
- * surfaces **both** kinds: the 👘 **elapsable items** (`deadline`) as `rows`/`datum`, and the ✓
+ * surfaces **both** kinds: the ♻ **elapsable items** (`deadline`) as `rows`/`datum`, and the ✓
  * **routine** (`gate`) as `routineRows`/`routineDatum`.
  *
  * The completion gesture is a single `markRecurringDone` restamp — a full-cycle stamp from now,

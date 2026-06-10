@@ -72,7 +72,7 @@ describe("makeConfig", () => {
     const H = 3_600_000;
     const D = 86_400_000;
     const c = makeConfig();
-    // examples-not-gospel defaults: name, auto-tag, duration, kind. Deadlines (👘 items) seed
+    // examples-not-gospel defaults: name, auto-tag, duration, kind. Deadlines (♻ items) seed
     // first, then the gate routines (✓) — both flavours ship so each tool reads non-empty.
     expect(c.recurring.map((r) => [r.name, r.tag, r.durationMs, r.kind])).toEqual([
       ["Snow Wolf", "Sno", 3 * D, "deadline"],
