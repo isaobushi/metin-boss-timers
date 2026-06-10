@@ -31,6 +31,7 @@ import {
   type Config,
 } from "../engine/config";
 import type { SoundId } from "../engine/sounds";
+import { allows, DEV_ENTITLEMENT, type Entitlement } from "../engine/entitlement";
 import { deserialize, serialize } from "../engine/persist";
 import { loadPersisted, savePersisted } from "./configStore";
 import { broadcastConfig, subscribeConfig } from "./configSync";
@@ -55,6 +56,11 @@ import { broadcastConfig, subscribeConfig } from "./configSync";
 export function useConfig() {
   const [config, setConfig] = useState<Config>(makeConfig);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
+  // The paid state driving every cap (PRD #48). A later slice's `storeLicense` adapter will set this from
+  // the OS-cached Store license; for now it's the dev default (`subscribed` → uncapped), settable here so
+  // the entitlement gate is exercisable. The create paths below consult `allows` before mutating — the
+  // seam that keeps caps from being retrofitted (issue #53). Under `subscribed` every check passes.
+  const [entitlement, setEntitlement] = useState<Entitlement>(DEV_ENTITLEMENT);
   // Gate saves until the on-disk config has been read, so the initial in-memory
   // defaults can never clobber a stored config before it loads.
   const [hydrated, setHydrated] = useState(false);
@@ -94,10 +100,14 @@ export function useConfig() {
   }, [config, hydrated]);
 
   const createBoss = useCallback((): string => {
+    // Seam: refuse a new boss when over the tier cap (no-op + return the existing last boss so the
+    // caller never navigates to a boss that wasn't created). Always allowed under dev `subscribed`.
+    // TODO(#56): silent return is a placeholder — replace with the cap-hit nudge ("what Pro unlocks").
+    if (!allows(entitlement, config, "addBoss")) return config.bosses[config.bosses.length - 1].id;
     const next = addBoss(config);
     setConfig(next);
     return next.bosses[next.bosses.length - 1].id;
-  }, [config]);
+  }, [config, entitlement]);
 
   const editBossName = useCallback((id: string, name: string) => setConfig((c) => renameBoss(c, id, name)), []);
 
@@ -199,10 +209,19 @@ export function useConfig() {
   // definition, rename it, set its day-scale duration, or remove it. Mirrors the cooldown catalog
   // CRUD (minus the tag — recurring items carry none); each rides the same setConfig → persist +
   // configSync path.
-  const createRecurring = useCallback(() => setConfig((c) => addRecurring(c, "deadline")), []);
+  // Seam: both add into the active character's shared 3-reminder pool, so each consults `allows` first
+  // (no-op when capped). Routine and Elapsable item draw from the SAME pool. Always allowed under
+  // dev `subscribed`.
+  const createRecurring = useCallback(
+    () => setConfig((c) => (allows(entitlement, c, "addReminder") ? addRecurring(c, "deadline") : c)),
+    [entitlement],
+  );
   // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/duration/remove are
   // kind-agnostic, so both sections share editRecurringName/Duration + deleteRecurring.
-  const createRoutine = useCallback(() => setConfig((c) => addRecurring(c, "gate")), []);
+  const createRoutine = useCallback(
+    () => setConfig((c) => (allows(entitlement, c, "addReminder") ? addRecurring(c, "gate") : c)),
+    [entitlement],
+  );
   const editRecurringName = useCallback(
     (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
     [],
@@ -226,6 +245,10 @@ export function useConfig() {
   return {
     config,
     hydrated,
+    // The current paid state + its dev setter — read by cap-aware UI (nudges, frozen rendering) and
+    // set by the future `storeLicense` adapter. The create paths above already gate on it.
+    entitlement,
+    setEntitlement,
     activeBoss,
     createBoss,
     editBossName,
