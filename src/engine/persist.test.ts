@@ -136,23 +136,6 @@ describe("cooldown persistence (additive, no version bump)", () => {
   });
 });
 
-describe("cooldowns-only mode persistence (additive, no version bump)", () => {
-  it("round-trips the cooldowns-only flag through a disk hop", () => {
-    const c = { ...makeConfig(), cooldownsOnly: true };
-    expect(deserialize(throughDisk(c)).cooldownsOnly).toBe(true);
-  });
-
-  it("defaults a pre-feature config (no flag) to the panel shown", () => {
-    const preFeature = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses };
-    expect(deserialize(preFeature).cooldownsOnly).toBe(false);
-  });
-
-  it("treats a malformed flag as off rather than nuking the config", () => {
-    const payload = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses, cooldownsOnly: "yes" };
-    expect(deserialize(payload).cooldownsOnly).toBe(false);
-  });
-});
-
 describe("id-sequence seeding", () => {
   it("seeds counters past the max persisted id so reloaded ids don't collide", () => {
     // a default config has boss-1 and skill-1 / skill-2

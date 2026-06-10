@@ -1,0 +1,259 @@
+/* THROWAWAY prototype styling for the tool-dock exploration (#dock).
+   Borrows the overlay's neon-violet language but is deliberately self-contained and
+   inline-soupy — delete the winner's classes are folded into overlay.css proper. */
+
+.dp-root {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 40;
+  font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
+  color: #f5f3ff;
+}
+
+/* shared chrome ---------------------------------------------------------- */
+.dp-glass {
+  background: rgba(14, 11, 22, 0.86);
+  border: 1px solid color-mix(in srgb, #7c6cff 40%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px #000a, 0 0 22px #7c6cff3d;
+}
+.dp-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #9b8cff;
+  text-transform: uppercase;
+}
+.dp-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.dp-alarm {
+  color: #ff6b8b !important;
+}
+.dp-ready {
+  color: #39ff88 !important;
+}
+.dp-muted {
+  opacity: 0.5;
+}
+@keyframes dp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes dp-blink {
+  0%, 100% { box-shadow: 0 0 4px #ff6b8b88, inset 0 0 0 1px #ff6b8b88; }
+  50% { box-shadow: 0 0 16px #ff6b8bcc, inset 0 0 0 1px #ff6b8bcc; }
+}
+
+/* ===== Variant A — whisper dock: collapsed icons + hover popovers ======= */
+.dpa-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 12px;
+}
+.dpa-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: #cfc8e0;
+  background: rgba(8, 6, 14, 0.55);
+  border: 1px solid #ffffff1c;
+}
+.dpa-btn:hover, .dpa-btn.is-open {
+  border-color: color-mix(in srgb, #7c6cff 60%, transparent);
+  color: #fff;
+}
+.dpa-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 8px;
+  background: #2a2440;
+  border: 1px solid #ffffff22;
+  color: #cdbcff;
+}
+.dpa-badge.is-alarm {
+  background: #3a1420;
+  border-color: #ff6b8b88;
+  color: #ff9db0;
+  animation: dp-blink 1.2s ease-in-out infinite;
+}
+.dpa-badge.is-ready {
+  background: #0f3322;
+  border-color: #39ff8855;
+  color: #6effb0;
+}
+.dpa-pop {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  width: 250px;
+  padding: 11px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.dpa-pop__title {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 1px;
+}
+.dpa-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(12, 10, 20, 0.5);
+  border: 1px solid #ffffff12;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dpa-line:hover { background: #ffffff10; }
+.dpa-line__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dpa-line__val { font-size: 12px; }
+.dpa-check {
+  width: 16px; height: 16px; flex: none;
+  border-radius: 5px;
+  border: 1px solid #ffffff33;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+.dpa-check.is-done { background: #39ff8822; border-color: #39ff8855; color: #6effb0; }
+
+/* ===== Variant B — two-tier: persistent play panel + slow-rail ========== */
+.dpb-wrap { display: flex; align-items: flex-start; gap: 8px; }
+.dpb-panel {
+  width: 300px;
+  padding: 13px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dpb-panel__head {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; text-align: center;
+}
+.dpb-seq {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+}
+.dpb-node {
+  height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: #7c6cff22; border: 1px solid #7c6cff66; color: #fff;
+}
+.dpb-cds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.dpb-cd {
+  padding: 5px 7px; border-radius: 8px; background: rgba(12,10,20,0.55); border: 1px solid #ffffff14;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.dpb-cd.is-ready { border-color: #39ff8855; background: #39ff881a; }
+.dpb-cd__val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* the slow-rail: a thin column of icon-badges that open drawers to the right */
+.dpb-rail {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 6px; border-radius: 12px;
+}
+.dpb-railbtn {
+  position: relative; width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; border-radius: 9px; cursor: pointer;
+  color: #cfc8e0; background: rgba(8,6,14,0.55); border: 1px solid #ffffff1c;
+}
+.dpb-railbtn.is-open, .dpb-railbtn:hover { border-color: #7c6cff99; color: #fff; }
+.dpb-railbadge {
+  position: absolute; top: -6px; right: -6px;
+  min-width: 17px; height: 15px; padding: 0 3px;
+  font-size: 8px; font-weight: 700; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: #2a2440; border: 1px solid #ffffff22; color: #cdbcff;
+}
+.dpb-railbadge.is-alarm { background: #3a1420; border-color: #ff6b8b88; color: #ff9db0; animation: dp-blink 1.2s ease-in-out infinite; }
+.dpb-drawer {
+  position: absolute; left: 56px; top: 0;
+  width: 230px; padding: 11px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+
+/* ===== Variant C — dense status line + inline accordion ================= */
+.dpc-bar {
+  display: flex; align-items: stretch;
+  border-radius: 11px; overflow: hidden;
+  font-size: 12px;
+}
+.dpc-seg {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 11px; cursor: pointer;
+  border-right: 1px solid #ffffff14;
+  white-space: nowrap;
+}
+.dpc-seg:last-child { border-right: none; }
+.dpc-seg:hover { background: #ffffff10; }
+.dpc-seg.is-open { background: #7c6cff22; }
+.dpc-seg__icon { font-size: 15px; }
+.dpc-seg__val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.dpc-acc {
+  padding: 10px 12px;
+  border-top: 1px solid #ffffff1c;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.dpc-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 8px; border-radius: 8px;
+  background: rgba(12,10,20,0.5); border: 1px solid #ffffff12;
+  font-size: 12px; cursor: pointer;
+}
+.dpc-row:hover { background: #ffffff10; }
+.dpc-row__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== floating variant switcher (hidden in prod) ====================== */
+.dp-switch {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 999px;
+  background: #14101f;
+  border: 1px solid #ffffff33;
+  box-shadow: 0 8px 24px #000b;
+  font-family: system-ui, sans-serif;
+}
+.dp-switch button {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; cursor: pointer;
+  background: #ffffff14; color: #fff; font-size: 15px;
+}
+.dp-switch button:hover { background: #ffffff28; }
+.dp-switch__label {
+  padding: 0 12px; font-size: 12px; font-weight: 600; color: #e9e5f5;
+  min-width: 200px; text-align: center;
+}
+.dp-switch__hint { font-size: 10px; opacity: 0.5; padding-left: 6px; }

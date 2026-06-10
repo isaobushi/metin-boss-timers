@@ -23,8 +23,12 @@ body {
 .overlay {
   display: flex;
   flex-direction: column;
+  align-items: flex-end; /* everything right-anchored (ADR-0003) */
   gap: 8px;
   padding: 10px;
+  /* Hold a stable 316px content column (panel width + 2×10 padding) so the right edge never moves
+     when the panel below the dock opens or closes — otherwise the bar jumps left/right. */
+  min-width: 336px;
 }
 
 /* ---- panels (one screen at a time) ---- */
@@ -110,6 +114,35 @@ body {
   opacity: 0.85;
 }
 
+/* ---- dock timers: bare chips, no panel box (ADR-0003) ---- */
+/* Deliberately frameless so it reads as "just the chips": the dock bar above is the only chrome,
+   and the leftover width beside a 288px chip leaves room for the pinned strip's + to ride inline. */
+.timer-stack {
+  --accent: #7c6cff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+/* Quiet footer: ← change-dungeon pinned to the left corner, the click-actions legend centred across
+   the full width (so it reads as one tidy bar rather than a sparse ←-vs-text split). */
+.timer-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 288px;
+  margin-top: 6px;
+}
+.timer-foot .icon-btn {
+  position: absolute;
+  left: 0;
+}
+.timer-foot .timer-hint {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
 /* shared buttons / inputs */
 .btn-dashed {
   margin-top: 2px;
@@ -146,15 +179,6 @@ body {
   color: #ff5c7a;
 }
 /* settings + quit sit side by side under the boss list */
-.boss-select__footer {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 2px;
-}
-.boss-select__footer .btn-link {
-  margin-top: 0;
-}
 .icon-btn {
   display: flex;
   align-items: center;
@@ -494,11 +518,6 @@ body[data-window="settings"] {
 
 /* ---- boss-settings ---- */
 .settings-head,
-.timer-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 .boss-name-input {
   flex: 1;
   min-width: 0;
@@ -699,17 +718,6 @@ body[data-window="settings"] {
   opacity: 0.5;
 }
 
-/* ---- timer screen header ---- */
-.timer-head__name {
-  flex: 1;
-  font-size: 12px;
-  letter-spacing: 2px;
-  font-weight: 700;
-  text-align: center;
-  color: var(--accent);
-  text-shadow: 0 0 10px var(--accent);
-}
-
 /* ---- chip ---- */
 .chip {
   width: 288px;
@@ -789,31 +797,102 @@ body[data-window="settings"] {
   transform: translateX(268px);
 }
 
-/* ---- cooldowns-only mode (issue #29): the strip stands alone, no boss panel ---- */
-/* With the panel hidden its title — the usual window drag handle — goes too, so this slim
-   bar restores both: a grip carrying the drag region (its flex:1 makes most of the bar
-   grabbable) and the link back to the full panel. It carries its own faint backdrop since
-   there's no panel behind it to read against the game. Sized to the strip width to align. */
-.cooldown-only {
+/* ---- dock shell (ADR-0003): the overlay home, one dense status line ---- */
+/* The bar stays pinned on top; each tool's panel opens directly below it (the .overlay column
+   gap spaces them). Five segments, each glancing its most-urgent datum. The bar hugs its content
+   (left-aligned, capped at the panel width) rather than stretching to the panel below it. */
+.dock-bar {
+  align-self: flex-end;
+  max-width: 316px;
+  display: flex;
+  align-items: stretch;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(14, 11, 22, 0.86);
+  border: 1px solid rgba(124, 108, 255, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px #000a, 0 0 22px rgba(124, 108, 255, 0.24);
+  font-size: 12px;
+}
+/* The drag handle — its flex weight makes the left of the bar grabbable; the segment
+   buttons sit outside it so a tap clicks rather than starting a window drag. */
+.dock-grip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  padding: 0 7px;
+  color: #6f6885;
+  letter-spacing: 1px;
+  cursor: grab;
+}
+.dock-seg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  color: #cfc8e0;
+  background: transparent;
+  border: none;
+  border-left: 1px solid #ffffff14;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dock-seg:hover {
+  background: #ffffff10;
+  color: #fff;
+}
+.dock-seg.is-open {
+  background: color-mix(in srgb, #7c6cff 22%, transparent);
+  color: #fff;
+}
+/* ✕ quit — the lone destructive segment; reads as a tool icon at rest, tints red on hover so it
+   stands apart from the others (there's no panel to open, it ends the app). */
+.dock-seg--danger:hover {
+  background: #ff7b9618;
+  color: #ff7b96;
+}
+.dock-seg__icon {
+  font-size: 15px;
+  line-height: 1;
+}
+.dock-seg__val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* The boss name can be long; cap it so one long dungeon can't blow out the bar width. */
+.dock-seg__name {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9b8cff;
+}
+.dock-ready {
+  color: #39ff88;
+}
+.dock-muted {
+  opacity: 0.5;
+}
+/* Inert items/routine placeholders (this slice) — a small panel below the bar, like the others.
+   Width-matched to the panels so the column reads flush; the .overlay gap handles the spacing. */
+.dock-acc {
   width: 316px;
-  padding: 3px 8px;
+  padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(14, 11, 22, 0.7);
+  background: rgba(14, 11, 22, 0.86);
   border: 1px solid rgba(124, 108, 255, 0.25);
   backdrop-filter: blur(10px);
 }
-.cooldown-only__grip {
-  flex: 1;
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: #6f6885;
-  cursor: grab;
-}
-.cooldown-only .btn-link {
-  margin-top: 0;
+.dock-acc__empty {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  opacity: 0.5;
+  text-align: center;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */
@@ -845,21 +924,19 @@ body[data-window="settings"] {
 .cooldown-strip--right .cooldown-pill {
   direction: ltr;
 }
-/* Cooldowns-only HUD (#29): the running pills and the + share one row instead of stacking,
-   so the standalone strip reads as a single compact line. The pills lay out inline (not the
-   panel-aligned 4-up grid) so the + sits right after the last one; when the overlay is dragged
-   to the right edge they all hug that side, matching the edge-aware menu direction. */
-.cooldown-strip--inline-add {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
+/* Pinned dock strip carrying the trailing + (ADR-0003): one right-anchored line that grows with its
+   content, so even a full 4-badge row keeps the + beside the last badge instead of dropping it to a
+   lonely row below. Sized to content + hugged right by the overlay; extra badges overflow leftward.
+   Forced ltr so the + (the last child) always trails the badges, never the edge-aware rtl reversal. */
+.cooldown-strip--inline {
+  width: auto;
+  max-width: none;
 }
-.cooldown-strip--inline-add .cooldown-strip__pills {
+.cooldown-strip--inline .cooldown-strip__pills {
   display: flex;
   flex-wrap: wrap;
-}
-.cooldown-strip--inline-add.cooldown-strip--right {
   justify-content: flex-end;
+  direction: ltr;
 }
 .cooldown-pill {
   display: flex;
@@ -907,9 +984,16 @@ body[data-window="settings"] {
 }
 
 /* the + picker — a plain catalog dropdown (no wheel tuning / edge-awareness yet) */
+/* Right-anchored everywhere it stands on its own (standalone +, or trailing the pinned pills): the +
+   hugs the right of the column, sitting just right of any running-cooldown badge (ADR-0003). Inside
+   the timer first row it rides next to the chip, so that context restores top alignment below. */
 .cooldown-picker {
   position: relative;
-  align-self: flex-start;
+  align-self: flex-end;
+}
+/* When the + rides as a trailing cell of the pinned pills grid, center it against the badge row. */
+.cooldown-strip__pills .cooldown-picker {
+  align-self: center;
 }
 .cooldown-add {
   width: 26px;
