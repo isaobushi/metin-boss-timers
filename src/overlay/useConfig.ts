@@ -21,6 +21,11 @@ import {
   removeCooldown,
   clearCooldown,
   markRecurring,
+  addRecurring,
+  renameRecurring,
+  retagRecurring,
+  setRecurringDuration,
+  removeRecurring,
   type Boss,
   type Config,
 } from "../engine/config";
@@ -177,6 +182,25 @@ export function useConfig() {
     [],
   );
 
+  // Recurring catalog CRUD for the settings Items section (issue #37): add a blank deadline
+  // definition, rename it (re-deriving its tag), override the tag, set its day-scale duration,
+  // or remove it. Mirrors the cooldown catalog CRUD; each rides the same setConfig → persist +
+  // configSync path.
+  const createRecurring = useCallback(() => setConfig((c) => addRecurring(c)), []);
+  const editRecurringName = useCallback(
+    (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
+    [],
+  );
+  const editRecurringTag = useCallback(
+    (defId: string, tag: string) => setConfig((c) => retagRecurring(c, defId, tag)),
+    [],
+  );
+  const editRecurringDuration = useCallback(
+    (defId: string, durationMs: number) => setConfig((c) => setRecurringDuration(c, defId, durationMs)),
+    [],
+  );
+  const deleteRecurring = useCallback((defId: string) => setConfig((c) => removeRecurring(c, defId)), []);
+
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
   // Wipe all customization back to the shipped defaults (persisted by the save effect).
@@ -211,6 +235,11 @@ export function useConfig() {
     editCooldownDuration,
     deleteCooldown,
     markRecurringDone,
+    createRecurring,
+    editRecurringName,
+    editRecurringTag,
+    editRecurringDuration,
+    deleteRecurring,
     selectBoss,
     resetConfig,
   };

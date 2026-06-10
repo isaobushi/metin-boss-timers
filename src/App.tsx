@@ -116,8 +116,9 @@ export default function App() {
   // The one exclusive tool panel rendered below the pinned strip (null = only bar + strip show).
   let belowPanel = null;
   if (panel === "items") {
-    // The elapsable-items read path (#36): live day-scale countdowns for pet/costume/mount.
-    belowPanel = <ElapsableAccordion rows={rec.rows} />;
+    // The elapsable-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
+    // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
+    belowPanel = <ElapsableAccordion rows={rec.rows} onRefresh={rec.refresh} />;
   } else if (panel === "routine") {
     belowPanel = (
       <div className="dock-acc">

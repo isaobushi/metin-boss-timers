@@ -5,6 +5,7 @@
 import { useEffect } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
+import { RecurringSettings } from "../overlay/RecurringSettings";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
@@ -42,7 +43,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           <button
             className="btn-link"
             onClick={() => {
-              if (window.confirm("Reset all bosses, skills and cooldowns to defaults?")) cfg.resetConfig();
+              if (window.confirm("Reset all bosses, skills, cooldowns and items to defaults?")) cfg.resetConfig();
             }}
           >
             reset to defaults
@@ -83,6 +84,15 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
         onRetag={(defId, tag) => cfg.editCooldownTag(defId, tag)}
         onSetDuration={(defId, durationMs) => cfg.editCooldownDuration(defId, durationMs)}
         onRemove={(defId) => cfg.deleteCooldown(defId)}
+      />
+
+      <RecurringSettings
+        recurring={cfg.config.recurring}
+        onAdd={() => cfg.createRecurring()}
+        onRename={(defId, name) => cfg.editRecurringName(defId, name)}
+        onRetag={(defId, tag) => cfg.editRecurringTag(defId, tag)}
+        onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
+        onRemove={(defId) => cfg.deleteRecurring(defId)}
       />
     </div>
   );

@@ -1,75 +1,100 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { badge, readout } from "../engine/cooldown";
-import { isDue, remainingMs } from "../engine/recurring";
+import { alarmCrossings, inAlarm, isDue, remainingMs, type RunningRecurring } from "../engine/recurring";
+import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
 
-/** A running elapsable item projected for the Items accordion: identity, label, live readout. */
+/** A deadline elapsable item projected for the Items accordion: identity, label, live state. */
 export type RecurringRow = {
   defId: string;
   tag: string;
   name: string;
-  /** Live readout: the day-scale countdown (`2d 06h`), or the sticky `overdue` once elapsed. */
+  /** Live readout: the day-scale countdown (`2d 06h`), `overdue` once elapsed, or `—` if unstarted. */
   text: string;
-  /** Past its expiry — a deadline item reads as `overdue` (and styles as a loss). */
+  /** Whether an instance is running — drives the refresh affordance's "feed" vs "start" sense. */
+  running: boolean;
+  /** Past its expiry — reads as `overdue` and styles as a loss. */
   due: boolean;
+  /** Under 24h to elapse (and not yet due) — the red/blink "act now" alarm. */
+  alarm: boolean;
 };
 
-/** The 👘 bar segment's most-urgent datum: the soonest item's compact badge, or null if none. */
-export type RecurringDatum = { text: string; due: boolean } | null;
+/** The 👘 bar segment's most-urgent datum: the soonest running item's compact badge, or null. */
+export type RecurringDatum = { text: string; due: boolean; alarm: boolean } | null;
 
 /**
- * The recurring-chore control layer for the overlay (read path, #36). Like `useCooldowns` it
- * adds the shared 1-second app-level tick (`useNow`) over the persisted recurring catalog +
- * running set, re-deriving each item's readout every second. This slice surfaces the
- * **elapsable items** (`kind: 'deadline'`) only — the routine (`gate`) accordion lands later.
+ * The recurring-chore control layer for the overlay (deadline write path, #37). Like
+ * `useCooldowns` it rides the shared 1-second app-level tick (`useNow`) over the persisted
+ * recurring catalog + running set, re-deriving each item's readout every second. This slice
+ * surfaces the **elapsable items** (`kind: 'deadline'`) only — the routine (`gate`) accordion
+ * lands later.
  *
- * Read-path demo seed: until the add/start gesture ships (#3), there is no way to start a
- * recurring item, so any catalog def with no running instance is auto-started once on hydrate
- * (markDone restamps a full cycle) — giving the accordion live countdowns to show. Gated on
- * hydration so the persisted running set loads first and we never stamp over a restored item.
+ * The refresh gesture ("feed" the pet / re-project a costume) is `markRecurringDone` — a full-
+ * cycle restamp from now, which doubles as the start gesture for an unstarted item (so the
+ * accordion lists every deadline def, started or not, each with a ↻ affordance). One running
+ * instance per def.
+ *
+ * Best-effort alarm cue (ADR-0002 / ADR-0003 §3): each observation of the running set is
+ * compared against the previous one, chiming on any *live* crossing into the under-24h alarm
+ * window — reusing the cooldown-ready sound. The ref seeds with the mount snapshot, so an item
+ * already in-alarm (or already overdue) on restore has no prior outside tick and stays silent;
+ * `alarmCrossings` keys on running-instance identity, so a sitting alarm never re-fires and a
+ * refresh re-arms.
  */
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
-  const now = useNow();
-  const { config, hydrated, markRecurringDone } = cfg;
+  const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
+  const { config, markRecurringDone } = cfg;
   const catalog = config.recurring;
   const running = config.recurringRunning;
 
+  // Live-only alarm cue: chime on any crossing into the 24h window the running app watched.
+  // Watching `running` too (not just `now`) means a refresh gesture can't sneak a phantom
+  // crossing past the comparison (mirrors useCooldowns' ready-cue posture exactly).
+  const prevObs = useRef<{ running: RunningRecurring[]; now: number }>({ running, now });
   useEffect(() => {
-    if (!hydrated) return; // wait for the persisted running set before seeding the demo
-    for (const def of catalog) {
-      if (!running.some((r) => r.defId === def.id)) markRecurringDone(def.id, Date.now());
-    }
-  }, [hydrated, catalog, running, markRecurringDone]);
+    const prev = prevObs.current;
+    if (alarmCrossings(prev.running, prev.now, running, now).length > 0) playCooldownReady();
+    prevObs.current = { running, now };
+  }, [now, running]);
 
-  // The elapsable items (deadline kind) projected in catalog order, each with its live readout.
+  // Every deadline def projected in catalog order, joined with its running instance (if any).
   const items = catalog
     .filter((def) => def.kind === "deadline")
     .map((def) => {
       const r = running.find((x) => x.defId === def.id);
-      if (!r) return null; // unstarted (only briefly, before the seed effect runs)
-      const rem = remainingMs(r, now);
-      const due = isDue(r, now);
-      return { defId: def.id, tag: def.tag, name: def.name, rem, due };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
+      const rem = r ? remainingMs(r, now) : null;
+      return {
+        defId: def.id,
+        tag: def.tag,
+        name: def.name,
+        rem,
+        due: r ? isDue(r, now) : false,
+        alarm: r ? inAlarm(r, now) : false,
+      };
+    });
 
-  // The soonest item drives the bar (the most urgent loss is always visible at a glance).
+  // The soonest *running* item drives the bar (the most urgent loss is always visible at a glance).
   const soonest = items.reduce<(typeof items)[number] | null>(
-    (a, b) => (a && a.rem <= b.rem ? a : b),
+    (a, b) => (b.rem == null ? a : a && a.rem != null && a.rem <= b.rem ? a : b),
     null,
   );
-  const datum: RecurringDatum = soonest
-    ? { text: soonest.due ? "due" : badge(soonest.rem), due: soonest.due }
-    : null;
+  const datum: RecurringDatum =
+    soonest && soonest.rem != null
+      ? { text: soonest.due ? "due" : badge(soonest.rem), due: soonest.due, alarm: soonest.alarm }
+      : null;
 
-  const rows: RecurringRow[] = items.map(({ defId, tag, name, rem, due }) => ({
+  const rows: RecurringRow[] = items.map(({ defId, tag, name, rem, due, alarm }) => ({
     defId,
     tag,
     name,
-    text: due ? "overdue" : readout(rem),
+    text: rem == null ? "—" : due ? "overdue" : readout(rem),
+    running: rem != null,
     due,
+    alarm,
   }));
 
-  return { rows, datum };
+  const refresh = useCallback((defId: string) => markRecurringDone(defId, Date.now()), [markRecurringDone]);
+
+  return { rows, datum, refresh };
 }

@@ -397,6 +397,24 @@ export function clearCooldown(c: Config, defId: string): Config {
 const recurringById = (c: Config, defId: string): RecurringDef | undefined =>
   c.recurring.find((d) => d.id === defId);
 
+/** Map the matching recurring definition through `fn`, leaving siblings/bosses/running untouched. */
+const editRecurring = (c: Config, defId: string, fn: (d: RecurringDef) => RecurringDef): Config => ({
+  ...c,
+  recurring: c.recurring.map((d) => (d.id === defId ? fn(d) : d)),
+});
+
+// The day-scale band a recurring duration is held within — [1 minute, 365 days]. Far wider
+// than the cooldown wheel's [1m, 12h] (these chores drain over hours to weeks), so they get
+// their own clamp rather than reusing `clampDuration`. The length a freshly-added item starts
+// at is one day, mid-band, so the d/h/m control nudges it either way.
+const MIN_RECURRING_MS = 1 * MS_PER_MIN;
+const MAX_RECURRING_MS = 365 * MS_PER_DAY;
+const DEFAULT_RECURRING_MS = 1 * MS_PER_DAY;
+
+/** Clamp a recurring duration into the day-scale [1m, 365d] band (rounded to whole ms). */
+const clampRecurringDuration = (ms: number): number =>
+  Math.max(MIN_RECURRING_MS, Math.min(MAX_RECURRING_MS, Math.round(ms) || MIN_RECURRING_MS));
+
 /**
  * Mark the recurring item for `defId` done — restamps a full cycle from `now`
  * (`expiry = now + durationMs`, rolling-from-last-done), the single completion gesture for
@@ -407,4 +425,63 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
   const def = recurringById(c, defId);
   if (!def) return c;
   return { ...c, recurringRunning: markDone(c.recurringRunning, def, now) };
+}
+
+// ---- recurring catalog CRUD (issue #37) — the day-scale sibling of the cooldown editor ----
+// Edits to the editable recurring *definitions*, mirroring addCooldown/rename/retag/remove so
+// the settings editor can manage elapsable items without touching the running set (bar a
+// remove, which also stops any running instance). New items are `deadline` kind — the `gate`
+// (routine) editor lands with its slice; duration uses the day-scale clamp above.
+
+/**
+ * Append a blank deadline definition (the "+ add item" gesture), mirroring `addCooldown`: a
+ * generic `Item N` name with its auto-derived tag and a one-day default duration, carrying a
+ * fresh non-colliding `recurring-N` id. The user then renames / retags / retunes it.
+ */
+export function addRecurring(c: Config): Config {
+  const recurringSeq = c.recurringSeq + 1;
+  const name = `Item ${recurringSeq}`;
+  const def: RecurringDef = {
+    id: `recurring-${recurringSeq}`,
+    name,
+    tag: deriveTag(name),
+    durationMs: DEFAULT_RECURRING_MS,
+    kind: "deadline",
+  };
+  return { ...c, recurring: [...c.recurring, def], recurringSeq };
+}
+
+/**
+ * Rename a definition, re-deriving its `tag` from the new name (like `renameCooldown`, so the
+ * short bar label stays in sync as the user types; `retagRecurring` overrides afterward). An
+ * unknown `defId` is a no-op.
+ */
+export function renameRecurring(c: Config, defId: string, name: string): Config {
+  if (!recurringById(c, defId)) return c;
+  return editRecurring(c, defId, (d) => ({ ...d, name, tag: deriveTag(name) }));
+}
+
+/** Set a definition's Tag explicitly — the user override of the name-derived default. No-op if unknown. */
+export function retagRecurring(c: Config, defId: string, tag: string): Config {
+  if (!recurringById(c, defId)) return c;
+  return editRecurring(c, defId, (d) => ({ ...d, tag }));
+}
+
+/** Set a definition's duration, clamped to the day-scale [1m, 365d] band. No-op if unknown. */
+export function setRecurringDuration(c: Config, defId: string, durationMs: number): Config {
+  if (!recurringById(c, defId)) return c;
+  return editRecurring(c, defId, (d) => ({ ...d, durationMs: clampRecurringDuration(durationMs) }));
+}
+
+/**
+ * Remove a definition from the catalog AND stop any running instance of it, so the dock never
+ * holds a running item pointing at a deleted def (mirrors `removeCooldown`). Other definitions
+ * and the rest of the running set are untouched; an unknown `defId` simply matches nothing.
+ */
+export function removeRecurring(c: Config, defId: string): Config {
+  return {
+    ...c,
+    recurring: c.recurring.filter((d) => d.id !== defId),
+    recurringRunning: c.recurringRunning.filter((r) => r.defId !== defId),
+  };
 }

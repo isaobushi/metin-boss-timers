@@ -22,8 +22,15 @@ import {
   retagCooldown,
   removeCooldown,
   clearCooldown,
+  markRecurring,
+  addRecurring,
+  renameRecurring,
+  retagRecurring,
+  setRecurringDuration,
+  removeRecurring,
   type Config,
 } from "./config";
+import { inAlarm } from "./recurring";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
@@ -73,7 +80,7 @@ describe("makeConfig", () => {
     ]);
     expect(new Set(c.recurring.map((r) => r.id)).size).toBe(3); // ids are distinct
     expect(c.recurringSeq).toBe(3); // seq seeded past the last seeded id
-    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (the hook seeds the demo)
+    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (refresh starts an item)
   });
 });
 
@@ -453,5 +460,144 @@ describe("clearCooldown", () => {
   it("is a no-op when nothing is running for that def", () => {
     const c = makeConfig();
     expect(clearCooldown(c, c.cooldowns[0].id).running).toEqual([]);
+  });
+});
+
+// ---- recurring catalog CRUD (mirrors the cooldown editor, on the day-scale band) ----
+
+const DAY = 86_400_000;
+const HOUR = 3_600_000;
+const MIN = 60_000;
+
+describe("addRecurring", () => {
+  it("appends a blank deadline definition with a fresh id, auto-tag and a default duration", () => {
+    const c = makeConfig();
+    const after = addRecurring(c);
+    const def = after.recurring[after.recurring.length - 1];
+    expect(after.recurring.length).toBe(c.recurring.length + 1);
+    expect([def.id, def.name, def.tag, def.durationMs, def.kind]).toEqual([
+      "recurring-4",
+      "Item 4",
+      "Ite",
+      DAY,
+      "deadline",
+    ]);
+    expect(after.recurringSeq).toBe(4); // seq advanced past the new id
+  });
+
+  it("leaves the existing catalog, bosses and running set untouched", () => {
+    const c = makeConfig();
+    const after = addRecurring(c);
+    expect(after.recurring.slice(0, c.recurring.length)).toEqual(c.recurring);
+    expect(after.bosses).toBe(c.bosses);
+    expect(after.recurringRunning).toBe(c.recurringRunning);
+  });
+
+  it("hands out non-colliding ids across repeated adds", () => {
+    const c = addRecurring(addRecurring(makeConfig()));
+    const ids = c.recurring.map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("renameRecurring", () => {
+  it("renames a definition and re-derives its tag from the new name", () => {
+    const c = makeConfig();
+    const id = c.recurring[0].id; // Snow Wolf / Sno
+    const after = renameRecurring(c, id, "Battle Horse");
+    expect([after.recurring[0].name, after.recurring[0].tag]).toEqual(["Battle Horse", "Bat"]);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
+  });
+});
+
+describe("retagRecurring", () => {
+  it("sets a definition's tag explicitly, leaving its name and siblings alone", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    const after = retagRecurring(c, a.id, "PET");
+    expect([after.recurring[0].name, after.recurring[0].tag]).toEqual([a.name, "PET"]);
+    expect(after.recurring[1]).toEqual(b);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(retagRecurring(c, "recurring-999", "X")).toBe(c);
+  });
+});
+
+describe("setRecurringDuration", () => {
+  it("sets a day-scale duration on the catalog definition", () => {
+    const c = makeConfig();
+    const id = c.recurring[0].id;
+    const after = setRecurringDuration(c, id, 5 * DAY + 6 * HOUR);
+    expect(after.recurring[0].durationMs).toBe(5 * DAY + 6 * HOUR);
+  });
+
+  it("clamps to the day-scale band [1m, 365d] (beyond cooldown's 12h ceiling)", () => {
+    const c = makeConfig();
+    const id = c.recurring[0].id;
+    expect(setRecurringDuration(c, id, 0).recurring[0].durationMs).toBe(MIN); // floor
+    expect(setRecurringDuration(c, id, 999 * DAY).recurring[0].durationMs).toBe(365 * DAY); // ceiling
+    expect(setRecurringDuration(c, id, 30 * DAY).recurring[0].durationMs).toBe(30 * DAY); // well within
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(setRecurringDuration(c, "recurring-999", DAY)).toBe(c);
+  });
+});
+
+describe("removeRecurring", () => {
+  it("drops a definition and leaves the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    const after = removeRecurring(c, a.id);
+    expect(after.recurring.map((d) => d.id)).not.toContain(a.id);
+    expect(after.recurring).toContainEqual(b);
+    expect(after.recurring.length).toBe(c.recurring.length - 1);
+  });
+
+  it("also stops a running instance of the removed def, sparing the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    let started = markRecurring(c, a.id, 1_000_000);
+    started = markRecurring(started, b.id, 1_000_000);
+    const after = removeRecurring(started, a.id);
+    expect(after.recurringRunning.map((r) => r.defId)).toEqual([b.id]); // a's instance gone, b's kept
+  });
+
+  it("leaves the bosses untouched", () => {
+    const c = makeConfig();
+    const after = removeRecurring(c, c.recurring[0].id);
+    expect(after.bosses).toBe(c.bosses);
+  });
+});
+
+describe("markRecurring (refresh / start gesture)", () => {
+  it("starts an unstarted def by restamping a full cycle from now", () => {
+    const c = makeConfig();
+    const def = c.recurring[0];
+    const after = markRecurring(c, def.id, 1_000);
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("refreshes a running def in place, clearing its alarm", () => {
+    const c = makeConfig();
+    const def = c.recurring[0]; // Snow Wolf, 3 days
+    const started = markRecurring(c, def.id, 0);
+    // fast-forward into the alarm window by re-reading the running instance near its expiry
+    const r = started.recurringRunning[0];
+    expect(inAlarm(r, def.durationMs - HOUR)).toBe(true);
+    const refreshed = markRecurring(started, def.id, def.durationMs - HOUR);
+    expect(inAlarm(refreshed.recurringRunning[0], def.durationMs - HOUR)).toBe(false); // fresh cycle clears it
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(markRecurring(c, "recurring-999", 1_000)).toBe(c);
   });
 });

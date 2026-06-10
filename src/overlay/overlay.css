@@ -875,10 +875,16 @@ body[data-window="settings"] {
 .dock-ready {
   color: #39ff88;
 }
-/* A deadline item past (or near) its expiry — the loss colour, shared by the bar datum and the
-   accordion readout. The under-24h blink lands in a later slice; this is the static tint. */
+/* A deadline item past its expiry — the static loss colour, shared by the bar datum and the
+   accordion readout (`overdue`). */
 .dock-due {
   color: #ff7b96;
+}
+/* A deadline item under 24h to elapse (not yet overdue) — the "act now or lose it" alarm: the
+   loss colour, blinking via the shared cooldown pulse so it pulls the eye on the bar and the row. */
+.dock-alarm {
+  color: #ff7b96;
+  animation: cooldown-pulse 1.4s ease-in-out infinite;
 }
 .dock-muted {
   opacity: 0.5;
@@ -921,6 +927,23 @@ body[data-window="settings"] {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #cfc8e0;
+}
+/* The ↻ refresh ("feed"/re-project / start) at the row's end — a quiet glyph button that lights
+   on hover, matching the dock's subordinate-control feel (no border at rest). */
+.dock-acc__refresh {
+  flex: none;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9b8cff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dock-acc__refresh:hover {
+  background: #ffffff12;
+  color: #fff;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */

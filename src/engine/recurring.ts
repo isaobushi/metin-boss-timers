@@ -46,6 +46,46 @@ export function isDue(r: RunningRecurring, now: number): boolean {
   return now >= r.expiry;
 }
 
+/** The default alarm lead time for a `deadline` item: red/blink once under a DAY to elapse. */
+export const ALARM_THRESHOLD_MS = 86_400_000;
+
+/**
+ * Whether a `deadline` item is in its alarm window — under `threshold` (24h by default) to
+ * elapse but NOT yet elapsed. This is the "act now or lose the thing" warning that drives the
+ * red/blink; it is the OPEN interval `(0, threshold)`: false at or beyond the threshold (still
+ * comfortably far out) and false at/after zero (that's `overdue`, the loss — a distinct state,
+ * not an alarm). Purely a `deadline` reading — a `gate` never alarms; the UI calls this only
+ * for deadlines, so like every derivation the engine itself stays valence- and kind-free.
+ */
+export function inAlarm(r: RunningRecurring, now: number, threshold: number = ALARM_THRESHOLD_MS): boolean {
+  const rem = remainingMs(r, now);
+  return rem > 0 && rem < threshold;
+}
+
+/**
+ * The deadline analogue of `cooldown.readyCrossings`: the defIds whose item crossed INTO the
+ * alarm window between two consecutive observations — in-alarm in `cur` (at `now`), but
+ * present-and-not-yet-alarming in `prev` (at `prevNow`). This is what makes the alarm cue
+ * *live-only* (ADR-0002 / ADR-0003 §3): it fires only on a crossing the running app watched.
+ * An item already in-alarm (or already past zero) on restore has no prior outside observation,
+ * so it stays silent; an item sitting in the window was already alarming last tick, so it never
+ * re-fires; and the zero crossing (window → overdue) is silent too, since `inAlarm` is false
+ * past zero. Running-instance identity is `(defId, expiry)`, so a refresh is a fresh instance
+ * that re-arms and can cross afresh. Mirrors `readyCrossings` exactly, swapping the predicate.
+ */
+export function alarmCrossings(
+  prev: RunningRecurring[],
+  prevNow: number,
+  cur: RunningRecurring[],
+  now: number,
+  threshold: number = ALARM_THRESHOLD_MS,
+): string[] {
+  return cur
+    .filter((r) => inAlarm(r, now, threshold))
+    .filter((r) => prev.some((p) => p.defId === r.defId && p.expiry === r.expiry && !inAlarm(p, prevNow, threshold)))
+    .map((r) => r.defId);
+}
+
 // ---- running-set operations (pure `(RunningRecurring[], ...) -> RunningRecurring[]`) ----
 
 /** The most recurring items that may run at once; a fresh one beyond this is refused. */

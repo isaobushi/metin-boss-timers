@@ -15,7 +15,7 @@ type Props = {
   onSkills: () => void;
   /** ⏱ — toggle the cooldown strip (pinned above the panel). */
   onCooldowns: () => void;
-  /** 👘 — toggle the elapsable-items panel (inert until #36+). */
+  /** 👘 — toggle the elapsable-items panel (live: countdowns + alarm + refresh, #37). */
   onItems: () => void;
   /** ✓ — toggle the routine panel (inert until #36+). */
   onRoutine: () => void;
@@ -59,7 +59,9 @@ export function DockBar({ open, activeBossName, itemsDatum, onSkills, onCooldown
       <button className={`dock-seg${open.has("items") ? " is-open" : ""}`} onClick={onItems} title="elapsable items">
         <span className="dock-seg__icon">👘</span>
         {itemsDatum ? (
-          <span className={`dock-seg__val${itemsDatum.due ? " dock-due" : ""}`}>{itemsDatum.text}</span>
+          <span className={`dock-seg__val${itemsDatum.alarm ? " dock-alarm" : itemsDatum.due ? " dock-due" : ""}`}>
+            {itemsDatum.text}
+          </span>
         ) : (
           <span className="dock-seg__val dock-muted">—</span>
         )}
