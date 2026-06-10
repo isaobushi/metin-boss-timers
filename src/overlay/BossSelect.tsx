@@ -1,13 +1,10 @@
 import type { CSSProperties } from "react";
 import type { Boss } from "../engine/config";
-import { quitApp } from "./quitApp";
 
 type Props = {
   bosses: Boss[];
   onPick: (id: string) => void;
-  onOpenSettings: () => void;
   onOpenSequence: () => void;
-  onCooldownsOnly: () => void;
 };
 
 // Templum reads as its own dungeon, so it gets a fixed serpent-green accent rather than a
@@ -21,10 +18,10 @@ const TEMPLUM_ACCENT = { accent: "#48d597", accent2: "#2bb6c4" } as const;
  * read distinctly. The overlay stays compact during play — all editing (add/rename/delete
  * bosses & skills, pitches, hotkeys, reset) lives behind ⚙, the separate settings window.
  */
-export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence, onCooldownsOnly }: Props) {
+export function BossSelect({ bosses, onPick, onOpenSequence }: Props) {
   return (
     <div className="panel boss-select">
-      {/* doubles as the window's drag handle — grab the title to move the frameless overlay */}
+      {/* title doubles as the window's drag handle; the dock bar carries settings (⚙) + quit (✕) */}
       <div className="panel__title" data-tauri-drag-region>
         SELECT DUNGEON
       </div>
@@ -42,21 +39,6 @@ export function BossSelect({ bosses, onPick, onOpenSettings, onOpenSequence, onC
       >
         <button className="boss-row__pick" onClick={onOpenSequence} title="Templum Serpens helper">
           TEMPLUM
-        </button>
-      </div>
-      <div className="boss-select__footer">
-        <button
-          className="btn-link"
-          onClick={onCooldownsOnly}
-          title="hide the boss panel — show only the cooldown strip"
-        >
-          ▭ cooldowns only
-        </button>
-        <button className="btn-link" onClick={onOpenSettings} title="open settings window">
-          ⚙ settings
-        </button>
-        <button className="btn-link btn-link--danger" onClick={quitApp} title="close app">
-          ✕ quit
         </button>
       </div>
     </div>

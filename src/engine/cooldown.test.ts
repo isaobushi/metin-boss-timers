@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type CooldownDef,
   type RunningCooldown,
+  badge,
   deriveTag,
   fmtDur,
   isReady,
@@ -16,6 +17,7 @@ import {
 
 const M = 60_000;
 const H = 3_600_000;
+const D = 86_400_000;
 
 const def = (id: string, durationMs: number): CooldownDef => ({
   id,
@@ -68,6 +70,14 @@ describe("readout", () => {
     expect(readout(0)).toBe("Ready");
     expect(readout(-30 * M)).toBe("Ready"); // elapsed while the app was closed
   });
+
+  // Day-scale band (recurring chores drain over days; cooldowns cap at 12h so never reach it).
+  // At/above a day, hours are the finest unit shown — minutes are noise at that range.
+  it("shows days+hours at or above one day", () => {
+    expect(readout(2 * D + 6 * H)).toBe("2d 06h"); // hours zero-padded to two
+    expect(readout(D)).toBe("1d 00h"); // exactly one day sits in the days band
+    expect(readout(7 * D + 23 * H + 59 * M)).toBe("7d 23h"); // sub-hour remainder dropped
+  });
 });
 
 describe("fmtDur", () => {
@@ -77,6 +87,30 @@ describe("fmtDur", () => {
     expect(fmtDur(H)).toBe("1h00");
     expect(fmtDur(4 * H)).toBe("4h00");
     expect(fmtDur(15 * M)).toBe("15m");
+  });
+
+  it("labels day-scale durations as days+hours (recurring catalog: a 30-day costume, 7-day pet)", () => {
+    expect(fmtDur(7 * D)).toBe("7d 00h");
+    expect(fmtDur(30 * D)).toBe("30d 00h");
+    expect(fmtDur(2 * D + 6 * H)).toBe("2d 06h");
+  });
+});
+
+describe("badge", () => {
+  // The compact single-unit form for a dense bar segment: only the largest unit, no
+  // padding (`2d` / `5h` / `12m`). A finished/ready item collapses to a tick.
+  const S = 1_000;
+  it("shows only the largest unit, unpadded", () => {
+    expect(badge(2 * D + 6 * H)).toBe("2d"); // hours dropped
+    expect(badge(D)).toBe("1d");
+    expect(badge(5 * H + 12 * M)).toBe("5h"); // minutes dropped
+    expect(badge(H)).toBe("1h");
+    expect(badge(12 * M + 30 * S)).toBe("12m"); // seconds dropped
+  });
+
+  it("collapses to a tick at and below zero", () => {
+    expect(badge(0)).toBe("✓");
+    expect(badge(-5 * M)).toBe("✓");
   });
 });
 

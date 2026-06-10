@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { addBoss, addSkill, makeConfig, setSkillHotkey, setSkillSound, type Config } from "./config";
+import { addBoss, addSkill, makeConfig, markRecurring, setSkillHotkey, setSkillSound, type Config } from "./config";
 import { readout, remainingMs, start } from "./cooldown";
+import { remainingMs as recurringRemainingMs } from "./recurring";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 import { DEFAULT_SOUND_ID } from "./sounds";
 
@@ -136,20 +137,88 @@ describe("cooldown persistence (additive, no version bump)", () => {
   });
 });
 
-describe("cooldowns-only mode persistence (additive, no version bump)", () => {
-  it("round-trips the cooldowns-only flag through a disk hop", () => {
-    const c = { ...makeConfig(), cooldownsOnly: true };
-    expect(deserialize(throughDisk(c)).cooldownsOnly).toBe(true);
+describe("recurring persistence (additive, no version bump)", () => {
+  it("round-trips the recurring catalog and running instances through a disk hop", () => {
+    let c = makeConfig();
+    // mark one item done so both the catalog and the running set are exercised
+    c = markRecurring(c, c.recurring[0].id, 1_000);
+
+    const restored = deserialize(throughDisk(c));
+    expect(restored.recurring).toEqual(c.recurring);
+    expect(restored.recurringRunning).toEqual(c.recurringRunning);
+    expect(restored.recurringSeq).toBe(c.recurringSeq); // seq seeded past the persisted ids
   });
 
-  it("defaults a pre-feature config (no flag) to the panel shown", () => {
-    const preFeature = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses };
-    expect(deserialize(preFeature).cooldownsOnly).toBe(false);
+  it("keeps a pre-feature config intact with an empty recurring catalog (never wipes)", () => {
+    // a config saved before recurring existed: valid bosses + cooldowns, no recurring fields
+    const preFeature = serialize(makeConfig());
+    delete (preFeature as Partial<typeof preFeature>).recurring;
+    delete (preFeature as Partial<typeof preFeature>).recurringRunning;
+    const restored = deserialize(preFeature);
+    expect(restored.cooldowns.length).toBeGreaterThan(0); // the older cooldown feature survives
+    expect(restored.recurring).toEqual([]); // default empty, not the seeded catalog
+    expect(restored.recurringRunning).toEqual([]);
+    expect(restored.recurringSeq).toBe(0);
   });
 
-  it("treats a malformed flag as off rather than nuking the config", () => {
-    const payload = { version: SCHEMA_VERSION, bosses: serialize(makeConfig()).bosses, cooldownsOnly: "yes" };
-    expect(deserialize(payload).cooldownsOnly).toBe(false);
+  it("drops a malformed recurring entry (bad kind / missing duration) and a legacy tag without nuking the rest", () => {
+    // The `tag` field is from older configs (recurring items no longer carry one) — it should be
+    // tolerated on read and stripped, like any unknown extra field.
+    const legacy = { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" };
+    const expected = { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" };
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurring: [
+        legacy,
+        { id: "recurring-2", name: "Bad kind", durationMs: 1000, kind: "weekly" }, // not gate|deadline
+        { id: "recurring-3", name: "No duration", kind: "gate" }, // missing durationMs
+      ],
+    };
+    const restored = deserialize(payload);
+    expect(restored.bosses.length).toBeGreaterThan(0); // config survives
+    expect(restored.recurring).toEqual([expected]); // legacy tag stripped, bad entries dropped, good one kept
+  });
+
+  it("round-trips the ladder progress map and a def's ladderId (#44)", () => {
+    const base = makeConfig();
+    const c = { ...base, recurringProgress: [{ defId: base.recurring[3].id, position: 12 }] }; // Skill Books rank
+    const restored = deserialize(throughDisk(c));
+    expect(restored.recurringProgress).toEqual(c.recurringProgress);
+    expect(restored.recurring[3].ladderId).toBe("class-skill"); // ladderId survives the disk hop
+  });
+
+  it("keeps a pre-ladder config intact with an empty progress map (never wipes)", () => {
+    const preLadder = serialize(makeConfig());
+    delete (preLadder as Partial<typeof preLadder>).recurringProgress;
+    const restored = deserialize(preLadder);
+    expect(restored.recurringProgress).toEqual([]); // absent → empty, the config is preserved
+  });
+
+  it("drops a malformed progress entry without nuking the rest", () => {
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurringProgress: [
+        { defId: "recurring-4", position: 7 },
+        { defId: "recurring-5" }, // missing position
+        { position: 3 }, // missing defId
+      ],
+    };
+    expect(deserialize(payload).recurringProgress).toEqual([{ defId: "recurring-4", position: 7 }]);
+  });
+
+  it("restores a running recurring whose expiry already passed as past-zero (silent)", () => {
+    const now = 10_000_000;
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurringRunning: [{ defId: "recurring-1", expiry: now - 30 * 60_000, startedAt: now - 90 * 60_000 }],
+    };
+    const r = deserialize(payload).recurringRunning[0];
+    expect(r.expiry).toBe(now - 30 * 60_000); // absolute expiry restored verbatim
+    expect(recurringRemainingMs(r, now)).toBe(0);
+    expect(readout(recurringRemainingMs(r, now))).toBe("Ready"); // silent, sticky past-zero on launch
   });
 });
 

@@ -20,7 +20,13 @@ import {
   retagCooldown,
   removeCooldown,
   clearCooldown,
-  setCooldownsOnly,
+  markRecurring,
+  markRead,
+  setRung,
+  addRecurring,
+  renameRecurring,
+  setRecurringDuration,
+  removeRecurring,
   type Boss,
   type Config,
 } from "../engine/config";
@@ -169,10 +175,43 @@ export function useConfig() {
   );
   const deleteCooldown = useCallback((defId: string) => setConfig((c) => removeCooldown(c, defId)), []);
 
-  // Standalone "cooldowns-only" overlay mode (issue #29): hide the boss panel, leaving just
-  // the strip. Rides the same setConfig → persist + configSync path, so it sticks across
-  // launches and reflects in the other window.
-  const setCooldownsOnlyMode = useCallback((on: boolean) => setConfig((c) => setCooldownsOnly(c, on)), []);
+  // Recurring action — like the cooldown gestures, just runs the pure transform through
+  // setConfig, so the running set persists and cross-window syncs for free. `now` is the
+  // caller's (the 1s tick in useRecurring). markDone doubles as the start gesture.
+  const markRecurringDone = useCallback(
+    (defId: string, now: number) => setConfig((c) => markRecurring(c, defId, now)),
+    [],
+  );
+  // The ladder read-outcome gesture (#45): ✓ (success) restamps the gate AND advances the rank, ✗
+  // (fail) restamps the gate only. Same setConfig → persist + configSync path as every other edit.
+  const markReadOutcome = useCallback(
+    (defId: string, now: number, success: boolean) => setConfig((c) => markRead(c, defId, now, success)),
+    [],
+  );
+  // The set-rung curtain (#46): snap a ladder def's rank to a chosen rung's entry threshold,
+  // writing the progress map only (the daily gate is untouched). Also the misclick-correction path.
+  const setLadderRung = useCallback(
+    (defId: string, rungLabel: string) => setConfig((c) => setRung(c, defId, rungLabel)),
+    [],
+  );
+
+  // Recurring catalog CRUD for the settings Items section (issue #37): add a blank deadline
+  // definition, rename it, set its day-scale duration, or remove it. Mirrors the cooldown catalog
+  // CRUD (minus the tag — recurring items carry none); each rides the same setConfig → persist +
+  // configSync path.
+  const createRecurring = useCallback(() => setConfig((c) => addRecurring(c, "deadline")), []);
+  // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/duration/remove are
+  // kind-agnostic, so both sections share editRecurringName/Duration + deleteRecurring.
+  const createRoutine = useCallback(() => setConfig((c) => addRecurring(c, "gate")), []);
+  const editRecurringName = useCallback(
+    (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
+    [],
+  );
+  const editRecurringDuration = useCallback(
+    (defId: string, durationMs: number) => setConfig((c) => setRecurringDuration(c, defId, durationMs)),
+    [],
+  );
+  const deleteRecurring = useCallback((defId: string) => setConfig((c) => removeRecurring(c, defId)), []);
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
@@ -186,6 +225,7 @@ export function useConfig() {
 
   return {
     config,
+    hydrated,
     activeBoss,
     createBoss,
     editBossName,
@@ -206,7 +246,14 @@ export function useConfig() {
     editCooldownTag,
     editCooldownDuration,
     deleteCooldown,
-    setCooldownsOnlyMode,
+    markRecurringDone,
+    markReadOutcome,
+    setLadderRung,
+    createRecurring,
+    createRoutine,
+    editRecurringName,
+    editRecurringDuration,
+    deleteRecurring,
     selectBoss,
     resetConfig,
   };

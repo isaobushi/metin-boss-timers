@@ -6,6 +6,7 @@
 
 import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
 import type { CooldownDef, RunningCooldown } from "./cooldown";
+import type { RecurringDef, RecurringKind, RecurringProgress, RunningRecurring } from "./recurring";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
 
 /**
@@ -20,8 +21,12 @@ export type PersistedConfig = {
   cooldowns: CooldownDef[];
   /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
   running: RunningCooldown[];
-  /** Standalone "cooldowns-only" overlay mode, so it's set once and survives launches (#29). */
-  cooldownsOnly: boolean;
+  /** The recurring-chore catalog (expiring items + routine). */
+  recurring: RecurringDef[];
+  /** Running recurring items persist their ABSOLUTE expiry, like cooldowns. */
+  recurringRunning: RunningRecurring[];
+  /** Per-def ladder rank (count of successful reads) — additive/lenient, no version bump (#44). */
+  recurringProgress: RecurringProgress[];
 };
 
 /**
@@ -37,7 +42,9 @@ export function serialize(c: Config): PersistedConfig {
     bosses: c.bosses,
     cooldowns: c.cooldowns,
     running: c.running,
-    cooldownsOnly: c.cooldownsOnly,
+    recurring: c.recurring,
+    recurringRunning: c.recurringRunning,
+    recurringProgress: c.recurringProgress,
   };
 }
 
@@ -56,17 +63,23 @@ export function deserialize(raw: unknown): Config {
   // never wiped), and a single malformed entry is dropped rather than nuking the config.
   const cooldowns = readCooldowns(raw);
   const running = readRunning(raw);
-  // Lenient like the cooldown fields: absent or non-boolean (a pre-feature config) → false,
-  // so an old config preserves its bosses and simply boots with the panel shown.
-  const cooldownsOnly = isObj(raw) && raw.cooldownsOnly === true;
+  // Recurring chores are ADDITIVE and lenient too — same posture as cooldowns: absent → empty
+  // (a config saved before this feature is preserved, never wiped), and a malformed entry is
+  // dropped rather than nuking the config. Deliberately no SCHEMA_VERSION bump (ADR-0003).
+  const recurring = readRecurring(raw);
+  const recurringRunning = readRecurringRunning(raw);
+  const recurringProgress = readRecurringProgress(raw);
   return {
     bosses,
     cooldowns,
     running,
-    cooldownsOnly,
+    recurring,
+    recurringRunning,
+    recurringProgress,
     bossSeq: maxIdSeq(bosses.map((b) => b.id), "boss"),
     skillSeq: maxIdSeq(skillIds, "skill"),
     cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),
+    recurringSeq: maxIdSeq(recurring.map((r) => r.id), "recurring"),
   };
 }
 
@@ -145,6 +158,51 @@ function readRunning(raw: unknown): RunningCooldown[] {
 }
 
 function readRunningCooldown(r: unknown): RunningCooldown | null {
+  if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
+  return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
+}
+
+// ---- recurring (lenient + per-item, mirroring cooldowns: a bad entry is dropped, never nuked) ----
+
+const isRecurringKind = (v: unknown): v is RecurringKind => v === "gate" || v === "deadline";
+
+/** Validated recurring catalog, or `[]` when the field is absent (pre-feature config). */
+function readRecurring(raw: unknown): RecurringDef[] {
+  if (!isObj(raw) || !Array.isArray(raw.recurring)) return [];
+  return raw.recurring.map(readRecurringDef).filter((r): r is RecurringDef => r !== null);
+}
+
+function readRecurringDef(r: unknown): RecurringDef | null {
+  if (!isObj(r) || !isStr(r.id) || !isStr(r.name) || !isNum(r.durationMs)) return null;
+  if (!isRecurringKind(r.kind)) return null; // an unrecognised kind drops the entry (not a default)
+  // rebuild explicitly so unknown extra fields are dropped — incl. a legacy `tag` from older configs
+  const def: RecurringDef = { id: r.id, name: r.name, durationMs: r.durationMs, kind: r.kind };
+  // ladderId is optional + lenient: keep a valid string (the ladder lookup tolerates an unknown id),
+  // drop anything else — a pre-ladder config simply has no rank, exactly as it did before #44.
+  if (isStr(r.ladderId)) def.ladderId = r.ladderId;
+  return def;
+}
+
+// ---- recurring progress (lenient + per-item, mirroring the running set) ----
+
+/** Validated ladder progress map, or `[]` when absent (a pre-ladder config — preserved, never nuked). */
+function readRecurringProgress(raw: unknown): RecurringProgress[] {
+  if (!isObj(raw) || !Array.isArray(raw.recurringProgress)) return [];
+  return raw.recurringProgress.map(readProgressEntry).filter((p): p is RecurringProgress => p !== null);
+}
+
+function readProgressEntry(p: unknown): RecurringProgress | null {
+  if (!isObj(p) || !isStr(p.defId) || !isNum(p.position)) return null;
+  return { defId: p.defId, position: p.position };
+}
+
+/** Validated running recurring items, or `[]` when absent. Absolute `expiry` is kept verbatim. */
+function readRecurringRunning(raw: unknown): RunningRecurring[] {
+  if (!isObj(raw) || !Array.isArray(raw.recurringRunning)) return [];
+  return raw.recurringRunning.map(readRunningRecurring).filter((r): r is RunningRecurring => r !== null);
+}
+
+function readRunningRecurring(r: unknown): RunningRecurring | null {
   if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
   return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
 }

@@ -22,9 +22,16 @@ import {
   retagCooldown,
   removeCooldown,
   clearCooldown,
-  setCooldownsOnly,
+  markRecurring,
+  markRead,
+  setRung,
+  addRecurring,
+  renameRecurring,
+  setRecurringDuration,
+  removeRecurring,
   type Config,
 } from "./config";
+import { inAlarm } from "./recurring";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
@@ -62,23 +69,45 @@ describe("makeConfig", () => {
     expect(c.running).toEqual([]); // nothing running on a fresh install
   });
 
-  it("ships with the boss panel shown (cooldowns-only mode off)", () => {
-    expect(makeConfig().cooldownsOnly).toBe(false);
-  });
-});
-
-describe("cooldowns-only overlay mode", () => {
-  it("toggles the flag without disturbing the rest of the config", () => {
+  it("seeds the example recurring items — deadline expiring items AND gate routines — with durations, kind", () => {
+    const H = 3_600_000;
+    const D = 86_400_000;
     const c = makeConfig();
-    const on = setCooldownsOnly(c, true);
-    expect(on.cooldownsOnly).toBe(true);
-    // everything else is untouched — bosses, catalog and running set ride alongside it
-    expect(on.bosses).toEqual(c.bosses);
-    expect(on.cooldowns).toEqual(c.cooldowns);
-    expect(on.running).toEqual(c.running);
+    // examples-not-gospel defaults: name, duration, kind (no tag — recurring items carry none).
+    // Deadlines (♻ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
+    expect(c.recurring.map((r) => [r.name, r.durationMs, r.kind])).toEqual([
+      ["Snow Wolf", 3 * D, "deadline"],
+      ["Costume of Flame", 14 * D, "deadline"],
+      ["Battle Horse", 18 * H, "deadline"],
+      ["Skill Books", 24 * H, "gate"],
+      ["Transformation", 24 * H, "gate"],
+      ["Inspiration", 24 * H, "gate"],
+      ["Charisma", 24 * H, "gate"],
+      ["Mining", 24 * H, "gate"],
+      ["Leadership", 24 * H, "gate"],
+      ["Jinno Language", 24 * H, "gate"],
+      ["Chunjo Language", 24 * H, "gate"],
+      ["Shinsoo Language", 24 * H, "gate"],
+      ["Biologist", 22 * H, "gate"],
+    ]);
+    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(13); // ids are distinct
+    expect(c.recurringSeq).toBe(13); // seq seeded past the last seeded id
+    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (mark-done starts an item)
+    expect(c.recurringProgress).toEqual([]); // and no ladder rank yet (#44)
+  });
 
-    const off = setCooldownsOnly(on, false);
-    expect(off.cooldownsOnly).toBe(false);
+  it("wires each gate def to its seeded ladder; deadlines carry none (#44)", () => {
+    const c = makeConfig();
+    // ladderId is pure presentation (like `kind`): the deadlines have no rank; the thirteen gates
+    // share the five structures — transformation across four defs, language across three.
+    expect(c.recurring.map((r) => r.ladderId)).toEqual([
+      undefined, undefined, undefined, // Snow Wolf, Costume of Flame, Battle Horse (deadlines)
+      "class-skill", // Skill Books
+      "transformation", "transformation", "transformation", "transformation", // Transformation/Inspiration/Charisma/Mining
+      "leadership", // Leadership
+      "language", "language", "language", // Jinno/Chunjo/Shinsoo
+      "biologist", // Biologist
+    ]);
   });
 });
 
@@ -458,5 +487,234 @@ describe("clearCooldown", () => {
   it("is a no-op when nothing is running for that def", () => {
     const c = makeConfig();
     expect(clearCooldown(c, c.cooldowns[0].id).running).toEqual([]);
+  });
+});
+
+// ---- recurring catalog CRUD (mirrors the cooldown editor, on the day-scale band) ----
+
+const DAY = 86_400_000;
+const HOUR = 3_600_000;
+const MIN = 60_000;
+
+describe("addRecurring", () => {
+  it("appends a blank deadline definition with a fresh id and a default duration", () => {
+    const c = makeConfig();
+    const after = addRecurring(c);
+    const def = after.recurring[after.recurring.length - 1];
+    expect(after.recurring.length).toBe(c.recurring.length + 1);
+    expect([def.id, def.name, def.durationMs, def.kind]).toEqual(["recurring-14", "Item 14", DAY, "deadline"]);
+    expect(after.recurringSeq).toBe(14); // seq advanced past the new id
+  });
+
+  it("creates a gate-kind definition when asked (the ROUTINE section's add)", () => {
+    const c = makeConfig();
+    const after = addRecurring(c, "gate");
+    const def = after.recurring[after.recurring.length - 1];
+    expect([def.id, def.name, def.kind]).toEqual(["recurring-14", "Routine 14", "gate"]);
+    expect(after.recurringSeq).toBe(14);
+  });
+
+  it("leaves the existing catalog, bosses and running set untouched", () => {
+    const c = makeConfig();
+    const after = addRecurring(c);
+    expect(after.recurring.slice(0, c.recurring.length)).toEqual(c.recurring);
+    expect(after.bosses).toBe(c.bosses);
+    expect(after.recurringRunning).toBe(c.recurringRunning);
+  });
+
+  it("hands out non-colliding ids across repeated adds", () => {
+    const c = addRecurring(addRecurring(makeConfig()));
+    const ids = c.recurring.map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("renameRecurring", () => {
+  it("renames a definition, leaving its siblings alone", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    const after = renameRecurring(c, a.id, "Battle Horse");
+    expect(after.recurring[0].name).toBe("Battle Horse");
+    expect(after.recurring[1]).toEqual(b);
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
+  });
+});
+
+describe("setRecurringDuration", () => {
+  it("sets a day-scale duration on the catalog definition", () => {
+    const c = makeConfig();
+    const id = c.recurring[0].id;
+    const after = setRecurringDuration(c, id, 5 * DAY + 6 * HOUR);
+    expect(after.recurring[0].durationMs).toBe(5 * DAY + 6 * HOUR);
+  });
+
+  it("clamps to the day-scale band [1m, 365d] (beyond cooldown's 12h ceiling)", () => {
+    const c = makeConfig();
+    const id = c.recurring[0].id;
+    expect(setRecurringDuration(c, id, 0).recurring[0].durationMs).toBe(MIN); // floor
+    expect(setRecurringDuration(c, id, 999 * DAY).recurring[0].durationMs).toBe(365 * DAY); // ceiling
+    expect(setRecurringDuration(c, id, 30 * DAY).recurring[0].durationMs).toBe(30 * DAY); // well within
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(setRecurringDuration(c, "recurring-999", DAY)).toBe(c);
+  });
+});
+
+describe("removeRecurring", () => {
+  it("drops a definition and leaves the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    const after = removeRecurring(c, a.id);
+    expect(after.recurring.map((d) => d.id)).not.toContain(a.id);
+    expect(after.recurring).toContainEqual(b);
+    expect(after.recurring.length).toBe(c.recurring.length - 1);
+  });
+
+  it("also stops a running instance of the removed def, sparing the others", () => {
+    const c = makeConfig();
+    const [a, b] = c.recurring;
+    let started = markRecurring(c, a.id, 1_000_000);
+    started = markRecurring(started, b.id, 1_000_000);
+    const after = removeRecurring(started, a.id);
+    expect(after.recurringRunning.map((r) => r.defId)).toEqual([b.id]); // a's instance gone, b's kept
+  });
+
+  it("leaves the bosses untouched", () => {
+    const c = makeConfig();
+    const after = removeRecurring(c, c.recurring[0].id);
+    expect(after.bosses).toBe(c.bosses);
+  });
+});
+
+describe("markRecurring (refresh / start gesture)", () => {
+  it("starts an unstarted def by restamping a full cycle from now", () => {
+    const c = makeConfig();
+    const def = c.recurring[0];
+    const after = markRecurring(c, def.id, 1_000);
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("refreshes a running def in place, clearing its alarm", () => {
+    const c = makeConfig();
+    const def = c.recurring[0]; // Snow Wolf, 3 days
+    const started = markRecurring(c, def.id, 0);
+    // fast-forward into the alarm window by re-reading the running instance near its expiry
+    const r = started.recurringRunning[0];
+    expect(inAlarm(r, def.durationMs - HOUR)).toBe(true);
+    const refreshed = markRecurring(started, def.id, def.durationMs - HOUR);
+    expect(inAlarm(refreshed.recurringRunning[0], def.durationMs - HOUR)).toBe(false); // fresh cycle clears it
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(markRecurring(c, "recurring-999", 1_000)).toBe(c);
+  });
+});
+
+describe("markRead (ladder read-outcome gesture, #45)", () => {
+  // Skill Books is the first ladder def (recurring-4, ladderId class-skill, cap 55). Both outcomes
+  // restamp the 24h gate (a read happened either way); only a success advances the rank.
+  const books = (c: Config) => c.recurring[3];
+
+  it("✓ (success) advances the rank by one AND restamps the gate", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 1 }]); // rank advanced
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("✗ (fail) restamps the gate only — the book is burned, the rank is untouched", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = markRead(c, def.id, 1_000, false);
+    expect(after.recurringProgress).toEqual([]); // no advance
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("accumulates successive successful reads", () => {
+    const c = makeConfig();
+    const def = books(c);
+    let after = markRead(c, def.id, 1_000, true);
+    after = markRead(after, def.id, 2_000, false); // a fail in between doesn't advance
+    after = markRead(after, def.id, 3_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 2 }]);
+  });
+
+  it("✓ at the cap is a no-op on position (clamped to the book-relevant cap)", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = { ...base, recurringProgress: [{ defId: def.id, position: 55 }] }; // already at G1, the cap
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 55 }]); // clamped, no overshoot
+  });
+
+  it("is a no-op for an unknown def id", () => {
+    const c = makeConfig();
+    expect(markRead(c, "recurring-999", 1_000, true)).toBe(c);
+  });
+});
+
+describe("markRead — stage ladder (Biologist): each ✓ consigns one item and restamps the 22h gate", () => {
+  // Biologist is the last seeded def (recurring-13, ladderId biologist, style stage, cap 235). A ✓
+  // consigns one item: every consign has its own 22h cooldown, so the timer to the *next* consign
+  // restamps on every ✓ — not once per completed stage.
+  const bio = (c: Config) => c.recurring[12];
+  const at = (c: Config, position: number): Config => ({ ...c, recurringProgress: [{ defId: bio(c).id, position }] });
+
+  it("a mid-stage ✓ advances the rank by one AND restamps the gate (next consign's cooldown)", () => {
+    const c = at(makeConfig(), 3); // mid stage 1 (needs 10)
+    const def = bio(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 4 }]); // one more item in
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("the ✓ at the cap is a no-op on rank but still restamps (consistent with the rung ladders)", () => {
+    const c = at(makeConfig(), 235); // the 235-item trophy
+    const def = bio(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 235 }]); // clamped, no overshoot
+  });
+});
+
+describe("setRung (set-rung curtain, #46)", () => {
+  const books = (c: Config) => c.recurring[3]; // Skill Books, class-skill (M4 entry = 1+2+3 = 6)
+
+  it("maps a chosen rung to its entry-threshold position", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = setRung(c, def.id, "M4");
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 6 }]); // M1=0,M2=1,M3=3,M4=6
+  });
+
+  it("writes the progress map ONLY — the daily gate is untouched", () => {
+    const c = markRecurring(makeConfig(), books(makeConfig()).id, 1_000); // gate already running
+    const def = books(c);
+    const before = c.recurringRunning;
+    const after = setRung(c, def.id, "M4");
+    expect(after.recurringRunning).toBe(before); // same reference — gate not re-stamped
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 6 }]);
+  });
+
+  it("doubles as the misclick fix — retargeting down to an earlier rung", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = { ...base, recurringProgress: [{ defId: def.id, position: 45 }] }; // mistakenly at M10
+    const after = setRung(c, def.id, "M2");
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 1 }]); // snapped back to M2's entry
+  });
+
+  it("is a no-op for an unknown def, a plain gate, or a label not on the ladder", () => {
+    const c = makeConfig();
+    expect(setRung(c, "recurring-999", "M4")).toBe(c); // unknown def
+    expect(setRung(c, c.recurring[0].id, "M4")).toBe(c); // Snow Wolf — a deadline, no ladder
+    expect(setRung(c, books(c).id, "P")).toBe(c); // P isn't a rung on the class-skill ladder (caps at G1)
   });
 });

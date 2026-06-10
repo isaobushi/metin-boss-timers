@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { readout, readyCrossings, remainingMs, type CooldownDef, type RunningCooldown } from "../engine/cooldown";
 import { playCooldownReady } from "./audio";
+import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
 
 /** A running cooldown projected for the strip: identity, labels, and the live readout. */
@@ -21,11 +22,7 @@ export type CooldownPill = {
  * gestures, each stamping `Date.now()` at the moment of the click.
  */
 export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
 
   const { config, beginCooldown, reCooldown, stopCooldown, tuneCooldown, dupeCooldown } = cfg;
   const catalog: CooldownDef[] = config.cooldowns;
