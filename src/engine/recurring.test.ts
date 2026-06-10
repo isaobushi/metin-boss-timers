@@ -27,7 +27,6 @@ const running = (defId: string, expiry: number, startedAt = 0): RunningRecurring
 const def = (id: string, durationMs: number, kind: RecurringDef["kind"] = "deadline"): RecurringDef => ({
   id,
   name: id,
-  tag: id.slice(0, 3),
   durationMs,
   kind,
 });

@@ -33,7 +33,7 @@ export type Config = {
   cooldowns: CooldownDef[];
   /** The currently-running cooldowns (absolute expiries); persisted across sessions. */
   running: RunningCooldown[];
-  /** The editable catalog of recurring-chore definitions (elapsable items + routine). */
+  /** The editable catalog of recurring-chore definitions (expiring items + routine). */
   recurring: RecurringDef[];
   /** The currently-running recurring items (absolute expiries); persisted across sessions. */
   recurringRunning: RunningRecurring[];
@@ -89,15 +89,30 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
 
 // The example recurring items a fresh install ships with. Like the cooldown seed these are
 // "examples not gospel": the user retunes durations and adds their own in settings. Two flavours
-// ship so each dock tool reads non-empty: the standing `deadline` elapsables (pet, costume, mount
-// — you lose the thing if it elapses, ♻ Items) first, then the `gate` routines (a chore that
-// rolls back into "do it now" each cycle — biologist hand-in, daily book reading, ✓ Routine).
+// ship so each dock tool reads non-empty: the standing `deadline` expiring items (pet, costume,
+// mount — you lose the thing if it elapses, ♻ Items) first, then the `gate` routines (a chore that
+// rolls back into "do it now" each cycle, ✓ Routine).
+//
+// The gate seed covers Metin2's recurring "chore" systems. Every readable shares a 24h read
+// cooldown and is probabilistic (a failed read still consumes the book) — so as a timer they're
+// all identical 24h gates; what differs is the long-term QUOTA, which has no field on
+// `RecurringDef` yet (a future quota-tracking slice). The per-row quota is recorded in the
+// trailing comment so it survives until then; the full sourced spec lives in the
+// `metin2-readable-presets` project memory.
 const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind }> = [
   { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
   { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
-  { name: "Biologist", durationMs: 22 * MS_PER_HOUR, kind: "gate" }, // hand-in cooldown
-  { name: "Daily Books", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // daily reading
+  { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 55 reads M1→G1; 20k EXP/read
+  { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 0→P = 40 reads (20 to M1, then 1/level)
+  { name: "Inspiration", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
+  { name: "Charisma", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
+  { name: "Mining", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
+  { name: "Leadership", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20+55+155 = 230 reads (3 Art-of-War books)
+  { name: "Jinno Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
+  { name: "Chunjo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
+  { name: "Shinsoo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
+  { name: "Biologist", durationMs: 22 * MS_PER_HOUR, kind: "gate" }, // hand-in; CAN fail (set consumed); cd contested 12–24h
 ];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
@@ -144,7 +159,6 @@ function seedRecurring(): RecurringDef[] {
   return RECURRING_SEED.map((r, i) => ({
     id: `recurring-${i + 1}`,
     name: r.name,
-    tag: deriveTag(r.name),
     durationMs: r.durationMs,
     kind: r.kind,
   }));
@@ -152,8 +166,8 @@ function seedRecurring(): RecurringDef[] {
 
 /**
  * The shipped default config: one boss ("Balathor", violet) with two skills, plus the
- * seeded cooldown catalog (six example dungeons) and recurring catalog (three example
- * elapsable items) — nothing running yet on either.
+ * seeded cooldown catalog (six example dungeons) and recurring catalog (three expiring
+ * items + the recurring chore gates) — nothing running yet on either.
  */
 export function makeConfig(): Config {
   let c: Config = {
@@ -431,17 +445,20 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
 }
 
 // ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----
-// Edits to the editable recurring *definitions*, mirroring addCooldown/rename/retag/remove so the
+// Edits to the editable recurring *definitions*, mirroring addCooldown/rename/remove so the
 // settings editor can manage both flavours without touching the running set (bar a remove, which
-// also stops any running instance). `addRecurring` takes the `kind`, so the ELAPSABLE ITEMS
+// also stops any running instance). `addRecurring` takes the `kind`, so the EXPIRING ITEMS
 // section adds `deadline`s and the ROUTINE section adds `gate`s; duration uses the day-scale clamp.
+// Unlike cooldowns, recurring items carry no short Tag — the accordion shows the full name (the
+// dock surfaces a single soonest/count datum, not a dense per-item strip), so there's nothing to
+// abbreviate.
 
 /**
  * Append a blank definition (the settings "+ add" gesture), mirroring `addCooldown`: a generic
- * name with its auto-derived tag and a one-day default duration, carrying a fresh non-colliding
- * `recurring-N` id. `kind` selects which editor section it belongs to — a `deadline` reads as an
- * "Item N" elapsable, a `gate` as a "Routine N" chore — and defaults to `deadline` (the #37
- * caller). The user then renames / retags / retunes it.
+ * name with a one-day default duration, carrying a fresh non-colliding `recurring-N` id. `kind`
+ * selects which editor section it belongs to — a `deadline` reads as an "Item N" expiring item, a
+ * `gate` as a "Routine N" chore — and defaults to `deadline` (the #37 caller). The user then
+ * renames / retunes it.
  */
 export function addRecurring(c: Config, kind: RecurringKind = "deadline"): Config {
   const recurringSeq = c.recurringSeq + 1;
@@ -449,27 +466,16 @@ export function addRecurring(c: Config, kind: RecurringKind = "deadline"): Confi
   const def: RecurringDef = {
     id: `recurring-${recurringSeq}`,
     name,
-    tag: deriveTag(name),
     durationMs: DEFAULT_RECURRING_MS,
     kind,
   };
   return { ...c, recurring: [...c.recurring, def], recurringSeq };
 }
 
-/**
- * Rename a definition, re-deriving its `tag` from the new name (like `renameCooldown`, so the
- * short bar label stays in sync as the user types; `retagRecurring` overrides afterward). An
- * unknown `defId` is a no-op.
- */
+/** Rename a definition (like `renameCooldown`, minus the tag re-derive). An unknown `defId` is a no-op. */
 export function renameRecurring(c: Config, defId: string, name: string): Config {
   if (!recurringById(c, defId)) return c;
-  return editRecurring(c, defId, (d) => ({ ...d, name, tag: deriveTag(name) }));
-}
-
-/** Set a definition's Tag explicitly — the user override of the name-derived default. No-op if unknown. */
-export function retagRecurring(c: Config, defId: string, tag: string): Config {
-  if (!recurringById(c, defId)) return c;
-  return editRecurring(c, defId, (d) => ({ ...d, tag }));
+  return editRecurring(c, defId, (d) => ({ ...d, name }));
 }
 
 /** Set a definition's duration, clamped to the day-scale [1m, 365d] band. No-op if unknown. */

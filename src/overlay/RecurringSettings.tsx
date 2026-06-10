@@ -2,7 +2,7 @@ import type { RecurringDef, RecurringKind } from "../engine/recurring";
 
 type Props = {
   recurring: RecurringDef[];
-  /** Which flavour this section edits — `deadline` (ELAPSABLE ITEMS) or `gate` (ROUTINE). */
+  /** Which flavour this section edits — `deadline` (EXPIRING ITEMS) or `gate` (ROUTINE). */
   kind: RecurringKind;
   /** Section heading and the "+ add" footer label, so the two sections read distinctly. */
   title: string;
@@ -10,7 +10,6 @@ type Props = {
   emptyLabel: string;
   onAdd: () => void;
   onRename: (defId: string, name: string) => void;
-  onRetag: (defId: string, tag: string) => void;
   onSetDuration: (defId: string, durationMs: number) => void;
   onRemove: (defId: string) => void;
 };
@@ -21,11 +20,12 @@ const MS_PER_DAY = 86_400_000;
 
 /**
  * The recurring-catalog editor (issue #37/#38) — the day-scale sibling of `CooldownSettings`,
- * rendered once per kind: an ELAPSABLE ITEMS section over the `deadline` definitions (pet, costume,
- * mount) and a ROUTINE section over the `gate` ones (biologist, daily books). Each row renames the
- * definition (re-deriving its short Tag), overrides that Tag, edits the duration, or removes the
- * entry; the footer adds a blank one of this section's kind. `kind` only selects which definitions
- * show and what a new one is — the row editing is identical for both.
+ * rendered once per kind: an EXPIRING ITEMS section over the `deadline` definitions (pet, costume,
+ * mount) and a ROUTINE section over the `gate` ones (biologist, book reading). Each row renames the
+ * definition, edits the duration, or removes the entry; the footer adds a blank one of this
+ * section's kind. `kind` only selects which definitions show and what a new one is — the row
+ * editing is identical for both. Unlike `CooldownSettings` there is no Tag column: recurring items
+ * show their full name in the accordion, so there's nothing to abbreviate.
  *
  * Duration is edited on a DAYS / HOURS / MINUTES control — the cooldown editor's h/m control
  * extended with a days field, because these chores run hours to weeks. The three number inputs
@@ -41,7 +41,6 @@ export function RecurringSettings({
   emptyLabel,
   onAdd,
   onRename,
-  onRetag,
   onSetDuration,
   onRemove,
 }: Props) {
@@ -54,7 +53,6 @@ export function RecurringSettings({
 
       <div className="cd-head">
         <span className="cd-head__name">NAME</span>
-        <span className="cd-head__tag">TAG</span>
         <span className="cd-head__dur">DURATION</span>
         <span className="cd-head__x" />
       </div>
@@ -72,14 +70,6 @@ export function RecurringSettings({
               value={d.name}
               onChange={(e) => onRename(d.id, e.target.value)}
               placeholder="name"
-            />
-            <input
-              className="cd-tag"
-              value={d.tag}
-              onChange={(e) => onRetag(d.id, e.target.value)}
-              placeholder="tag"
-              maxLength={6}
-              title="short label shown on the bar (auto-derived from the name; editable)"
             />
             <div className="cd-dur" title="duration (days / hours / minutes)">
               <input

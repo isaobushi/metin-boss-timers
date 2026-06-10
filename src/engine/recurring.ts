@@ -19,8 +19,6 @@ export type RecurringKind = "gate" | "deadline";
 export type RecurringDef = {
   id: string;
   name: string;
-  /** Short label shown in the compact bar; auto-derived from the name (see `deriveTag`). */
-  tag: string;
   durationMs: number;
   kind: RecurringKind;
 };

@@ -23,7 +23,6 @@ import {
   markRecurring,
   addRecurring,
   renameRecurring,
-  retagRecurring,
   setRecurringDuration,
   removeRecurring,
   type Boss,
@@ -183,19 +182,15 @@ export function useConfig() {
   );
 
   // Recurring catalog CRUD for the settings Items section (issue #37): add a blank deadline
-  // definition, rename it (re-deriving its tag), override the tag, set its day-scale duration,
-  // or remove it. Mirrors the cooldown catalog CRUD; each rides the same setConfig → persist +
+  // definition, rename it, set its day-scale duration, or remove it. Mirrors the cooldown catalog
+  // CRUD (minus the tag — recurring items carry none); each rides the same setConfig → persist +
   // configSync path.
   const createRecurring = useCallback(() => setConfig((c) => addRecurring(c, "deadline")), []);
-  // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/retag/duration/remove
-  // are kind-agnostic, so both sections share editRecurringName/Tag/Duration + deleteRecurring.
+  // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/duration/remove are
+  // kind-agnostic, so both sections share editRecurringName/Duration + deleteRecurring.
   const createRoutine = useCallback(() => setConfig((c) => addRecurring(c, "gate")), []);
   const editRecurringName = useCallback(
     (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
-    [],
-  );
-  const editRecurringTag = useCallback(
-    (defId: string, tag: string) => setConfig((c) => retagRecurring(c, defId, tag)),
     [],
   );
   const editRecurringDuration = useCallback(
@@ -241,7 +236,6 @@ export function useConfig() {
     createRecurring,
     createRoutine,
     editRecurringName,
-    editRecurringTag,
     editRecurringDuration,
     deleteRecurring,
     selectBoss,

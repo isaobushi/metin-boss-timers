@@ -21,7 +21,7 @@ export type PersistedConfig = {
   cooldowns: CooldownDef[];
   /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
   running: RunningCooldown[];
-  /** The recurring-chore catalog (elapsable items + routine). */
+  /** The recurring-chore catalog (expiring items + routine). */
   recurring: RecurringDef[];
   /** Running recurring items persist their ABSOLUTE expiry, like cooldowns. */
   recurringRunning: RunningRecurring[];
@@ -168,10 +168,10 @@ function readRecurring(raw: unknown): RecurringDef[] {
 }
 
 function readRecurringDef(r: unknown): RecurringDef | null {
-  if (!isObj(r) || !isStr(r.id) || !isStr(r.name) || !isStr(r.tag) || !isNum(r.durationMs)) return null;
+  if (!isObj(r) || !isStr(r.id) || !isStr(r.name) || !isNum(r.durationMs)) return null;
   if (!isRecurringKind(r.kind)) return null; // an unrecognised kind drops the entry (not a default)
-  // rebuild explicitly so unknown extra fields are dropped (matches readCooldownDef)
-  return { id: r.id, name: r.name, tag: r.tag, durationMs: r.durationMs, kind: r.kind };
+  // rebuild explicitly so unknown extra fields are dropped — incl. a legacy `tag` from older configs
+  return { id: r.id, name: r.name, durationMs: r.durationMs, kind: r.kind };
 }
 
 /** Validated running recurring items, or `[]` when absent. Absolute `expiry` is kept verbatim. */

@@ -161,20 +161,23 @@ describe("recurring persistence (additive, no version bump)", () => {
     expect(restored.recurringSeq).toBe(0);
   });
 
-  it("drops a malformed recurring entry (bad kind / missing duration) without nuking the rest", () => {
-    const valid = { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" };
+  it("drops a malformed recurring entry (bad kind / missing duration) and a legacy tag without nuking the rest", () => {
+    // The `tag` field is from older configs (recurring items no longer carry one) — it should be
+    // tolerated on read and stripped, like any unknown extra field.
+    const legacy = { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" };
+    const expected = { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" };
     const payload = {
       version: SCHEMA_VERSION,
       bosses: serialize(makeConfig()).bosses,
       recurring: [
-        valid,
-        { id: "recurring-2", name: "Bad kind", tag: "Bad", durationMs: 1000, kind: "weekly" }, // not gate|deadline
-        { id: "recurring-3", name: "No duration", tag: "No", kind: "gate" }, // missing durationMs
+        legacy,
+        { id: "recurring-2", name: "Bad kind", durationMs: 1000, kind: "weekly" }, // not gate|deadline
+        { id: "recurring-3", name: "No duration", kind: "gate" }, // missing durationMs
       ],
     };
     const restored = deserialize(payload);
     expect(restored.bosses.length).toBeGreaterThan(0); // config survives
-    expect(restored.recurring).toEqual([valid]); // bad entries dropped, good one kept
+    expect(restored.recurring).toEqual([expected]); // legacy tag stripped, bad entries dropped, good one kept
   });
 
   it("restores a running recurring whose expiry already passed as past-zero (silent)", () => {

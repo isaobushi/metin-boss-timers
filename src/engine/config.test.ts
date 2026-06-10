@@ -25,7 +25,6 @@ import {
   markRecurring,
   addRecurring,
   renameRecurring,
-  retagRecurring,
   setRecurringDuration,
   removeRecurring,
   type Config,
@@ -68,21 +67,29 @@ describe("makeConfig", () => {
     expect(c.running).toEqual([]); // nothing running on a fresh install
   });
 
-  it("seeds the example recurring items — deadline elapsables AND gate routines — with tags, durations, kind", () => {
+  it("seeds the example recurring items — deadline expiring items AND gate routines — with durations, kind", () => {
     const H = 3_600_000;
     const D = 86_400_000;
     const c = makeConfig();
-    // examples-not-gospel defaults: name, auto-tag, duration, kind. Deadlines (♻ items) seed
-    // first, then the gate routines (✓) — both flavours ship so each tool reads non-empty.
-    expect(c.recurring.map((r) => [r.name, r.tag, r.durationMs, r.kind])).toEqual([
-      ["Snow Wolf", "Sno", 3 * D, "deadline"],
-      ["Costume of Flame", "Cos", 14 * D, "deadline"],
-      ["Battle Horse", "Bat", 18 * H, "deadline"],
-      ["Biologist", "Bio", 22 * H, "gate"],
-      ["Daily Books", "Dai", 24 * H, "gate"],
+    // examples-not-gospel defaults: name, duration, kind (no tag — recurring items carry none).
+    // Deadlines (♻ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
+    expect(c.recurring.map((r) => [r.name, r.durationMs, r.kind])).toEqual([
+      ["Snow Wolf", 3 * D, "deadline"],
+      ["Costume of Flame", 14 * D, "deadline"],
+      ["Battle Horse", 18 * H, "deadline"],
+      ["Skill Books", 24 * H, "gate"],
+      ["Transformation", 24 * H, "gate"],
+      ["Inspiration", 24 * H, "gate"],
+      ["Charisma", 24 * H, "gate"],
+      ["Mining", 24 * H, "gate"],
+      ["Leadership", 24 * H, "gate"],
+      ["Jinno Language", 24 * H, "gate"],
+      ["Chunjo Language", 24 * H, "gate"],
+      ["Shinsoo Language", 24 * H, "gate"],
+      ["Biologist", 22 * H, "gate"],
     ]);
-    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(5); // ids are distinct
-    expect(c.recurringSeq).toBe(5); // seq seeded past the last seeded id
+    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(13); // ids are distinct
+    expect(c.recurringSeq).toBe(13); // seq seeded past the last seeded id
     expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (mark-done starts an item)
   });
 });
@@ -473,27 +480,21 @@ const HOUR = 3_600_000;
 const MIN = 60_000;
 
 describe("addRecurring", () => {
-  it("appends a blank deadline definition with a fresh id, auto-tag and a default duration", () => {
+  it("appends a blank deadline definition with a fresh id and a default duration", () => {
     const c = makeConfig();
     const after = addRecurring(c);
     const def = after.recurring[after.recurring.length - 1];
     expect(after.recurring.length).toBe(c.recurring.length + 1);
-    expect([def.id, def.name, def.tag, def.durationMs, def.kind]).toEqual([
-      "recurring-6",
-      "Item 6",
-      "Ite",
-      DAY,
-      "deadline",
-    ]);
-    expect(after.recurringSeq).toBe(6); // seq advanced past the new id
+    expect([def.id, def.name, def.durationMs, def.kind]).toEqual(["recurring-14", "Item 14", DAY, "deadline"]);
+    expect(after.recurringSeq).toBe(14); // seq advanced past the new id
   });
 
   it("creates a gate-kind definition when asked (the ROUTINE section's add)", () => {
     const c = makeConfig();
     const after = addRecurring(c, "gate");
     const def = after.recurring[after.recurring.length - 1];
-    expect([def.id, def.name, def.kind]).toEqual(["recurring-6", "Routine 6", "gate"]);
-    expect(after.recurringSeq).toBe(6);
+    expect([def.id, def.name, def.kind]).toEqual(["recurring-14", "Routine 14", "gate"]);
+    expect(after.recurringSeq).toBe(14);
   });
 
   it("leaves the existing catalog, bosses and running set untouched", () => {
@@ -512,31 +513,17 @@ describe("addRecurring", () => {
 });
 
 describe("renameRecurring", () => {
-  it("renames a definition and re-derives its tag from the new name", () => {
-    const c = makeConfig();
-    const id = c.recurring[0].id; // Snow Wolf / Sno
-    const after = renameRecurring(c, id, "Battle Horse");
-    expect([after.recurring[0].name, after.recurring[0].tag]).toEqual(["Battle Horse", "Bat"]);
-  });
-
-  it("is a no-op for an unknown def id", () => {
-    const c = makeConfig();
-    expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
-  });
-});
-
-describe("retagRecurring", () => {
-  it("sets a definition's tag explicitly, leaving its name and siblings alone", () => {
+  it("renames a definition, leaving its siblings alone", () => {
     const c = makeConfig();
     const [a, b] = c.recurring;
-    const after = retagRecurring(c, a.id, "PET");
-    expect([after.recurring[0].name, after.recurring[0].tag]).toEqual([a.name, "PET"]);
+    const after = renameRecurring(c, a.id, "Battle Horse");
+    expect(after.recurring[0].name).toBe("Battle Horse");
     expect(after.recurring[1]).toEqual(b);
   });
 
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
-    expect(retagRecurring(c, "recurring-999", "X")).toBe(c);
+    expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
   });
 });
 

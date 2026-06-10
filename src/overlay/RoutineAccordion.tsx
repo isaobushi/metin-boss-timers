@@ -26,7 +26,6 @@ export function RoutineAccordion({ rows, onDone }: Props) {
     <div className="dock-acc">
       {rows.map((row) => (
         <div className={`dock-acc__row${row.ready ? " is-ready" : " is-done"}`} key={row.defId}>
-          <span className="dock-tag">{row.tag}</span>
           <span className="dock-acc__name">{row.name}</span>
           <span className={`dock-acc__val${row.ready ? " dock-ready" : " dock-muted"}`}>{row.text}</span>
           <button

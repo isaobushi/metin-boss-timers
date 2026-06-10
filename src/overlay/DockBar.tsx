@@ -9,7 +9,7 @@ type Props = {
   open: ReadonlySet<DockSegment>;
   /** Active boss's name, shown on the ⚔ segment when a boss is selected. */
   activeBossName?: string;
-  /** ♻ — the soonest elapsable item's compact datum, shown inline on the bar (null = none running). */
+  /** ♻ — the soonest expiring item's compact datum, shown inline on the bar (null = none running). */
   itemsDatum: RecurringDatum;
   /** ✓ — the routine to-do nudge: the count of routines that need doing now (calm when none). */
   routineDatum: RoutineDatum;
@@ -17,7 +17,7 @@ type Props = {
   onSkills: () => void;
   /** ⏱ — toggle the cooldown strip (pinned above the panel). */
   onCooldowns: () => void;
-  /** ♻ — toggle the elapsable-items panel (live: countdowns + alarm + refresh, #37). */
+  /** ♻ — toggle the expiring-items panel (live: countdowns + alarm + refresh, #37). */
   onItems: () => void;
   /** ✓ — toggle the routine panel (live: gate checklist + x/n counter, #38). */
   onRoutine: () => void;
@@ -61,7 +61,7 @@ export function DockBar({ open, activeBossName, itemsDatum, routineDatum, onSkil
         <span className="dock-seg__icon">⏱</span>
       </button>
 
-      <button className={`dock-seg${open.has("items") ? " is-open" : ""}`} onClick={onItems} title="elapsable items">
+      <button className={`dock-seg${open.has("items") ? " is-open" : ""}`} onClick={onItems} title="expiring items">
         <span className="dock-seg__icon">♻</span>
         {itemsDatum ? (
           <span className={`dock-seg__val${itemsDatum.alarm ? " dock-alarm" : itemsDatum.due ? " dock-due" : ""}`}>

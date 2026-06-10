@@ -13,10 +13,9 @@ import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
 
-/** A deadline elapsable item projected for the Items accordion: identity, label, live state. */
+/** A deadline expiring item projected for the Items accordion: identity, label, live state. */
 export type RecurringRow = {
   defId: string;
-  tag: string;
   name: string;
   /** Live readout: the day-scale countdown (`2d 06h`), `overdue` once elapsed, or `—` if unstarted. */
   text: string;
@@ -34,7 +33,6 @@ export type RecurringDatum = { text: string; due: boolean; alarm: boolean } | nu
 /** A gate routine item projected for the ✓ Routine accordion: identity, label, live state. */
 export type RoutineRow = {
   defId: string;
-  tag: string;
   name: string;
   /** Live readout: `ready` when do-able now, else the countdown until it next comes due (`3h00`). */
   text: string;
@@ -55,7 +53,7 @@ export type RoutineDatum = { ready: number; total: number };
  * The recurring-chore control layer for the overlay — both tools (#37 deadline write path, #38
  * gate routine). Like `useCooldowns` it rides the shared 1-second app-level tick (`useNow`) over
  * the persisted recurring catalog + running set, re-deriving each item's readout every second. It
- * surfaces **both** kinds: the ♻ **elapsable items** (`deadline`) as `rows`/`datum`, and the ✓
+ * surfaces **both** kinds: the ♻ **expiring items** (`deadline`) as `rows`/`datum`, and the ✓
  * **routine** (`gate`) as `routineRows`/`routineDatum`.
  *
  * The completion gesture is a single `markRecurringDone` restamp — a full-cycle stamp from now,
@@ -103,7 +101,6 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
       const rem = r ? remainingMs(r, now) : null;
       return {
         defId: def.id,
-        tag: def.tag,
         name: def.name,
         rem,
         due: r ? isDue(r, now) : false,
@@ -121,9 +118,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
       ? { text: soonest.due ? "due" : badge(soonest.rem), due: soonest.due, alarm: soonest.alarm }
       : null;
 
-  const rows: RecurringRow[] = items.map(({ defId, tag, name, rem, due, alarm }) => ({
+  const rows: RecurringRow[] = items.map(({ defId, name, rem, due, alarm }) => ({
     defId,
-    tag,
     name,
     text: rem == null ? "—" : due ? "overdue" : readout(rem),
     running: rem != null,
@@ -142,7 +138,6 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     const ready = r ? isDue(r, now) : true; // unstarted → ready (never done)
     return {
       defId: def.id,
-      tag: def.tag,
       name: def.name,
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,

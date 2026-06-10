@@ -16,7 +16,7 @@ import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
 import { useCooldowns } from "./overlay/useCooldowns";
 import { useRecurring } from "./overlay/useRecurring";
-import { ElapsableAccordion } from "./overlay/ElapsableAccordion";
+import { ExpiringAccordion } from "./overlay/ExpiringAccordion";
 import { RoutineAccordion } from "./overlay/RoutineAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
@@ -117,9 +117,9 @@ export default function App() {
   // The one exclusive tool panel rendered below the pinned strip (null = only bar + strip show).
   let belowPanel = null;
   if (panel === "items") {
-    // The elapsable-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
+    // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
-    belowPanel = <ElapsableAccordion rows={rec.rows} onRefresh={rec.refresh} />;
+    belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} />;
   } else if (panel === "routine") {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
