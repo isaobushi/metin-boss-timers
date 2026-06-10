@@ -661,6 +661,29 @@ describe("markRead (ladder read-outcome gesture, #45)", () => {
   });
 });
 
+describe("markRead — stage ladder (Biologist): each ✓ consigns one item and restamps the 22h gate", () => {
+  // Biologist is the last seeded def (recurring-13, ladderId biologist, style stage, cap 235). A ✓
+  // consigns one item: every consign has its own 22h cooldown, so the timer to the *next* consign
+  // restamps on every ✓ — not once per completed stage.
+  const bio = (c: Config) => c.recurring[12];
+  const at = (c: Config, position: number): Config => ({ ...c, recurringProgress: [{ defId: bio(c).id, position }] });
+
+  it("a mid-stage ✓ advances the rank by one AND restamps the gate (next consign's cooldown)", () => {
+    const c = at(makeConfig(), 3); // mid stage 1 (needs 10)
+    const def = bio(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 4 }]); // one more item in
+    expect(after.recurringRunning).toEqual([{ defId: def.id, expiry: 1_000 + def.durationMs, startedAt: 1_000 }]);
+  });
+
+  it("the ✓ at the cap is a no-op on rank but still restamps (consistent with the rung ladders)", () => {
+    const c = at(makeConfig(), 235); // the 235-item trophy
+    const def = bio(c);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(after.recurringProgress).toEqual([{ defId: def.id, position: 235 }]); // clamped, no overshoot
+  });
+});
+
 describe("setRung (set-rung curtain, #46)", () => {
   const books = (c: Config) => c.recurring[3]; // Skill Books, class-skill (M4 entry = 1+2+3 = 6)
 

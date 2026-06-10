@@ -465,13 +465,16 @@ export function markRecurring(c: Config, defId: string, now: number): Config {
 
 /**
  * Log the outcome of a ladder read for `defId` (issue #45) — the two-outcome gesture a ladder row
- * shows in place of the plain gate's single ✓. Either outcome restamps the 24h gate (`markDone` —
- * a read happened, so the daily cooldown starts), but only `success` advances the rank: `position +
+ * shows in place of the plain gate's single ✓. Either outcome restamps the gate (`markDone` — a
+ * read/consign happened, so its cooldown starts), but only `success` advances the rank: `position +
  * 1`, clamped to the ladder's cap (a ✓ at the cap is a no-op on position — the row is already the
- * inert trophy). A `fail` burns the book with no advance — gate only. An unknown `defId` is a no-op.
+ * inert trophy). A `fail` burns the book/item with no advance — gate only. An unknown `defId` is a
+ * no-op.
  *
- * Used only on ladder-bearing gates; a plain gate keeps `markRecurring`. The gate restamp is the
- * same transform, so the live cue and the routine counter treat a read exactly like a mark-done.
+ * The gate always restamps, on every read, for both ladder styles: a `rung` read is a daily book
+ * read, and a `stage` ✓ is a single item consigned — each consign has its own cooldown (Biologist's
+ * 22h), so the timer to the *next* consign starts on every ✓. Used only on ladder-bearing gates; a
+ * plain gate keeps `markRecurring`.
  */
 export function markRead(c: Config, defId: string, now: number, success: boolean): Config {
   const def = recurringById(c, defId);
