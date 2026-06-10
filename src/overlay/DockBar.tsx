@@ -1,3 +1,5 @@
+import type { RecurringDatum } from "./useRecurring";
+
 /** Which tools' panels are open (for each segment's open-highlight). Cooldowns is a pinned strip,
  *  so it can read as open alongside one of the others (ADR-0003). */
 export type DockSegment = "skills" | "cooldowns" | "items" | "routine";
@@ -7,6 +9,8 @@ type Props = {
   open: ReadonlySet<DockSegment>;
   /** Active boss's name, shown on the ⚔ segment when a boss is selected. */
   activeBossName?: string;
+  /** 👘 — the soonest elapsable item's compact datum, shown inline on the bar (null = none running). */
+  itemsDatum: RecurringDatum;
   /** ⚔ — toggle the skills panel (active boss's timers, or the dungeon picker). */
   onSkills: () => void;
   /** ⏱ — toggle the cooldown strip (pinned above the panel). */
@@ -31,7 +35,7 @@ type Props = {
  * honest. A leading ⠿ grip carries the window drag region; the clickable segments sit outside it so
  * a tap never starts a drag.
  */
-export function DockBar({ open, activeBossName, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
+export function DockBar({ open, activeBossName, itemsDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit }: Props) {
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
@@ -54,7 +58,11 @@ export function DockBar({ open, activeBossName, onSkills, onCooldowns, onItems, 
 
       <button className={`dock-seg${open.has("items") ? " is-open" : ""}`} onClick={onItems} title="elapsable items">
         <span className="dock-seg__icon">👘</span>
-        <span className="dock-seg__val dock-muted">—</span>
+        {itemsDatum ? (
+          <span className={`dock-seg__val${itemsDatum.due ? " dock-due" : ""}`}>{itemsDatum.text}</span>
+        ) : (
+          <span className="dock-seg__val dock-muted">—</span>
+        )}
       </button>
 
       <button className={`dock-seg${open.has("routine") ? " is-open" : ""}`} onClick={onRoutine} title="routine">

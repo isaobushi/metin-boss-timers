@@ -15,6 +15,8 @@ import SettingsApp from "./settings/SettingsApp";
 import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
 import { useCooldowns } from "./overlay/useCooldowns";
+import { useRecurring } from "./overlay/useRecurring";
+import { ElapsableAccordion } from "./overlay/ElapsableAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
@@ -37,6 +39,7 @@ type Panel = "skills" | "timers" | "sequence" | "items" | "routine" | null;
 export default function App() {
   const cfg = useConfig();
   const cd = useCooldowns(cfg);
+  const rec = useRecurring(cfg);
   const [panel, setPanel] = useState<Panel>(null);
   // The cooldown strip is pinned independently of `panel`, so it coexists with the boss timers.
   const [cooldownsPinned, setCooldownsPinned] = useState(false);
@@ -113,12 +116,8 @@ export default function App() {
   // The one exclusive tool panel rendered below the pinned strip (null = only bar + strip show).
   let belowPanel = null;
   if (panel === "items") {
-    // Inert placeholder this slice (#35); the real elapsable-items tool lands in #36–#37.
-    belowPanel = (
-      <div className="dock-acc">
-        <div className="dock-acc__empty">no elapsable items yet</div>
-      </div>
-    );
+    // The elapsable-items read path (#36): live day-scale countdowns for pet/costume/mount.
+    belowPanel = <ElapsableAccordion rows={rec.rows} />;
   } else if (panel === "routine") {
     belowPanel = (
       <div className="dock-acc">
@@ -149,6 +148,7 @@ export default function App() {
       <DockBar
         open={openSegs}
         activeBossName={cfg.activeBoss?.name}
+        itemsDatum={rec.datum}
         onSkills={() => setPanel(skillsOpen ? null : cfg.activeBoss ? "timers" : "skills")}
         onCooldowns={() => {
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).

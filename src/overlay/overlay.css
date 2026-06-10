@@ -875,11 +875,16 @@ body[data-window="settings"] {
 .dock-ready {
   color: #39ff88;
 }
+/* A deadline item past (or near) its expiry — the loss colour, shared by the bar datum and the
+   accordion readout. The under-24h blink lands in a later slice; this is the static tint. */
+.dock-due {
+  color: #ff7b96;
+}
 .dock-muted {
   opacity: 0.5;
 }
-/* Inert items/routine placeholders (this slice) — a small panel below the bar, like the others.
-   Width-matched to the panels so the column reads flush; the .overlay gap handles the spacing. */
+/* The items/routine panel below the bar — a small inline accordion. Width-matched to the panels
+   so the column reads flush; the .overlay gap handles the spacing. */
 .dock-acc {
   width: 316px;
   padding: 10px 12px;
@@ -893,6 +898,29 @@ body[data-window="settings"] {
   letter-spacing: 0.5px;
   opacity: 0.5;
   text-align: center;
+}
+/* One elapsable item: tag · name (flexes) · live readout, right-aligned. */
+.dock-acc__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.dock-acc__row + .dock-acc__row {
+  border-top: 1px solid #ffffff0d;
+}
+.dock-acc__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cfc8e0;
+}
+.dock-acc__val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #cfc8e0;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */

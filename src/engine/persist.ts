@@ -6,6 +6,7 @@
 
 import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
 import type { CooldownDef, RunningCooldown } from "./cooldown";
+import type { RecurringDef, RecurringKind, RunningRecurring } from "./recurring";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
 
 /**
@@ -20,6 +21,10 @@ export type PersistedConfig = {
   cooldowns: CooldownDef[];
   /** Running cooldowns persist their ABSOLUTE expiry, so they keep counting while closed. */
   running: RunningCooldown[];
+  /** The recurring-chore catalog (elapsable items + routine). */
+  recurring: RecurringDef[];
+  /** Running recurring items persist their ABSOLUTE expiry, like cooldowns. */
+  recurringRunning: RunningRecurring[];
 };
 
 /**
@@ -35,6 +40,8 @@ export function serialize(c: Config): PersistedConfig {
     bosses: c.bosses,
     cooldowns: c.cooldowns,
     running: c.running,
+    recurring: c.recurring,
+    recurringRunning: c.recurringRunning,
   };
 }
 
@@ -53,13 +60,21 @@ export function deserialize(raw: unknown): Config {
   // never wiped), and a single malformed entry is dropped rather than nuking the config.
   const cooldowns = readCooldowns(raw);
   const running = readRunning(raw);
+  // Recurring chores are ADDITIVE and lenient too — same posture as cooldowns: absent → empty
+  // (a config saved before this feature is preserved, never wiped), and a malformed entry is
+  // dropped rather than nuking the config. Deliberately no SCHEMA_VERSION bump (ADR-0003).
+  const recurring = readRecurring(raw);
+  const recurringRunning = readRecurringRunning(raw);
   return {
     bosses,
     cooldowns,
     running,
+    recurring,
+    recurringRunning,
     bossSeq: maxIdSeq(bosses.map((b) => b.id), "boss"),
     skillSeq: maxIdSeq(skillIds, "skill"),
     cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),
+    recurringSeq: maxIdSeq(recurring.map((r) => r.id), "recurring"),
   };
 }
 
@@ -138,6 +153,34 @@ function readRunning(raw: unknown): RunningCooldown[] {
 }
 
 function readRunningCooldown(r: unknown): RunningCooldown | null {
+  if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
+  return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
+}
+
+// ---- recurring (lenient + per-item, mirroring cooldowns: a bad entry is dropped, never nuked) ----
+
+const isRecurringKind = (v: unknown): v is RecurringKind => v === "gate" || v === "deadline";
+
+/** Validated recurring catalog, or `[]` when the field is absent (pre-feature config). */
+function readRecurring(raw: unknown): RecurringDef[] {
+  if (!isObj(raw) || !Array.isArray(raw.recurring)) return [];
+  return raw.recurring.map(readRecurringDef).filter((r): r is RecurringDef => r !== null);
+}
+
+function readRecurringDef(r: unknown): RecurringDef | null {
+  if (!isObj(r) || !isStr(r.id) || !isStr(r.name) || !isStr(r.tag) || !isNum(r.durationMs)) return null;
+  if (!isRecurringKind(r.kind)) return null; // an unrecognised kind drops the entry (not a default)
+  // rebuild explicitly so unknown extra fields are dropped (matches readCooldownDef)
+  return { id: r.id, name: r.name, tag: r.tag, durationMs: r.durationMs, kind: r.kind };
+}
+
+/** Validated running recurring items, or `[]` when absent. Absolute `expiry` is kept verbatim. */
+function readRecurringRunning(raw: unknown): RunningRecurring[] {
+  if (!isObj(raw) || !Array.isArray(raw.recurringRunning)) return [];
+  return raw.recurringRunning.map(readRunningRecurring).filter((r): r is RunningRecurring => r !== null);
+}
+
+function readRunningRecurring(r: unknown): RunningRecurring | null {
   if (!isObj(r) || !isStr(r.defId) || !isNum(r.expiry) || !isNum(r.startedAt)) return null;
   return { defId: r.defId, expiry: r.expiry, startedAt: r.startedAt };
 }

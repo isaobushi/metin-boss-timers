@@ -60,6 +60,21 @@ describe("makeConfig", () => {
     expect(c.cooldownSeq).toBe(6); // seq seeded past the last seeded id
     expect(c.running).toEqual([]); // nothing running on a fresh install
   });
+
+  it("seeds the example recurring items (elapsable chores) with tags, durations and kind", () => {
+    const H = 3_600_000;
+    const D = 86_400_000;
+    const c = makeConfig();
+    // examples-not-gospel defaults: name, auto-tag, duration, kind (items are all deadlines)
+    expect(c.recurring.map((r) => [r.name, r.tag, r.durationMs, r.kind])).toEqual([
+      ["Snow Wolf", "Sno", 3 * D, "deadline"],
+      ["Costume of Flame", "Cos", 14 * D, "deadline"],
+      ["Battle Horse", "Bat", 18 * H, "deadline"],
+    ]);
+    expect(new Set(c.recurring.map((r) => r.id)).size).toBe(3); // ids are distinct
+    expect(c.recurringSeq).toBe(3); // seq seeded past the last seeded id
+    expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (the hook seeds the demo)
+  });
 });
 
 describe("boss edits", () => {

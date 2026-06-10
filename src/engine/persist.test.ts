@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { addBoss, addSkill, makeConfig, setSkillHotkey, setSkillSound, type Config } from "./config";
+import { addBoss, addSkill, makeConfig, markRecurring, setSkillHotkey, setSkillSound, type Config } from "./config";
 import { readout, remainingMs, start } from "./cooldown";
+import { remainingMs as recurringRemainingMs } from "./recurring";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 import { DEFAULT_SOUND_ID } from "./sounds";
 
@@ -133,6 +134,60 @@ describe("cooldown persistence (additive, no version bump)", () => {
     expect(r.expiry).toBe(now - 30 * 60_000); // absolute expiry restored verbatim
     expect(remainingMs(r, now)).toBe(0);
     expect(readout(remainingMs(r, now))).toBe("Ready"); // silent, sticky Ready on launch
+  });
+});
+
+describe("recurring persistence (additive, no version bump)", () => {
+  it("round-trips the recurring catalog and running instances through a disk hop", () => {
+    let c = makeConfig();
+    // mark one item done so both the catalog and the running set are exercised
+    c = markRecurring(c, c.recurring[0].id, 1_000);
+
+    const restored = deserialize(throughDisk(c));
+    expect(restored.recurring).toEqual(c.recurring);
+    expect(restored.recurringRunning).toEqual(c.recurringRunning);
+    expect(restored.recurringSeq).toBe(c.recurringSeq); // seq seeded past the persisted ids
+  });
+
+  it("keeps a pre-feature config intact with an empty recurring catalog (never wipes)", () => {
+    // a config saved before recurring existed: valid bosses + cooldowns, no recurring fields
+    const preFeature = serialize(makeConfig());
+    delete (preFeature as Partial<typeof preFeature>).recurring;
+    delete (preFeature as Partial<typeof preFeature>).recurringRunning;
+    const restored = deserialize(preFeature);
+    expect(restored.cooldowns.length).toBeGreaterThan(0); // the older cooldown feature survives
+    expect(restored.recurring).toEqual([]); // default empty, not the seeded catalog
+    expect(restored.recurringRunning).toEqual([]);
+    expect(restored.recurringSeq).toBe(0);
+  });
+
+  it("drops a malformed recurring entry (bad kind / missing duration) without nuking the rest", () => {
+    const valid = { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" };
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurring: [
+        valid,
+        { id: "recurring-2", name: "Bad kind", tag: "Bad", durationMs: 1000, kind: "weekly" }, // not gate|deadline
+        { id: "recurring-3", name: "No duration", tag: "No", kind: "gate" }, // missing durationMs
+      ],
+    };
+    const restored = deserialize(payload);
+    expect(restored.bosses.length).toBeGreaterThan(0); // config survives
+    expect(restored.recurring).toEqual([valid]); // bad entries dropped, good one kept
+  });
+
+  it("restores a running recurring whose expiry already passed as past-zero (silent)", () => {
+    const now = 10_000_000;
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurringRunning: [{ defId: "recurring-1", expiry: now - 30 * 60_000, startedAt: now - 90 * 60_000 }],
+    };
+    const r = deserialize(payload).recurringRunning[0];
+    expect(r.expiry).toBe(now - 30 * 60_000); // absolute expiry restored verbatim
+    expect(recurringRemainingMs(r, now)).toBe(0);
+    expect(readout(recurringRemainingMs(r, now))).toBe("Ready"); // silent, sticky past-zero on launch
   });
 });
 

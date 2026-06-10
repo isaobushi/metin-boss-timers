@@ -35,16 +35,25 @@ export function isReady(r: RunningCooldown, now: number): boolean {
 
 const MS_PER_MIN = 60_000;
 const MS_PER_HOUR = 3_600_000;
+const MS_PER_DAY = 86_400_000;
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 /**
- * The live strip readout for a remaining duration. At or above an hour, seconds are
- * noise, so it reads hours+minutes (`2h59`, `1h00`); under an hour it reads `mm:ss`
- * (`59:12`, `0:08`); at or below zero it reads the sticky `Ready`. Seconds are ceil'd
- * so a value of 8.001s still reads `0:08` until the whole second has passed.
+ * The live readout for a remaining duration, dropping a finer unit as the scale grows so the
+ * value stays glanceable: at or above a DAY it reads days+hours (`2d 06h`, `1d 00h` —
+ * recurring chores live here; cooldowns cap at 12h and never reach it); at or above an HOUR
+ * it reads hours+minutes (`2h59`, `1h00`); under an hour it reads `mm:ss` (`59:12`, `0:08`);
+ * at or below zero it reads the sticky `Ready`. Seconds are ceil'd so a value of 8.001s still
+ * reads `0:08` until the whole second has passed; coarser bands floor (the dropped remainder
+ * is noise at that range).
  */
 export function readout(ms: number): string {
   if (ms <= 0) return "Ready";
+  if (ms >= MS_PER_DAY) {
+    const d = Math.floor(ms / MS_PER_DAY);
+    const h = Math.floor((ms % MS_PER_DAY) / MS_PER_HOUR);
+    return `${d}d ${pad2(h)}h`;
+  }
   if (ms >= MS_PER_HOUR) {
     const h = Math.floor(ms / MS_PER_HOUR);
     const m = Math.floor((ms % MS_PER_HOUR) / MS_PER_MIN);
@@ -55,14 +64,33 @@ export function readout(ms: number): string {
 }
 
 /**
- * The catalog/duration label for a definition: `3h00` / `1h00` for hour-scale waits,
- * `15m` below an hour. Unlike `readout` this never shows seconds or `Ready` — it labels
- * a definition's length, not a live countdown.
+ * The catalog/duration label for a definition: `2d 06h` for day-scale recurring chores
+ * (a 7-day pet, a 30-day costume), `3h00` / `1h00` for hour-scale waits, `15m` below an
+ * hour. Unlike `readout` this never shows seconds or `Ready` — it labels a definition's
+ * length, not a live countdown.
  */
 export function fmtDur(ms: number): string {
+  if (ms >= MS_PER_DAY) {
+    const d = Math.floor(ms / MS_PER_DAY);
+    const h = Math.floor((ms % MS_PER_DAY) / MS_PER_HOUR);
+    return `${d}d ${pad2(h)}h`;
+  }
   const h = Math.floor(ms / MS_PER_HOUR);
   const m = Math.round((ms % MS_PER_HOUR) / MS_PER_MIN);
   return h ? `${h}h${pad2(m)}` : `${m}m`;
+}
+
+/**
+ * The compact single-unit badge for a dense bar segment: only the largest non-zero unit,
+ * unpadded (`2d` / `5h` / `12m`), so a recurring item's most-urgent datum reads inline
+ * without crowding the dock. A finished/ready item collapses to a tick (`✓`). This is the
+ * terse sibling of `readout`; the readout's day/hour/minute bands here drop to one unit.
+ */
+export function badge(ms: number): string {
+  if (ms <= 0) return "✓";
+  if (ms >= MS_PER_DAY) return `${Math.floor(ms / MS_PER_DAY)}d`;
+  if (ms >= MS_PER_HOUR) return `${Math.floor(ms / MS_PER_HOUR)}h`;
+  return `${Math.floor(ms / MS_PER_MIN)}m`;
 }
 
 /**

@@ -7,6 +7,7 @@
 import type { TimerInit } from "./timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
 import { type CooldownDef, type RunningCooldown, clear, deriveTag, restart, start } from "./cooldown";
+import { type RecurringDef, type RecurringKind, type RunningRecurring, markDone } from "./recurring";
 import { clampDuration } from "./cooldownTuning";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
@@ -32,10 +33,15 @@ export type Config = {
   cooldowns: CooldownDef[];
   /** The currently-running cooldowns (absolute expiries); persisted across sessions. */
   running: RunningCooldown[];
+  /** The editable catalog of recurring-chore definitions (elapsable items + routine). */
+  recurring: RecurringDef[];
+  /** The currently-running recurring items (absolute expiries); persisted across sessions. */
+  recurringRunning: RunningRecurring[];
   /** Monotonic counters owned here so ids never collide (even after deletes). */
   bossSeq: number;
   skillSeq: number;
   cooldownSeq: number;
+  recurringSeq: number;
 };
 
 // Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
@@ -63,6 +69,7 @@ const MAX_DURATION_MS = 999_000;
 
 const MS_PER_MIN = 60_000;
 const MS_PER_HOUR = 3_600_000;
+const MS_PER_DAY = 86_400_000;
 
 // The length a freshly-added catalog entry starts at — one hour, mid-band in the tunable
 // [1m, 12h] range, so the user nudges it down or up with the h/m control either way.
@@ -78,6 +85,16 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
   { name: "Meley", durationMs: 3 * MS_PER_HOUR },
   { name: "Balathor", durationMs: 3 * MS_PER_HOUR },
   { name: "Northwind War Chief", durationMs: 1 * MS_PER_HOUR },
+];
+
+// The example recurring items a fresh install ships with — the player's standing elapsable
+// chores (pet, costume, mount). Like the cooldown seed these are "examples not gospel": the
+// user retunes durations and adds their own in settings (a later slice). All seeded items are
+// `deadline` (you lose the thing if it elapses); `gate`-kind chores (routine) seed separately.
+const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind }> = [
+  { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
+  { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
+  { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
 ];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
@@ -119,17 +136,40 @@ function seedCooldowns(): CooldownDef[] {
   }));
 }
 
+/** The seeded recurring catalog: each example chore with a deterministic `recurring-N` id. */
+function seedRecurring(): RecurringDef[] {
+  return RECURRING_SEED.map((r, i) => ({
+    id: `recurring-${i + 1}`,
+    name: r.name,
+    tag: deriveTag(r.name),
+    durationMs: r.durationMs,
+    kind: r.kind,
+  }));
+}
+
 /**
  * The shipped default config: one boss ("Balathor", violet) with two skills, plus the
- * seeded cooldown catalog (five example dungeons, nothing running yet).
+ * seeded cooldown catalog (six example dungeons) and recurring catalog (three example
+ * elapsable items) — nothing running yet on either.
  */
 export function makeConfig(): Config {
-  let c: Config = { bosses: [], cooldowns: [], running: [], bossSeq: 0, skillSeq: 0, cooldownSeq: 0 };
+  let c: Config = {
+    bosses: [],
+    cooldowns: [],
+    running: [],
+    recurring: [],
+    recurringRunning: [],
+    bossSeq: 0,
+    skillSeq: 0,
+    cooldownSeq: 0,
+    recurringSeq: 0,
+  };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
   c = addSkill(c, c.bosses[0].id);
   const cooldowns = seedCooldowns();
-  return { ...c, cooldowns, cooldownSeq: cooldowns.length };
+  const recurring = seedRecurring();
+  return { ...c, cooldowns, cooldownSeq: cooldowns.length, recurring, recurringSeq: recurring.length };
 }
 
 /** Append a new boss (with one default skill); its accent cycles from the palette. */
@@ -347,4 +387,24 @@ export function restartCooldown(c: Config, defId: string, now: number): Config {
 /** Stop and remove the running cooldown for `defId`; a no-op if it isn't running. */
 export function clearCooldown(c: Config, defId: string): Config {
   return { ...c, running: clear(c.running, defId) };
+}
+
+// ---- recurring actions (thin Config-level wrappers over the pure recurring ops) ----
+// Like the cooldown wrappers, each resolves a `defId` against the recurring catalog and
+// applies the matching `recurring.ts` transform to `c.recurringRunning`, leaving the catalog
+// and the rest of the config untouched. `now` is supplied by the caller (the 1s tick).
+
+const recurringById = (c: Config, defId: string): RecurringDef | undefined =>
+  c.recurring.find((d) => d.id === defId);
+
+/**
+ * Mark the recurring item for `defId` done — restamps a full cycle from `now`
+ * (`expiry = now + durationMs`, rolling-from-last-done), the single completion gesture for
+ * both kinds. Also the start gesture: marking an unstarted def done is how it begins running.
+ * One running instance per def (re-stamp in place). An unknown `defId` is a no-op.
+ */
+export function markRecurring(c: Config, defId: string, now: number): Config {
+  const def = recurringById(c, defId);
+  if (!def) return c;
+  return { ...c, recurringRunning: markDone(c.recurringRunning, def, now) };
 }
