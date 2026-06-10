@@ -13,6 +13,10 @@ type Props = {
  * rolling clock has rolled over, or it was never done) — highlighted, with a ✓ to mark it done —
  * or the live countdown until it next becomes do-able once satisfied. Marking done restamps the
  * rolling cycle, moving the item out of the ready set until it comes due again.
+ *
+ * A row carrying a ladder (#44) also shows its rung readout (`M3 · 2→M4`, or the `… ✓ max` trophy)
+ * beneath the name — read-only for now; the ✓/✗ read-outcome gesture and the set-rung curtain land
+ * in #45/#46.
  */
 export function RoutineAccordion({ rows, onDone }: Props) {
   if (rows.length === 0) {
@@ -26,7 +30,10 @@ export function RoutineAccordion({ rows, onDone }: Props) {
     <div className="dock-acc">
       {rows.map((row) => (
         <div className={`dock-acc__row${row.ready ? " is-ready" : " is-done"}`} key={row.defId}>
-          <span className="dock-acc__name">{row.name}</span>
+          <span className="dock-acc__main">
+            <span className="dock-acc__name">{row.name}</span>
+            {row.ladder && <span className="dock-acc__ladder">{row.ladder.text}</span>}
+          </span>
           <span className={`dock-acc__val${row.ready ? " dock-ready" : " dock-muted"}`}>{row.text}</span>
           <button
             className="dock-acc__done"

@@ -7,7 +7,13 @@
 import type { TimerInit } from "./timer";
 import { DEFAULT_SOUND_ID, SOUND_IDS, type SoundId } from "./sounds";
 import { type CooldownDef, type RunningCooldown, clear, deriveTag, restart, start } from "./cooldown";
-import { type RecurringDef, type RecurringKind, type RunningRecurring, markDone } from "./recurring";
+import {
+  type RecurringDef,
+  type RecurringKind,
+  type RecurringProgress,
+  type RunningRecurring,
+  markDone,
+} from "./recurring";
 import { clampDuration } from "./cooldownTuning";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
@@ -37,6 +43,11 @@ export type Config = {
   recurring: RecurringDef[];
   /** The currently-running recurring items (absolute expiries); persisted across sessions. */
   recurringRunning: RunningRecurring[];
+  /**
+   * Per-def ladder rank (count of successful reads) — parallel to `recurringRunning` and
+   * independent of the daily gate's lifecycle (issue #44). Additive/lenient: absent → empty.
+   */
+  recurringProgress: RecurringProgress[];
   /** Monotonic counters owned here so ids never collide (even after deletes). */
   bossSeq: number;
   skillSeq: number;
@@ -99,20 +110,23 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
 // `RecurringDef` yet (a future quota-tracking slice). The per-row quota is recorded in the
 // trailing comment so it survives until then; the full sourced spec lives in the
 // `metin2-readable-presets` project memory.
-const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind }> = [
+// The trailing quota comments are now made live by `ladderId`: each gate points at one of the five
+// seeded ladder *structures* in `recurring.ts` (the rung table + caps), shared — transformation by
+// four defs, language by three. `ladderId` is pure presentation (like `kind`); the deadlines carry none.
+const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }> = [
   { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
   { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
-  { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 55 reads M1→G1; 20k EXP/read
-  { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 0→P = 40 reads (20 to M1, then 1/level)
-  { name: "Inspiration", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
-  { name: "Charisma", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
-  { name: "Mining", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // transformation pattern, quota 40
-  { name: "Leadership", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20+55+155 = 230 reads (3 Art-of-War books)
-  { name: "Jinno Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
-  { name: "Chunjo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
-  { name: "Shinsoo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate" }, // quota: 20 reads to M1 cap
-  { name: "Biologist", durationMs: 22 * MS_PER_HOUR, kind: "gate" }, // hand-in; CAN fail (set consumed); cd contested 12–24h
+  { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "class-skill" }, // 55 reads M1→G1; 20k EXP/read
+  { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // 0→P = 40 (20 to M1)
+  { name: "Inspiration", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // transformation pattern
+  { name: "Charisma", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // transformation pattern
+  { name: "Mining", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // transformation pattern
+  { name: "Leadership", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "leadership" }, // 20+55+155 = 230 (3 Art-of-War books)
+  { name: "Jinno Language", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "language" }, // 20 reads to M1 cap
+  { name: "Chunjo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "language" }, // 20 reads to M1 cap
+  { name: "Shinsoo Language", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "language" }, // 20 reads to M1 cap
+  { name: "Biologist", durationMs: 22 * MS_PER_HOUR, kind: "gate", ladderId: "biologist" }, // hand-in; CAN fail; cd 12–24h
 ];
 
 /** Accent pair for the n-th boss (0-based), wrapping the palette. */
@@ -161,6 +175,7 @@ function seedRecurring(): RecurringDef[] {
     name: r.name,
     durationMs: r.durationMs,
     kind: r.kind,
+    ...(r.ladderId ? { ladderId: r.ladderId } : {}),
   }));
 }
 
@@ -176,6 +191,7 @@ export function makeConfig(): Config {
     running: [],
     recurring: [],
     recurringRunning: [],
+    recurringProgress: [],
     bossSeq: 0,
     skillSeq: 0,
     cooldownSeq: 0,

@@ -180,6 +180,34 @@ describe("recurring persistence (additive, no version bump)", () => {
     expect(restored.recurring).toEqual([expected]); // legacy tag stripped, bad entries dropped, good one kept
   });
 
+  it("round-trips the ladder progress map and a def's ladderId (#44)", () => {
+    const base = makeConfig();
+    const c = { ...base, recurringProgress: [{ defId: base.recurring[3].id, position: 12 }] }; // Skill Books rank
+    const restored = deserialize(throughDisk(c));
+    expect(restored.recurringProgress).toEqual(c.recurringProgress);
+    expect(restored.recurring[3].ladderId).toBe("class-skill"); // ladderId survives the disk hop
+  });
+
+  it("keeps a pre-ladder config intact with an empty progress map (never wipes)", () => {
+    const preLadder = serialize(makeConfig());
+    delete (preLadder as Partial<typeof preLadder>).recurringProgress;
+    const restored = deserialize(preLadder);
+    expect(restored.recurringProgress).toEqual([]); // absent → empty, the config is preserved
+  });
+
+  it("drops a malformed progress entry without nuking the rest", () => {
+    const payload = {
+      version: SCHEMA_VERSION,
+      bosses: serialize(makeConfig()).bosses,
+      recurringProgress: [
+        { defId: "recurring-4", position: 7 },
+        { defId: "recurring-5" }, // missing position
+        { position: 3 }, // missing defId
+      ],
+    };
+    expect(deserialize(payload).recurringProgress).toEqual([{ defId: "recurring-4", position: 7 }]);
+  });
+
   it("restores a running recurring whose expiry already passed as past-zero (silent)", () => {
     const now = 10_000_000;
     const payload = {

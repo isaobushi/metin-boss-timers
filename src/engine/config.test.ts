@@ -91,6 +91,21 @@ describe("makeConfig", () => {
     expect(new Set(c.recurring.map((r) => r.id)).size).toBe(13); // ids are distinct
     expect(c.recurringSeq).toBe(13); // seq seeded past the last seeded id
     expect(c.recurringRunning).toEqual([]); // nothing running on a fresh install (mark-done starts an item)
+    expect(c.recurringProgress).toEqual([]); // and no ladder rank yet (#44)
+  });
+
+  it("wires each gate def to its seeded ladder; deadlines carry none (#44)", () => {
+    const c = makeConfig();
+    // ladderId is pure presentation (like `kind`): the deadlines have no rank; the thirteen gates
+    // share the five structures — transformation across four defs, language across three.
+    expect(c.recurring.map((r) => r.ladderId)).toEqual([
+      undefined, undefined, undefined, // Snow Wolf, Costume of Flame, Battle Horse (deadlines)
+      "class-skill", // Skill Books
+      "transformation", "transformation", "transformation", "transformation", // Transformation/Inspiration/Charisma/Mining
+      "leadership", // Leadership
+      "language", "language", "language", // Jinno/Chunjo/Shinsoo
+      "biologist", // Biologist
+    ]);
   });
 });
 

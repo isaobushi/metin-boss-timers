@@ -5,6 +5,9 @@ import {
   doneCount,
   inAlarm,
   isDue,
+  ladderProgress,
+  ladderText,
+  positionOf,
   readyCrossings,
   remainingMs,
   type RunningRecurring,
@@ -40,6 +43,12 @@ export type RoutineRow = {
   ready: boolean;
   /** Has a running instance (done-for-now / on its rolling cooldown) — false when never done. */
   running: boolean;
+  /**
+   * The ladder rank layer (#44), present only on a def carrying a `ladderId`. `text` is the formatted
+   * rung readout (`M3 · 2→M4`, or `Stage 5/10 · …`, or the `… ✓ max` trophy); `capped` marks the inert
+   * end state. A plain gate has no `ladder` — it keeps its single ✓ and permissive done-early.
+   */
+  ladder?: { text: string; capped: boolean };
 };
 
 /**
@@ -73,6 +82,7 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const { config, markRecurringDone } = cfg;
   const catalog = config.recurring;
   const running = config.recurringRunning;
+  const progress = config.recurringProgress;
 
   // Live-only cue, split by kind (ADR-0003 §3): a `deadline` chimes on the crossing INTO the
   // under-24h alarm window (`alarmCrossings`), a `gate` on the ZERO crossing into ready
@@ -136,12 +146,17 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const routineRows: RoutineRow[] = gateDefs.map((def) => {
     const r = running.find((x) => x.defId === def.id);
     const ready = r ? isDue(r, now) : true; // unstarted → ready (never done)
+    // Ladder layer (#44): a def carrying a `ladderId` gets the rung readout projected onto the row;
+    // `ladderProgress` returns null for a plain gate, so `ladder` stays undefined and the row reads
+    // exactly as before. Rank lives in the parallel `recurringProgress` map, independent of the gate.
+    const lp = ladderProgress(def.ladderId, positionOf(progress, def.id));
     return {
       defId: def.id,
       name: def.name,
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,
       running: r != null,
+      ...(lp ? { ladder: { text: ladderText(def.ladderId, positionOf(progress, def.id))!, capped: lp.capped } } : {}),
     };
   });
 

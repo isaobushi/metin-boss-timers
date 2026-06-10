@@ -3,14 +3,20 @@ import {
   type RecurringDef,
   type RunningRecurring,
   ALARM_THRESHOLD_MS,
+  LADDERS,
   MAX_RUNNING,
   alarmCrossings,
   doneCount,
   inAlarm,
   isDue,
+  ladderCap,
+  ladderProgress,
+  ladderText,
   markDone,
+  positionOf,
   readyCrossings,
   remainingMs,
+  setPosition,
 } from "./recurring";
 
 // The recurring engine is a `recurring`-flavoured sibling of Cooldown (ADR-0003): the same
@@ -279,5 +285,136 @@ describe("markDone", () => {
     const after = markDone(rs, def("r-0", DAY), 5_000); // already running → re-stamp
     expect(after).toHaveLength(MAX_RUNNING); // no growth past the cap
     expect(after.find((r) => r.defId === "r-0")!.startedAt).toBe(5_000);
+  });
+});
+
+// ---- ladder progression (issue #44): the rank LAYER over the gate ----
+// Position = the count of *successful* reads (monotonic lifetime state, separate from the daily
+// gate). The five seeded structures are a fixed engine lookup; the numbers are sourced in the
+// `metin2-readable-presets` memory. These pin the boundary cases the issue calls out: position 0,
+// a mid-rung position, and the exact cap, for each structure.
+
+describe("LADDERS table", () => {
+  it("seeds the five structures with the sourced caps", () => {
+    // The last rung's entry is the book-relevant cap (the maximum meaningful position).
+    expect(ladderCap("class-skill")).toBe(55); // M1→G1, triangular 1+2+…+10
+    expect(ladderCap("transformation")).toBe(40); // 0→P (20 to M1, then 1/step)
+    expect(ladderCap("leadership")).toBe(230); // 20 + 55 + 155 across three Art-of-War books
+    expect(ladderCap("language")).toBe(20); // 20 reads to the M1 ceiling
+    expect(ladderCap("biologist")).toBe(9); // 10 stages, one hand-in each → 9 advances to Stage 10
+  });
+
+  it("builds rungs with monotonically rising entry thresholds", () => {
+    for (const l of Object.values(LADDERS)) {
+      for (let i = 1; i < l.rungs.length; i++) {
+        expect(l.rungs[i].entry).toBeGreaterThan(l.rungs[i - 1].entry);
+      }
+      expect(l.rungs[0].entry).toBe(0); // every ladder starts at zero reads
+    }
+  });
+
+  it("pins the Skill Books M-tier to the triangular thresholds (1+2+…)", () => {
+    // M1=0, M2=1, M3=3 (1+2), M4=6 (1+2+3) … G1=55. The classic skill-book sublevel cost.
+    expect(LADDERS["class-skill"].rungs.map((r) => [r.label, r.entry])).toEqual([
+      ["M1", 0], ["M2", 1], ["M3", 3], ["M4", 6], ["M5", 10],
+      ["M6", 15], ["M7", 21], ["M8", 28], ["M9", 36], ["M10", 45], ["G1", 55],
+    ]);
+  });
+
+  it("gives Biologist a per-stage item hint (display-only metadata, no counter)", () => {
+    expect(LADDERS["biologist"].hints?.[4]).toBe("Zelkova Branch ×25"); // Stage 5
+    expect(LADDERS["biologist"].hints).toHaveLength(10);
+  });
+});
+
+describe("ladderProgress", () => {
+  it("reads the floor rung at position 0", () => {
+    expect(ladderProgress("class-skill", 0)).toEqual({
+      rungLabel: "M1", nextRungLabel: "M2", readsToNextRung: 1, capped: false,
+    });
+    expect(ladderProgress("transformation", 0)).toEqual({
+      rungLabel: "0", nextRungLabel: "M1", readsToNextRung: 20, capped: false,
+    });
+  });
+
+  it("reads a mid-rung position as its current rung + reads to the next", () => {
+    // position 4 sits on M3 (entry 3) with M4 at entry 6 → 2 reads to go.
+    expect(ladderProgress("class-skill", 4)).toEqual({
+      rungLabel: "M3", nextRungLabel: "M4", readsToNextRung: 2, capped: false,
+    });
+  });
+
+  it("goes inert at the exact cap — no next rung, zero reads to go", () => {
+    expect(ladderProgress("class-skill", 55)).toEqual({
+      rungLabel: "G1", nextRungLabel: null, readsToNextRung: 0, capped: true,
+    });
+    expect(ladderProgress("language", 20)).toEqual({
+      rungLabel: "M1", nextRungLabel: null, readsToNextRung: 0, capped: true,
+    });
+  });
+
+  it("treats a position past the cap as capped (clamped)", () => {
+    expect(ladderProgress("transformation", 999)?.capped).toBe(true);
+  });
+
+  it("clamps a negative position to the floor rung", () => {
+    expect(ladderProgress("class-skill", -5)?.rungLabel).toBe("M1");
+  });
+
+  it("is null for an unknown or absent ladder (a plain gate has no rank)", () => {
+    expect(ladderProgress("nope", 0)).toBeNull();
+    expect(ladderProgress(undefined, 0)).toBeNull();
+  });
+});
+
+describe("ladderText", () => {
+  it("formats a rung-style readout as `<rung> · <n>→<next>`", () => {
+    expect(ladderText("class-skill", 4)).toBe("M3 · 2→M4");
+    expect(ladderText("transformation", 0)).toBe("0 · 20→M1");
+  });
+
+  it("formats the rung-style cap as a quiet trophy (with the books note where it applies)", () => {
+    expect(ladderText("class-skill", 55)).toBe("G1 ✓ max (books)"); // G→P is Soul Stones, not books
+    expect(ladderText("transformation", 40)).toBe("P ✓ max");
+    expect(ladderText("language", 20)).toBe("M1 ✓ max");
+  });
+
+  it("formats Biologist as `Stage n/10 · <item>` from the seeded hints", () => {
+    expect(ladderText("biologist", 0)).toBe("Stage 1/10 · Orc Tooth ×10");
+    expect(ladderText("biologist", 4)).toBe("Stage 5/10 · Zelkova Branch ×25");
+  });
+
+  it("formats the Biologist cap as `Stage 10/10 ✓`", () => {
+    expect(ladderText("biologist", 9)).toBe("Stage 10/10 ✓");
+  });
+
+  it("is null for an unknown or absent ladder", () => {
+    expect(ladderText(undefined, 0)).toBeNull();
+  });
+});
+
+describe("positionOf / setPosition (the progress map)", () => {
+  it("defaults a def with no recorded rank to position 0", () => {
+    expect(positionOf([], "skill-books")).toBe(0);
+    expect(positionOf([{ defId: "other", position: 5 }], "skill-books")).toBe(0);
+  });
+
+  it("reads back a recorded position", () => {
+    expect(positionOf([{ defId: "skill-books", position: 12 }], "skill-books")).toBe(12);
+  });
+
+  it("upserts a def's position, leaving other entries untouched", () => {
+    const before = [{ defId: "other", position: 3 }];
+    const after = setPosition(before, "skill-books", 7, "class-skill");
+    expect(after).toContainEqual({ defId: "other", position: 3 });
+    expect(positionOf(after, "skill-books")).toBe(7);
+    const replaced = setPosition(after, "skill-books", 9, "class-skill");
+    expect(replaced.filter((p) => p.defId === "skill-books")).toHaveLength(1); // replaced, not duplicated
+    expect(positionOf(replaced, "skill-books")).toBe(9);
+  });
+
+  it("clamps to [0, cap] for the ladder", () => {
+    expect(positionOf(setPosition([], "d", 999, "class-skill"), "d")).toBe(55); // capped
+    expect(positionOf(setPosition([], "d", -4, "class-skill"), "d")).toBe(0); // floored
   });
 });

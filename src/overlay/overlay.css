@@ -941,12 +941,29 @@ body[data-window="settings"] {
 .dock-acc__row + .dock-acc__row {
   border-top: 1px solid #ffffff0d;
 }
-.dock-acc__name {
+/* The row's left column: the name, plus an optional ladder rung readout stacked beneath it. */
+.dock-acc__main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dock-acc__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #cfc8e0;
+}
+/* The ladder rung readout (`M3 · 2→M4` / `… ✓ max`) — a quiet sub-line under the name (#44). */
+.dock-acc__ladder {
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  color: #9b8cff;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dock-acc__val {
   font-weight: 700;
