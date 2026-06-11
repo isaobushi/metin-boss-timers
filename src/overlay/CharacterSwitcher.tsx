@@ -14,6 +14,8 @@ import { createPortal } from "react-dom";
 import type { Race } from "../engine/skillCatalog";
 import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 const GAP = 4; // px between the chip and the menu
@@ -40,6 +42,8 @@ type Props = {
   onNew: () => void;
   /** Open the subscribe screen — from a frozen row or a capped "+ New" (#56). */
   onUpgrade: () => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 /** Place the menu `fixed` against the chip's rect, opening inward per the resolved anchor. */
@@ -63,6 +67,7 @@ export function CharacterSwitcher({
   onDelete,
   onNew,
   onUpgrade,
+  locale,
 }: Props) {
   const chipRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -121,7 +126,7 @@ export function CharacterSwitcher({
         ref={chipRef}
         className={`dock-seg dock-char${open ? " is-open" : ""}`}
         onClick={() => setOpen((o) => !o)}
-        title="active character"
+        title={t("char.activeCharacterTitle", locale)}
       >
         <span className="dock-seg__icon">👤</span>
         <span className="dock-seg__val dock-seg__name">{active ? active.name.toUpperCase() : "—"}</span>
@@ -142,7 +147,7 @@ export function CharacterSwitcher({
                     <button
                       className="char-menu__pick"
                       onClick={() => (frozen ? upgrade() : pick(c.id))}
-                      title={frozen ? "Frozen — resubscribe to use this character" : undefined}
+                      title={frozen ? t("char.frozenTitle", locale) : undefined}
                     >
                       <span className="char-menu__check">{frozen ? "✦" : c.id === activeId ? "✓" : ""}</span>
                       <span className="char-menu__name">{c.name}</span>
@@ -152,7 +157,7 @@ export function CharacterSwitcher({
                       className="char-menu__act"
                       onClick={() => edit(c.id)}
                       disabled={frozen}
-                      title={frozen ? "frozen — resubscribe to edit" : "edit / classify"}
+                      title={frozen ? t("char.editFrozenTitle", locale) : t("char.editTitle", locale)}
                     >
                       ✎
                     </button>
@@ -162,10 +167,10 @@ export function CharacterSwitcher({
                       disabled={frozen || characters.length <= 1}
                       title={
                         frozen
-                          ? "frozen — resubscribe to manage"
+                          ? t("char.deleteFrozenTitle", locale)
                           : characters.length <= 1
-                            ? "the only character can't be deleted"
-                            : "delete"
+                            ? t("char.deleteOnlyTitle", locale)
+                            : t("char.deleteTitle", locale)
                       }
                     >
                       🗑
@@ -183,7 +188,7 @@ export function CharacterSwitcher({
                 setOpen(false);
               }}
             >
-              {canAdd ? "+ New character" : "✦ Add characters with Pro"}
+              {canAdd ? t("char.newCharacter", locale) : t("char.addWithPro", locale)}
             </button>
           </div>,
           document.body,
