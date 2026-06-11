@@ -15,7 +15,7 @@ Built with [Tauri](https://tauri.app) (Rust core + a React/TypeScript UI).
 
 A live web demo runs the same overlay over a mock game scene — no install:
 
-**→ https://metin-boss-timers.vercel.app**
+**→ https://dragonsaid.com**
 
 It's the real UI (pick a boss, draining bars, per-skill hotkeys, audio cues,
 draggable panel, inline settings). Two things only the desktop app can do:
@@ -44,15 +44,17 @@ verifiable, not just promised. See the trust story below.
 
 ## Get DragonsAid
 
-DragonsAid is a paid app on the **Microsoft Store**. Distributing through the
-Store means Microsoft signs the package — so there's no "unknown publisher" /
-SmartScreen warning to click through, and updates arrive automatically.
+DragonsAid is **free to use** on the **Microsoft Store**, with an optional **Pro
+subscription** (annual or monthly) that unlocks curated boss/skill content,
+autofill, and multi-character support. Distributing through the Store means
+Microsoft signs the package — so there's no "unknown publisher" / SmartScreen
+warning to click through, and updates arrive automatically.
 
 <!-- STORE LINK: replace this line with the apps.microsoft.com listing once the app is published (#17 / #18). -->
 **→ Microsoft Store listing — _link goes live when the app is published._**
 
-Prefer to try before you buy? The [free web demo](https://metin-boss-timers.vercel.app)
-runs the same UI in your browser — no install, no account.
+Want to try it first? The [free web demo](https://dragonsaid.com) runs the same
+UI in your browser — no install, no account.
 
 ## Trust & verification
 
@@ -95,4 +97,4 @@ installers to GitHub Releases — the Store is the sole distribution channel.
 
 Source-available, **not** open-source — see [`LICENSE`](LICENSE). You may read
 the code and build it for personal use; redistributing or selling it (or a
-rebrand) is not permitted. The official paid build is the Microsoft Store listing.
+rebrand) is not permitted. The official build is the Microsoft Store listing.
