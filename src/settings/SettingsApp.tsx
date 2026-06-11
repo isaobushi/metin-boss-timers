@@ -6,7 +6,7 @@
 // The surface grew a section per dock tool (bosses, cooldowns, items, routine); once the
 // routine seed filled out it was too tall to scan, so the four sections live behind tabs
 // keyed to the same icons the dock uses (⚔ ⏱ ♻ ✓). Reset/close stay global in the head.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
 import { RecurringSettings } from "../overlay/RecurringSettings";
@@ -14,6 +14,11 @@ import { activeRecurring } from "../engine/config";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
+import { BackupSection } from "./BackupSection";
+import { CapNudge } from "../overlay/CapNudge";
+import { SubscribeScreen } from "../overlay/SubscribeScreen";
+import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
+import type { Entitlement } from "../engine/entitlement";
 
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
@@ -33,6 +38,25 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
   const cfg = useConfig();
   const close = onClose ?? closeSettingsWindow;
   const [tab, setTab] = useState<TabId>("dungeons");
+  // The subscribe screen, opened by a cap-hit nudge here in the settings window (#56/#58).
+  const [showSubscribe, setShowSubscribe] = useState(false);
+
+  // Stubbed purchase flow (mirrors App) — on success reflect the granted entitlement at runtime.
+  const { setEntitlement, dismissNudge } = cfg;
+  const applyPurchase = useCallback(
+    async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {
+      const result = await run;
+      if (result.ok) {
+        setEntitlement(result.entitlement);
+        setShowSubscribe(false);
+      }
+    },
+    [setEntitlement],
+  );
+  const openSubscribe = useCallback(() => {
+    dismissNudge();
+    setShowSubscribe(true);
+  }, [dismissNudge]);
 
   // Audio is gated behind a user gesture — unlock on the first interaction so the per-skill
   // ▶ beep-preview works (mirrors the overlay's App.tsx).
@@ -150,6 +174,26 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
           onRemove={(defId) => cfg.deleteRecurring(defId)}
         />
+      )}
+
+      {/* Global backup/trust feature (#56) — export/import a portable copy of the whole config. */}
+      <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} />
+
+      {/* Cap-hit nudge (#56): a capped add (boss / reminder) was just refused here. */}
+      {cfg.capNudge && (
+        <div className="settings-modal">
+          <CapNudge mutation={cfg.capNudge} onUpgrade={openSubscribe} onDismiss={cfg.dismissNudge} />
+        </div>
+      )}
+      {showSubscribe && (
+        <div className="settings-modal">
+          <SubscribeScreen
+            entitlement={cfg.entitlement}
+            onStartTrial={() => void applyPurchase(startTrial())}
+            onSubscribe={(plan: Plan) => void applyPurchase(subscribe(plan))}
+            onClose={() => setShowSubscribe(false)}
+          />
+        </div>
       )}
     </div>
   );

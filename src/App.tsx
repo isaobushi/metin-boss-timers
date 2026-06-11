@@ -24,8 +24,9 @@ import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
 import { SubscribeScreen } from "./overlay/SubscribeScreen";
 import { UpgradeBanner } from "./overlay/UpgradeBanner";
+import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
-import type { Entitlement } from "./engine/entitlement";
+import { allows, partition, type Entitlement } from "./engine/entitlement";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
@@ -159,12 +160,20 @@ export default function App() {
   // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
   const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
 
+  // The tier view over characters (#56): which are frozen (over the 1-character Lite cap) and whether a
+  // new one may be added. Under a Pro state nothing freezes and adds are always allowed.
+  const charFrozenIds = new Set(partition(cfg.entitlement, cfg.config).characters.frozen);
+  const canAddCharacter = allows(cfg.entitlement, cfg.config, "addCharacter");
+
   // The active-character chip + switcher, pinned at the dock's left (#54). Switching swaps only the
   // recurring surface; ✎ opens the edit/classify flow; "+ New" opens the create wizard below the bar.
+  // Frozen characters render read-only and route to the subscribe screen (#56).
   const characterSwitcher = (
     <CharacterSwitcher
       characters={cfg.config.characters.map((c) => ({ id: c.id, name: c.name, race: c.race }))}
       activeId={cfg.config.activeCharacterId}
+      frozenIds={charFrozenIds}
+      canAdd={canAddCharacter}
       onSwitch={cfg.switchCharacter}
       onEdit={(id) => {
         closeCooldownStrip();
@@ -175,6 +184,7 @@ export default function App() {
         closeCooldownStrip();
         setCharEdit({ id: null });
       }}
+      onUpgrade={() => setShowSubscribe(true)}
     />
   );
 
@@ -282,6 +292,19 @@ export default function App() {
       {showSettings && (
         <div className="settings-modal">
           <SettingsApp onClose={closeSettings} />
+        </div>
+      )}
+      {/* Cap-hit nudge (#56): a capped add (here, a 2nd character) was just refused. Upgrade → subscribe. */}
+      {cfg.capNudge && (
+        <div className="settings-modal">
+          <CapNudge
+            mutation={cfg.capNudge}
+            onUpgrade={() => {
+              cfg.dismissNudge();
+              setShowSubscribe(true);
+            }}
+            onDismiss={cfg.dismissNudge}
+          />
         </div>
       )}
       {showSubscribe && (
