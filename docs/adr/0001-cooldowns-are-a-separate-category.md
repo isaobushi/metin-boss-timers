@@ -6,7 +6,7 @@ status: accepted
 
 ## Context
 
-DragonsAid's existing countdowns are **Skills** grouped under a **Boss**, whose
+Dragon's Aid's existing countdowns are **Skills** grouped under a **Boss**, whose
 running state (a **Timer**) is *relative*, *cyclic* (auto-loops on reaching zero),
 *session-only* (rebuilt fresh on every launch), and clamped to `[1s, 999s]`. The
 v0.5.0 ask is to track dungeon re-entry locks and mob/boss spawns — waits of

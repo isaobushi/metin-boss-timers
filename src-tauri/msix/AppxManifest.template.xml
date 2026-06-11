@@ -34,7 +34,7 @@
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>DragonsAid</DisplayName>
+    <DisplayName>Dragon's Aid</DisplayName>
     <PublisherDisplayName>__PUBLISHER_DISPLAY_NAME__</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -50,7 +50,7 @@
   <Applications>
     <Application Id="DragonsAid" Executable="DragonsAid.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="DragonsAid"
+        DisplayName="Dragon's Aid"
         Description="A transparent, always-on-top overlay of draining boss respawn timers, started with global hotkeys."
         BackgroundColor="#1a1a1a"
         Square150x150Logo="Assets\Square150x150Logo.png"

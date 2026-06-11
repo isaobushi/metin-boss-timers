@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "DragonsAid",
+  "productName": "Dragon's Aid",
   "version": "0.5.1",
   "identifier": "com.isaobushi.dragonsaid",
   "build": {
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "DragonsAid",
+        "title": "Dragon's Aid",
         "width": 360,
         "height": 320,
         "resizable": true,

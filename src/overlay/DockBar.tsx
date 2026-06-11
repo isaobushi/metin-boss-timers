@@ -86,7 +86,7 @@ export function DockBar({ leading, open, activeBossName, itemsDatum, routineDatu
         <span className="dock-seg__icon">⚙</span>
       </button>
 
-      <button className="dock-seg dock-seg--danger" onClick={onQuit} title="quit DragonsAid">
+      <button className="dock-seg dock-seg--danger" onClick={onQuit} title="quit Dragon's Aid">
         <span className="dock-seg__icon">✕</span>
       </button>
     </div>
