@@ -23,6 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.11.2", features = ["macos-private-api"] }
 tauri-plugin-log = "2"
+tauri-plugin-os = "2"
 tauri-plugin-store = "2"
 
 # desktop-only: global hotkeys aren't available on mobile targets
