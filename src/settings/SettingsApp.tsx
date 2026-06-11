@@ -15,6 +15,7 @@ import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
 import { BackupSection } from "./BackupSection";
+import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
 import { SubscribeScreen } from "../overlay/SubscribeScreen";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
@@ -23,12 +24,13 @@ import type { Entitlement } from "../engine/entitlement";
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
 // skills tool), ⏱ the dungeon cooldowns, ♻ the expiring items, ✓ the routine gates.
-type TabId = "dungeons" | "cooldowns" | "items" | "routine";
+type TabId = "dungeons" | "cooldowns" | "items" | "routine" | "language";
 const TABS: ReadonlyArray<{ id: TabId; icon: string; label: string }> = [
   { id: "dungeons", icon: "⚔", label: "Dungeons" },
   { id: "cooldowns", icon: "⏱", label: "Cooldowns" },
   { id: "items", icon: "♻", label: "Items" },
   { id: "routine", icon: "✓", label: "Routine" },
+  { id: "language", icon: "🌐", label: "Language" },
 ];
 
 // `onClose` is supplied when the settings render inline in the browser (App's modal): Esc
@@ -173,6 +175,13 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
           onRemove={(defId) => cfg.deleteRecurring(defId)}
+        />
+      )}
+
+      {tab === "language" && (
+        <LocaleSettings
+          locale={cfg.config.locale}
+          onChange={(locale) => cfg.changeLocale(locale)}
         />
       )}
 

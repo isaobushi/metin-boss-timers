@@ -19,15 +19,9 @@ import { COOLDOWN_SEED, RECURRING_SEED } from "./config";
 import { BUILDS, EMPIRES, RACES, catalogChoreNames } from "./skillCatalog";
 import { BIOLOGIST_HINTS } from "./recurring";
 import { biologistItemKey, buildKey, cooldownKey, empireKey, raceKey, recurringKey } from "./contentKeys";
-
-/** A supported content locale. Expands to the official-client regions as their tables land (#85+). */
-export type Locale = "en";
-
-/** The fallback locale: every seeded key is guaranteed to resolve here (see the completeness guard). */
-export const DEFAULT_LOCALE: Locale = "en";
-
-/** Every locale currently shipped with a content table. The completeness guard holds for each. */
-export const SUPPORTED_LOCALES: Locale[] = ["en"];
+import { DEFAULT_LOCALE, type Locale } from "./localeTypes";
+export type { Locale } from "./localeTypes";
+export { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./localeTypes";
 
 /**
  * The English content table, re-indexed from the seed/catalog/hint literals by `catalogKey`. Every

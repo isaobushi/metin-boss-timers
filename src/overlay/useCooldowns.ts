@@ -26,6 +26,7 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
 
   const { config, beginCooldown, reCooldown, stopCooldown, tuneCooldown, dupeCooldown } = cfg;
+  const locale = config.locale; // live locale from persisted config (slice #83)
   const catalog: CooldownDef[] = config.cooldowns;
 
   // Best-effort ready cue (ADR-0002): compare each observation of the running set against
@@ -47,9 +48,9 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
     return {
       defId: r.defId,
       tag: def?.tag ?? "?",
-      // Seeded dungeons resolve their name per-locale (PRD #77, locale hardcoded "en" until #83);
+      // Seeded dungeons resolve their name per-locale (PRD #77, slice #83 wires up the live locale);
       // a user-added cooldown (no catalogKey) renders its free-text name verbatim.
-      name: def ? resolveDisplayName(def, "en") : r.defId,
+      name: def ? resolveDisplayName(def, locale) : r.defId,
       readout: readout(rem),
       ready: rem <= 0,
     };

@@ -7,7 +7,7 @@
 // inline panel below the dock, width-matched to the other dock surfaces.
 import { useMemo, useState } from "react";
 import { type Build, type Empire, type Race, buildsFor } from "../engine/skillCatalog";
-import { displayName } from "../engine/contentCatalog";
+import { displayName, type Locale } from "../engine/contentCatalog";
 import { buildKey, empireKey, raceKey } from "../engine/contentKeys";
 import type { CharacterDraft } from "../engine/config";
 
@@ -21,13 +21,15 @@ type Props = {
   mode?: "new" | "edit";
   /** Pre-fill for the edit flow — the character's current name + class axes. */
   initial?: { name: string; empire?: Empire; race?: Race; builds?: Build[] };
+  /** The active content locale — Empire/Race/Build names resolve per-locale (slice #83). Required so a new call site can't silently un-localize. */
+  locale: Locale;
   /** Commit the collected draft (the caller runs `createCharacter`/`editCharacter` and closes the panel). */
   onCreate: (draft: CharacterDraft) => void;
   /** Dismiss without saving — omitted on first-run, where there's nothing to return to. */
   onCancel?: () => void;
 };
 
-export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: Props) {
+export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [empire, setEmpire] = useState<Empire | undefined>(initial?.empire);
   const [race, setRace] = useState<Race | undefined>(initial?.race);
@@ -99,7 +101,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${empire === e ? " is-sel" : ""}`}
               onClick={() => setEmpire(e)}
             >
-              {displayName(empireKey(e), "en")}
+              {displayName(empireKey(e), locale)}
             </button>
           ))}
         </div>
@@ -113,7 +115,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${race === r ? " is-sel" : ""}`}
               onClick={() => chooseRace(r)}
             >
-              {displayName(raceKey(r), "en")}
+              {displayName(raceKey(r), locale)}
             </button>
           ))}
         </div>
@@ -127,7 +129,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${builds.includes(b) ? " is-sel" : ""}`}
               onClick={() => toggleBuild(b)}
             >
-              {displayName(buildKey(b), "en")}
+              {displayName(buildKey(b), locale)}
             </button>
           ))}
         </div>

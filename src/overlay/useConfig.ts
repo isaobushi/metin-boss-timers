@@ -43,6 +43,8 @@ import { exportConfig, importConfig } from "../engine/backup";
 import { loadPersisted, savePersisted } from "./configStore";
 import { resolveLaunchEntitlement } from "./entitlementSource";
 import { broadcastConfig, subscribeConfig } from "./configSync";
+import type { Locale } from "../engine/contentCatalog";
+import { readOsLocale } from "./osLocale";
 
 /**
  * Thin React control layer over the pure config model. It holds the `Config` and the
@@ -81,10 +83,22 @@ export function useConfig() {
 
   useEffect(() => {
     let alive = true;
-    loadPersisted().then((raw) => {
+    loadPersisted().then(async (raw) => {
       if (!alive) return;
       setConfig(deserialize(raw)); // null/corrupt → shipped defaults; ids seeded past max
       setHydrated(true);
+      // OS-locale seed (slice #83): when no locale was persisted — a new install, or an upgrade from
+      // a pre-#83 payload — ask the OS and patch just the locale. Runs AFTER hydration so first paint
+      // never waits on the (slice 5) Tauri IPC round-trip, and as a functional updater so an edit or
+      // cross-window broadcast landing during the await is preserved: only the locale field is written.
+      // The seeded value persists via the normal change effect, so this runs at most once per install.
+      // Today `readOsLocale` is a stub returning "en" (deserialize's own default) — inert scaffolding
+      // until the real plugin-os call lands in slice 5.
+      if (!raw || !(raw as Record<string, unknown>).locale) {
+        const osLocale = await readOsLocale();
+        if (!alive) return; // unmounted during the await — don't write into a dead instance
+        setConfig((c) => ({ ...c, locale: osLocale }));
+      }
     });
     return () => {
       alive = false;
@@ -294,6 +308,9 @@ export function useConfig() {
     setActiveBossId(null);
   }, []);
 
+  // Switch the active locale — persisted + cross-window synced like any other config edit.
+  const changeLocale = useCallback((locale: Locale) => setConfig((c) => ({ ...c, locale })), []);
+
   // Dismiss the cap-hit nudge (#56) — the user closed it or opened the subscribe screen.
   const dismissNudge = useCallback(() => setCapNudge(null), []);
 
@@ -359,5 +376,6 @@ export function useConfig() {
     removeCharacter,
     selectBoss,
     resetConfig,
+    changeLocale,
   };
 }
