@@ -26,6 +26,10 @@ type Props = {
   characters: CharacterChip[];
   /** The active character's id (null = none, i.e. first-run before any character exists). */
   activeId: string | null;
+  /** The ids that are frozen (over the tier cap, #56): present but read-only until resubscribe. */
+  frozenIds: ReadonlySet<string>;
+  /** Whether a new character may be added under the current tier (false → "+ New" routes to upgrade). */
+  canAdd: boolean;
   /** Switch the active character (swaps only the recurring surface). */
   onSwitch: (id: string) => void;
   /** Open the edit/classify flow for a character (name + empire/race/build). */
@@ -34,6 +38,8 @@ type Props = {
   onDelete: (id: string) => void;
   /** Open the create wizard ("+ New character"). */
   onNew: () => void;
+  /** Open the subscribe screen — from a frozen row or a capped "+ New" (#56). */
+  onUpgrade: () => void;
 };
 
 /** Place the menu `fixed` against the chip's rect, opening inward per the resolved anchor. */
@@ -47,7 +53,17 @@ function menuStyle(chip: HTMLElement, anchor: Anchor): CSSProperties {
   return style;
 }
 
-export function CharacterSwitcher({ characters, activeId, onSwitch, onEdit, onDelete, onNew }: Props) {
+export function CharacterSwitcher({
+  characters,
+  activeId,
+  frozenIds,
+  canAdd,
+  onSwitch,
+  onEdit,
+  onDelete,
+  onNew,
+  onUpgrade,
+}: Props) {
   const chipRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<CSSProperties>({});
@@ -94,6 +110,10 @@ export function CharacterSwitcher({ characters, activeId, onSwitch, onEdit, onDe
     onEdit(id);
     setOpen(false);
   };
+  const upgrade = () => {
+    onUpgrade();
+    setOpen(false);
+  };
 
   return (
     <>
@@ -110,35 +130,60 @@ export function CharacterSwitcher({ characters, activeId, onSwitch, onEdit, onDe
         createPortal(
           <div className="char-menu" ref={menuRef} style={pos}>
             <div className="char-menu__list">
-              {characters.map((c) => (
-                <div key={c.id} className={`char-menu__row${c.id === activeId ? " is-active" : ""}`}>
-                  <button className="char-menu__pick" onClick={() => pick(c.id)}>
-                    <span className="char-menu__check">{c.id === activeId ? "✓" : ""}</span>
-                    <span className="char-menu__name">{c.name}</span>
-                    {c.race && <span className="char-menu__race">{c.race}</span>}
-                  </button>
-                  <button className="char-menu__act" onClick={() => edit(c.id)} title="edit / classify">
-                    ✎
-                  </button>
-                  <button
-                    className="char-menu__act char-menu__del"
-                    onClick={() => onDelete(c.id)}
-                    disabled={characters.length <= 1}
-                    title={characters.length <= 1 ? "the only character can't be deleted" : "delete"}
+              {characters.map((c) => {
+                // Frozen characters (over the tier cap, #56) are present but read-only: tapping the row
+                // routes to upgrade rather than switching, and edit/delete are disabled until thaw.
+                const frozen = frozenIds.has(c.id);
+                return (
+                  <div
+                    key={c.id}
+                    className={`char-menu__row${c.id === activeId ? " is-active" : ""}${frozen ? " is-frozen" : ""}`}
                   >
-                    🗑
-                  </button>
-                </div>
-              ))}
+                    <button
+                      className="char-menu__pick"
+                      onClick={() => (frozen ? upgrade() : pick(c.id))}
+                      title={frozen ? "Frozen — resubscribe to use this character" : undefined}
+                    >
+                      <span className="char-menu__check">{frozen ? "✦" : c.id === activeId ? "✓" : ""}</span>
+                      <span className="char-menu__name">{c.name}</span>
+                      {c.race && <span className="char-menu__race">{c.race}</span>}
+                    </button>
+                    <button
+                      className="char-menu__act"
+                      onClick={() => edit(c.id)}
+                      disabled={frozen}
+                      title={frozen ? "frozen — resubscribe to edit" : "edit / classify"}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="char-menu__act char-menu__del"
+                      onClick={() => onDelete(c.id)}
+                      disabled={frozen || characters.length <= 1}
+                      title={
+                        frozen
+                          ? "frozen — resubscribe to manage"
+                          : characters.length <= 1
+                            ? "the only character can't be deleted"
+                            : "delete"
+                      }
+                    >
+                      🗑
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             <button
               className="char-menu__new"
               onClick={() => {
-                onNew();
+                // At the character cap (#56), "+ New" routes to the subscribe screen instead of the wizard.
+                if (canAdd) onNew();
+                else upgrade();
                 setOpen(false);
               }}
             >
-              + New character
+              {canAdd ? "+ New character" : "✦ Add characters with Pro"}
             </button>
           </div>,
           document.body,

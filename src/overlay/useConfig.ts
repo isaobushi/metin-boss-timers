@@ -37,8 +37,9 @@ import {
   type Config,
 } from "../engine/config";
 import type { SoundId } from "../engine/sounds";
-import { allows, DEV_ENTITLEMENT, type Entitlement } from "../engine/entitlement";
+import { allows, DEV_ENTITLEMENT, type Entitlement, type Mutation } from "../engine/entitlement";
 import { deserialize, serialize } from "../engine/persist";
+import { exportConfig, importConfig } from "../engine/backup";
 import { loadPersisted, savePersisted } from "./configStore";
 import { resolveLaunchEntitlement } from "./entitlementSource";
 import { broadcastConfig, subscribeConfig } from "./configSync";
@@ -69,6 +70,9 @@ export function useConfig() {
   // create paths below consult `allows` before mutating — the seam that keeps caps from being
   // retrofitted (issue #53).
   const [entitlement, setEntitlement] = useState<Entitlement>(DEV_ENTITLEMENT);
+  // The last cap-hit (#56): which capped mutation was just refused, so the UI can show a nudge naming
+  // what Pro unlocks. null = no pending nudge. Set by the blocked create paths, cleared on dismiss.
+  const [capNudge, setCapNudge] = useState<Mutation | null>(null);
   // Gate saves until the on-disk config has been read, so the initial in-memory
   // defaults can never clobber a stored config before it loads.
   const [hydrated, setHydrated] = useState(false);
@@ -120,10 +124,13 @@ export function useConfig() {
   }, [config, hydrated]);
 
   const createBoss = useCallback((): string => {
-    // Seam: refuse a new boss when over the tier cap (no-op + return the existing last boss so the
-    // caller never navigates to a boss that wasn't created). Always allowed under dev `subscribed`.
-    // TODO(#56): silent return is a placeholder — replace with the cap-hit nudge ("what Pro unlocks").
-    if (!allows(entitlement, config, "addBoss")) return config.bosses[config.bosses.length - 1].id;
+    // Seam: refuse a new boss when over the tier cap — raise the cap-hit nudge (#56) and return the
+    // existing last boss so the caller never navigates to a boss that wasn't created. Always allowed
+    // under a Pro state.
+    if (!allows(entitlement, config, "addBoss")) {
+      setCapNudge("addBoss");
+      return config.bosses[config.bosses.length - 1].id;
+    }
     const next = addBoss(config);
     setConfig(next);
     return next.bosses[next.bosses.length - 1].id;
@@ -232,16 +239,16 @@ export function useConfig() {
   // Seam: both add into the active character's shared 3-reminder pool, so each consults `allows` first
   // (no-op when capped). Routine and Elapsable item draw from the SAME pool. Always allowed under
   // dev `subscribed`.
-  const createRecurring = useCallback(
-    () => setConfig((c) => (allows(entitlement, c, "addReminder") ? addRecurring(c, "deadline") : c)),
-    [entitlement],
-  );
+  const createRecurring = useCallback(() => {
+    if (!allows(entitlement, config, "addReminder")) return setCapNudge("addReminder");
+    setConfig((c) => addRecurring(c, "deadline"));
+  }, [config, entitlement]);
   // The ROUTINE section's add (#38) — same CRUD path, gate kind. Rename/duration/remove are
   // kind-agnostic, so both sections share editRecurringName/Duration + deleteRecurring.
-  const createRoutine = useCallback(
-    () => setConfig((c) => (allows(entitlement, c, "addReminder") ? addRecurring(c, "gate") : c)),
-    [entitlement],
-  );
+  const createRoutine = useCallback(() => {
+    if (!allows(entitlement, config, "addReminder")) return setCapNudge("addReminder");
+    setConfig((c) => addRecurring(c, "gate"));
+  }, [config, entitlement]);
   const editRecurringName = useCallback(
     (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
     [],
@@ -254,12 +261,14 @@ export function useConfig() {
 
   // Character actions (PRD #47, create flow #54). `createCharacter` mirrors `createBoss`: it runs the
   // transform on this render's `config` so it can hand the new id back synchronously — the caller
-  // lands the dock on the freshly-created character. Seam: refuse over the tier cap (return null so the
-  // caller stays put). Always allowed under dev `subscribed`.
-  // TODO(#56): the null return is a placeholder — replace with the cap-hit nudge ("what Pro unlocks").
+  // lands the dock on the freshly-created character. Seam: refuse over the tier cap — raise the cap-hit
+  // nudge (#56) and return null so the caller stays put. Always allowed under a Pro state.
   const createCharacter = useCallback(
     (draft: CharacterDraft): string | null => {
-      if (!allows(entitlement, config, "addCharacter")) return null;
+      if (!allows(entitlement, config, "addCharacter")) {
+        setCapNudge("addCharacter");
+        return null;
+      }
       const next = addCharacter(config, draft);
       setConfig(next);
       return next.characters[next.characters.length - 1].id;
@@ -285,6 +294,22 @@ export function useConfig() {
     setActiveBossId(null);
   }, []);
 
+  // Dismiss the cap-hit nudge (#56) — the user closed it or opened the subscribe screen.
+  const dismissNudge = useCallback(() => setCapNudge(null), []);
+
+  // Export/import (#56). Export serializes the live config to a portable backup string. Import parses
+  // one back and replaces the config wholesale — returning false (no change) if the text isn't a valid
+  // backup, so the UI can warn instead of wiping. Over-cap data imports intact; the gate freezes the
+  // excess as a view (no data dropped here).
+  const exportBackup = useCallback((): string => exportConfig(config), [config]);
+  const applyImport = useCallback((text: string): boolean => {
+    const next = importConfig(text);
+    if (!next) return false;
+    setConfig(next);
+    setActiveBossId(null);
+    return true;
+  }, []);
+
   const activeBoss: Boss | undefined = bossById(config, activeBossId);
 
   return {
@@ -294,6 +319,11 @@ export function useConfig() {
     // set on mount by the `storeLicense` adapter. The create paths above already gate on it.
     entitlement,
     setEntitlement,
+    // The pending cap-hit nudge (#56) + its dismiss; the export/import backup helpers.
+    capNudge,
+    dismissNudge,
+    exportBackup,
+    applyImport,
     activeBoss,
     createBoss,
     editBossName,
