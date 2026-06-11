@@ -11,10 +11,15 @@ import type { Locale } from "../engine/localeTypes";
 
 /**
  * Read the OS language and pick the best supported locale. Falls back to English when the OS
- * returns null/undefined or an unsupported language tag. Verified manually per house convention
- * for I/O edges (not unit-tested — this is the impure boundary).
+ * returns null/undefined or an unsupported language tag — and when the IPC call itself fails
+ * (the web demo runs without a Tauri backend, so `locale()` rejects there; the caller in
+ * `useConfig` awaits this uncaught, so this seam must never throw). Verified manually per
+ * house convention for I/O edges (not unit-tested — this is the impure boundary).
  */
 export async function readOsLocale(): Promise<Locale> {
-  const tag = await locale();
-  return pickLocale(tag);
+  try {
+    return pickLocale(await locale());
+  } catch {
+    return pickLocale(null); // no Tauri backend (web demo) or IPC failure → English default
+  }
 }
