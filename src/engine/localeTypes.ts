@@ -3,13 +3,13 @@
 // lets `config.ts` carry the `locale` field without pulling in the full content-catalog graph.
 
 /** A supported content locale. Expands to the official-client regions as their tables land (#85+). */
-export type Locale = "en";
+export type Locale = "en" | "de";
 
 /** The fallback locale: every seeded key is guaranteed to resolve here. */
 export const DEFAULT_LOCALE: Locale = "en";
 
 /** Every locale currently shipped with a content table. The completeness guard holds for each. */
-export const SUPPORTED_LOCALES: Locale[] = ["en"];
+export const SUPPORTED_LOCALES: Locale[] = ["en", "de"];
 
 /**
  * Human-readable label per locale (the Settings picker). Exhaustive by construction — adding a
@@ -18,4 +18,5 @@ export const SUPPORTED_LOCALES: Locale[] = ["en"];
  */
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
+  de: "Deutsch",
 };
