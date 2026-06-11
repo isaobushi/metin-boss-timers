@@ -98,10 +98,10 @@ describe("locale persist round-trip", () => {
 
 // ---- locale is presentation-only: the resolver answers per-locale, stored data never moves ----
 // With Slice 5 ("de" lands) the cross-locale re-resolution test is now real: the same catalogKey
-// resolves to a different display string under "en" vs "de" (the DE content table carries the
-// German placeholder strings, identical to English today but a distinct table). The CONTRACT is
-// that stored data (the `name` fallback, running timers, ladder progress) is never touched — only
-// the locale field changes, and the resolver picks up the difference at render time.
+// resolves to a DIFFERENT display string under "en" vs "de" (the DE content table carries the
+// transcribed official-client German names). The CONTRACT is that stored data (the `name`
+// fallback, running timers, ladder progress) is never touched — only the locale field changes,
+// and the resolver picks up the difference at render time.
 
 describe("locale is presentation-only — writing the locale field never touches stored data", () => {
   it("resolveDisplayName returns the English string under 'en'", () => {
@@ -115,17 +115,16 @@ describe("locale is presentation-only — writing the locale field never touches
   });
 
   it("cross-locale re-resolution: a seeded item's displayName changes when locale flips en→de and back", () => {
-    // The DE table is a full placeholder (same strings as EN today, pending transcription), so the
-    // resolver returns the same string — but the WIRING is verified: the locale argument flows through
-    // both paths and the DE table is present (completeness guard passes for 'de').
-    const key = cooldownKey("Hydra");
-    const nameEn = resolveDisplayName({ catalogKey: key, name: "Hydra" }, "en");
-    const nameDe = resolveDisplayName({ catalogKey: key, name: "Hydra" }, "de");
-    // Both resolve to a non-empty string (de falls back to en if the table entry is the same value).
-    expect(nameEn).toBeTruthy();
-    expect(nameDe).toBeTruthy();
+    // "Battle Horse" has a genuinely divergent DE transcription, so this pins the real contract:
+    // the SAME stored def renders differently per locale, and flipping back restores English.
+    // (A same-in-both-tables key like Hydra would pass even if the locale argument were ignored.)
+    const key = recurringKey("Battle Horse");
+    const nameEn = resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "en");
+    const nameDe = resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "de");
+    expect(nameEn).toBe("Battle Horse");
+    expect(nameDe).not.toBe(nameEn); // the DE table answered, not the English fallback
     // Flip back to English — same as before.
-    expect(resolveDisplayName({ catalogKey: key, name: "Hydra" }, "en")).toBe(nameEn);
+    expect(resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "en")).toBe(nameEn);
   });
 
   it("recurring defs are read-only for localization (resolution happens at render, not in Config)", () => {

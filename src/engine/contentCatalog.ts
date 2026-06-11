@@ -48,8 +48,10 @@ const EN = buildEnglish();
 // TRANSCRIBED, not translated: values come from the user's official-German-client worksheet
 // (de-transcription.md), cross-checked row by row against the Gameforge DE wiki — where the two
 // disagreed the user picked the wiki spelling. Every key from seededContentKeys() is listed
-// explicitly so the completeness guard passes and a human can vet each row.
-// TODO(#85): two values still await client transcription and sit at their English fallback:
+// explicitly — the strict key-set guard in contentCatalog.test.ts fails CI on a missing or
+// orphaned key — and a human can vet each row.
+// TODO(#85): two values still await client transcription and are EXPLICIT entries carrying the
+// English spelling for now (not omitted-with-fallback — the strict guard requires every key):
 // recurring.alastor-pet and recurring.white-navy-uniform-costume (seed swap of 2026-06-11).
 const DE: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
@@ -233,6 +235,16 @@ export function resolveDisplayName(item: { catalogKey?: string; name: string }, 
 /** Every seeded content key (the keys of the English table) — the set the completeness guard checks. */
 export function seededContentKeys(): string[] {
   return Object.keys(EN);
+}
+
+/**
+ * The raw key set of one locale's content table — guard support only. The resolve-time English
+ * fallback in `displayName` means a missing key is INVISIBLE at runtime (the user silently gets
+ * English), so the strict guard in contentCatalog.test.ts compares each table's keys against
+ * `seededContentKeys()` directly: a gap or an orphaned (mis-slugged) key fails CI, not a player.
+ */
+export function localeContentKeys(locale: Locale): string[] {
+  return Object.keys(TABLES[locale]);
 }
 
 /**

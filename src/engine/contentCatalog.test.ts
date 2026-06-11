@@ -5,6 +5,7 @@ import {
   SEEDED_RECURRING_KEY_BY_NAME,
   SUPPORTED_LOCALES,
   displayName,
+  localeContentKeys,
   resolveDisplayName,
   seededContentKeys,
 } from "./contentCatalog";
@@ -53,6 +54,16 @@ describe("completeness guard", () => {
         expect(out, `${key} @ ${locale}`).toBeTruthy();
         expect(out, `${key} @ ${locale} resolved to the raw key`).not.toBe(key);
       }
+    }
+  });
+
+  it("every shipped locale's table carries EXACTLY the seeded key set (no gaps, no orphans)", () => {
+    // The resolve-time English fallback makes a missing key invisible above (displayName still
+    // returns a truthy non-key string), so this is the assertion that actually pins completeness:
+    // a forgotten key after a seed addition, or a mis-slugged orphan, fails here — not on a player.
+    const expected = seededContentKeys().sort();
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(localeContentKeys(locale).sort(), `key set @ ${locale}`).toEqual(expected);
     }
   });
 });
