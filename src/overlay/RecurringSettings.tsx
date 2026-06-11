@@ -1,17 +1,17 @@
 import type { RecurringDef, RecurringKind } from "../engine/recurring";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 type Props = {
   recurring: RecurringDef[];
   /** Which flavour this section edits — `deadline` (EXPIRING ITEMS) or `gate` (ROUTINE). */
   kind: RecurringKind;
-  /** Section heading and the "+ add" footer label, so the two sections read distinctly. */
-  title: string;
-  addLabel: string;
-  emptyLabel: string;
   onAdd: () => void;
   onRename: (defId: string, name: string) => void;
   onSetDuration: (defId: string, durationMs: number) => void;
   onRemove: (defId: string) => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 const MS_PER_MIN = 60_000;
@@ -36,15 +36,16 @@ const MS_PER_DAY = 86_400_000;
 export function RecurringSettings({
   recurring,
   kind,
-  title,
-  addLabel,
-  emptyLabel,
   onAdd,
   onRename,
   onSetDuration,
   onRemove,
+  locale,
 }: Props) {
   const items = recurring.filter((d) => d.kind === kind);
+  const title = kind === "deadline" ? t("recurring.titleItems", locale) : t("recurring.titleRoutine", locale);
+  const addLabel = kind === "deadline" ? t("recurring.addItem", locale) : t("recurring.addRoutine", locale);
+  const emptyLabel = kind === "deadline" ? t("recurring.noItems", locale) : t("recurring.noRoutine", locale);
   return (
     <div className="panel cooldown-settings">
       <div className="settings-head">
@@ -52,8 +53,8 @@ export function RecurringSettings({
       </div>
 
       <div className="cd-head">
-        <span className="cd-head__name">NAME</span>
-        <span className="cd-head__dur">DURATION</span>
+        <span className="cd-head__name">{t("recurring.colName", locale)}</span>
+        <span className="cd-head__dur">{t("recurring.colDuration", locale)}</span>
         <span className="cd-head__x" />
       </div>
 
@@ -69,9 +70,9 @@ export function RecurringSettings({
               className="cd-name"
               value={d.name}
               onChange={(e) => onRename(d.id, e.target.value)}
-              placeholder="name"
+              placeholder={t("recurring.namePlaceholder", locale)}
             />
-            <div className="cd-dur" title="duration (days / hours / minutes)">
+            <div className="cd-dur" title={t("recurring.durationTitle", locale)}>
               <input
                 className="cd-dur__n"
                 type="number"
@@ -100,7 +101,7 @@ export function RecurringSettings({
               />
               <span className="cd-dur__u">m</span>
             </div>
-            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title="remove item">
+            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("recurring.removeItem", locale)}>
               ✕
             </button>
           </div>
