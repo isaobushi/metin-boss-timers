@@ -17,6 +17,8 @@ import { fmtDur, type CooldownDef } from "../engine/cooldown";
 import { GAP_MS, applyNotch } from "../engine/cooldownTuning";
 import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -29,9 +31,11 @@ type Props = {
    *  self-managed (the cooldowns-only HUD just clicks the + itself). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
-export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange }: Props) {
+export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange, locale }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
@@ -114,8 +118,8 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
       <button
         className="cooldown-add"
         onClick={() => setOpen(!open)}
-        title="start a cooldown"
-        aria-label="start a cooldown"
+        title={t("picker.startCooldown", locale)}
+        aria-label={t("picker.startCooldown", locale)}
       >
         +
       </button>
@@ -126,7 +130,7 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
           }`}
           ref={menuRef}
         >
-          <div className="cooldown-menu__hint">scroll to change time</div>
+          <div className="cooldown-menu__hint">{t("picker.hint", locale)}</div>
           {catalog.map((d) => (
             // data-defid on the row so scroll-to-tune works across the whole row, including over the
             // duplicate button; the start and duplicate actions are separate buttons.
@@ -137,7 +141,7 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
                   onStart(d.id);
                   setOpen(false);
                 }}
-                title="click to start · scroll to tune duration"
+                title={t("picker.itemTitle", locale)}
               >
                 <span className="cooldown-menu__tag">{d.tag}</span>
                 <span className="cooldown-menu__name">{d.name}</span>

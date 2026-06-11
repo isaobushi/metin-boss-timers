@@ -4,6 +4,8 @@ import { SOUND_IDS, soundLabel, type SoundId } from "../engine/sounds";
 import { eventToCombo, prettyCombo } from "../engine/hotkey";
 import { previewSound } from "./audio";
 import { inTextField } from "./hotkeys";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 type Props = {
   boss: Boss;
@@ -15,6 +17,8 @@ type Props = {
   onSetSound: (skillId: string, soundId: SoundId) => void;
   onSetHotkey: (skillId: string, hotkey: string | undefined) => void;
   onRemoveSkill: (skillId: string) => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 /**
@@ -35,6 +39,7 @@ export function BossSettings({
   onSetSound,
   onSetHotkey,
   onRemoveSkill,
+  locale,
 }: Props) {
   // While a skill is "capturing", the next keypress becomes its binding (Esc clears).
   const [capturing, setCapturing] = useState<string | null>(null);
@@ -65,18 +70,18 @@ export function BossSettings({
           className="boss-name-input"
           value={boss.name}
           onChange={(e) => onRenameBoss(e.target.value)}
-          placeholder="boss name"
+          placeholder={t("boss.bossNamePlaceholder", locale)}
         />
-        <button className="icon-btn icon-btn--danger" onClick={onDeleteBoss} title="delete boss">
+        <button className="icon-btn icon-btn--danger" onClick={onDeleteBoss} title={t("boss.deleteBoss", locale)}>
           🗑
         </button>
       </div>
 
       <div className="skill-head">
-        <span className="skill-head__name">SKILL</span>
-        <span className="skill-head__sec">SEC</span>
-        <span className="skill-head__sound">SOUND</span>
-        <span className="skill-head__key">HOTKEY</span>
+        <span className="skill-head__name">{t("boss.colSkill", locale)}</span>
+        <span className="skill-head__sec">{t("boss.colSec", locale)}</span>
+        <span className="skill-head__sound">{t("boss.colSound", locale)}</span>
+        <span className="skill-head__key">{t("boss.colHotkey", locale)}</span>
         <span className="skill-head__x" />
       </div>
 
@@ -86,7 +91,7 @@ export function BossSettings({
             className="skill-name"
             value={s.label}
             onChange={(e) => onRenameSkill(s.id, e.target.value)}
-            placeholder="name"
+            placeholder={t("boss.skillNamePlaceholder", locale)}
           />
           <input
             className="skill-sec"
@@ -95,14 +100,14 @@ export function BossSettings({
             max={999}
             value={Math.round(s.durationMs / 1000)}
             onChange={(e) => onSetDuration(s.id, Number(e.target.value) * 1000)}
-            title="duration (seconds)"
+            title={t("boss.durationTitle", locale)}
           />
           <div className="skill-sound">
             <select
               className="skill-sound__select"
               value={s.soundId}
               onChange={(e) => onSetSound(s.id, e.target.value as SoundId)}
-              title="sound played on this skill's cues"
+              title={t("boss.soundTitle", locale)}
             >
               {SOUND_IDS.map((id) => (
                 <option key={id} value={id}>
@@ -113,7 +118,7 @@ export function BossSettings({
             <button
               className="skill-sound__preview"
               onClick={() => previewSound(s.soundId)}
-              title="preview this sound"
+              title={t("boss.previewSound", locale)}
             >
               ▶
             </button>
@@ -121,19 +126,19 @@ export function BossSettings({
           <button
             className={`skill-key${capturing === s.id ? " skill-key--capturing" : ""}`}
             onClick={() => setCapturing(capturing === s.id ? null : s.id)}
-            title="hotkey to reset this timer — click, then press a key (Esc clears)"
+            title={t("boss.hotkeyTitle", locale)}
           >
             {capturing === s.id ? "…" : prettyCombo(s.hotkey)}
           </button>
-          <button className="icon-btn icon-btn--danger" onClick={() => onRemoveSkill(s.id)} title="remove skill">
+          <button className="icon-btn icon-btn--danger" onClick={() => onRemoveSkill(s.id)} title={t("boss.removeSkill", locale)}>
             ✕
           </button>
         </div>
       ))}
-      {boss.skills.length === 0 && <div className="empty">no skills yet</div>}
+      {boss.skills.length === 0 && <div className="empty">{t("boss.noSkills", locale)}</div>}
 
       <button className="btn-dashed" onClick={onAddSkill}>
-        + ADD SKILL
+        {t("boss.addSkill", locale)}
       </button>
     </div>
   );

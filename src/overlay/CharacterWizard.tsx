@@ -10,6 +10,7 @@ import { type Build, type Empire, type Race, buildsFor } from "../engine/skillCa
 import { displayName, type Locale } from "../engine/contentCatalog";
 import { buildKey, empireKey, raceKey } from "../engine/contentKeys";
 import type { CharacterDraft } from "../engine/config";
+import { t } from "../engine/chrome";
 
 const EMPIRES: Empire[] = ["Shinsoo", "Chunjo", "Jinno"];
 const RACES: Race[] = ["Warrior", "Ninja", "Sura", "Shaman", "Lycan"];
@@ -66,14 +67,14 @@ export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCan
   return (
     <div className="dock-acc char-wizard">
       <div className="char-wizard__head">
-        <span className="char-wizard__title">{mode === "edit" ? "EDIT CHARACTER" : "NEW CHARACTER"}</span>
+        <span className="char-wizard__title">{mode === "edit" ? t("wizard.editCharacter", locale) : t("wizard.newCharacter", locale)}</span>
         <span className="char-wizard__steps">
           {steps.map((s, i) => (
             <span key={s} className={`char-wizard__dot${i === stepIdx ? " is-active" : ""}`} />
           ))}
         </span>
         {onCancel && (
-          <button className="char-wizard__x" onClick={onCancel} title="cancel">
+          <button className="char-wizard__x" onClick={onCancel} title={t("wizard.cancel", locale)}>
             ✕
           </button>
         )}
@@ -84,12 +85,12 @@ export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCan
           className="char-wizard__name"
           value={name}
           autoFocus
-          placeholder="character name…"
+          placeholder={t("wizard.namePlaceholder", locale)}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") primary();
           }}
-          aria-label="character name"
+          aria-label={t("wizard.nameAriaLabel", locale)}
         />
       )}
 
@@ -138,13 +139,13 @@ export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCan
       <div className="char-wizard__foot">
         {stepIdx > 0 ? (
           <button className="char-wizard__back" onClick={() => setStepIdx((i) => i - 1)}>
-            ← Back
+            {t("wizard.back", locale)}
           </button>
         ) : (
           <span />
         )}
         <button className="char-wizard__next" onClick={primary} disabled={!canAdvance}>
-          {isLast ? (mode === "edit" ? "Save" : "Create") : "Next →"}
+          {isLast ? (mode === "edit" ? t("wizard.save", locale) : t("wizard.create", locale)) : t("wizard.next", locale)}
         </button>
       </div>
     </div>

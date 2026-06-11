@@ -1,17 +1,20 @@
 import type { Mutation } from "../engine/entitlement";
+import { t, type ChromeKey } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
+
+/** Cap copy per mutation — exhaustive by type, so a new `Mutation` variant is a compile error here. */
+const COPY: Record<Mutation, ChromeKey> = {
+  addBoss: "cap.addBoss",
+  addCharacter: "cap.addCharacter",
+  addReminder: "cap.addReminder",
+};
 
 type Props = {
   mutation: Mutation;
   onUpgrade: () => void;
   onDismiss: () => void;
-};
-
-// Per-cap copy: names the Lite limit just hit and exactly what Pro unlocks. Non-deceptive — it states
-// the cap plainly and never implies the action will work after dismissing.
-const COPY: Record<Mutation, string> = {
-  addBoss: "Lite includes 1 custom boss. Pro lifts every cap — build as many boss sequences as you like.",
-  addCharacter: "Lite is a single character. Pro unlocks your whole stable — unlimited profiles.",
-  addReminder: "Lite includes 3 reminders. Pro lifts the cap so you can track every chore.",
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 /**
@@ -19,16 +22,17 @@ const COPY: Record<Mutation, string> = {
  * the Pro unlock, with one path up (Upgrade → subscribe screen) and a plain dismiss. No dark patterns:
  * the cap is stated honestly, the close is always there, nothing is pre-checked or guilt-framed.
  */
-export function CapNudge({ mutation, onUpgrade, onDismiss }: Props) {
+export function CapNudge({ mutation, onUpgrade, onDismiss, locale }: Props) {
+  const text = t(COPY[mutation], locale);
   return (
     <div className="cap-nudge" role="alert">
-      <p className="cap-nudge__text">{COPY[mutation]}</p>
+      <p className="cap-nudge__text">{text}</p>
       <div className="cap-nudge__actions">
         <button className="cap-nudge__upgrade" onClick={onUpgrade}>
-          See Pro
+          {t("cap.seePro", locale)}
         </button>
         <button className="cap-nudge__dismiss" onClick={onDismiss}>
-          Dismiss
+          {t("cap.dismiss", locale)}
         </button>
       </div>
     </div>

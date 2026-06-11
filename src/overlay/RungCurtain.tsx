@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ladderRungs } from "../engine/recurring";
 import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -23,9 +25,11 @@ type Props = {
   currentRung: string;
   /** Snap the def's rank to the picked rung's entry threshold (writes progress only). */
   onPick: (rungLabel: string) => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
-export function RungCurtain({ text, ladderId, currentRung, onPick }: Props) {
+export function RungCurtain({ text, ladderId, currentRung, onPick, locale }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
@@ -80,7 +84,7 @@ export function RungCurtain({ text, ladderId, currentRung, onPick }: Props) {
       <button
         className="dock-acc__ladder rung-curtain__trigger"
         onClick={() => setOpen((o) => !o)}
-        title="set current rung"
+        title={t("rung.triggerTitle", locale)}
       >
         {text}
       </button>
@@ -95,12 +99,12 @@ export function RungCurtain({ text, ladderId, currentRung, onPick }: Props) {
             className="rung-menu__search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="filter rungs…"
-            aria-label="filter rungs"
+            placeholder={t("rung.filterPlaceholder", locale)}
+            aria-label={t("rung.filterAriaLabel", locale)}
           />
           <div className="rung-menu__list">
             {shown.length === 0 ? (
-              <div className="rung-menu__empty">no match</div>
+              <div className="rung-menu__empty">{t("rung.noMatch", locale)}</div>
             ) : (
               shown.map((r) => (
                 <button

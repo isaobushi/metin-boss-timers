@@ -3,12 +3,13 @@ import { displayName, type Locale } from "../engine/contentCatalog";
 import { raceKey } from "../engine/contentKeys";
 import { RungCurtain } from "./RungCurtain";
 import type { RoutineRow } from "./useRecurring";
+import { t, type ChromeKey } from "../engine/chrome";
 
 /** The Routine bands in display order (#57): race Abilities first, then Languages, then the universals. */
-const SECTIONS: { key: RoutineSection; label: string }[] = [
-  { key: "books", label: "Skill Books" },
-  { key: "languages", label: "Languages" },
-  { key: "chores", label: "Utilities" },
+const SECTIONS: { key: RoutineSection; labelKey: ChromeKey }[] = [
+  { key: "books", labelKey: "routine.sectionBooks" },
+  { key: "languages", labelKey: "routine.sectionLanguages" },
+  { key: "chores", labelKey: "routine.sectionChores" },
 ];
 
 type Props = {
@@ -55,7 +56,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
   if (rows.length === 0) {
     return (
       <div className="dock-acc">
-        <div className="dock-acc__empty">no routine items yet</div>
+        <div className="dock-acc__empty">{t("routine.empty", locale)}</div>
       </div>
     );
   }
@@ -72,6 +73,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
               ladderId={row.ladder.ladderId}
               currentRung={row.ladder.rungLabel}
               onPick={(label) => onSetRung(row.defId, label)}
+              locale={locale}
             />
           )}
         </span>
@@ -90,8 +92,8 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
                 onClick={() => onRead(row.defId, true)}
                 title={
                   row.ready
-                    ? "successful read — advance the rung and restamp the 24h gate"
-                    : "read now (skipped the cooldown) — advance the rung and restamp from now"
+                    ? t("routine.readSuccessReady", locale)
+                    : t("routine.readSuccessEarly", locale)
                 }
               >
                 ✓
@@ -101,8 +103,8 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
                 onClick={() => onRead(row.defId, false)}
                 title={
                   row.ready
-                    ? "failed read — book burned, no advance; restamp the 24h gate"
-                    : "read now (skipped the cooldown) but failed — book burned, no advance; restamp from now"
+                    ? t("routine.readFailReady", locale)
+                    : t("routine.readFailEarly", locale)
                 }
               >
                 ✗
@@ -114,7 +116,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
           <button
             className="dock-acc__done"
             onClick={() => onDone(row.defId)}
-            title={row.ready ? "mark done — restamp a full cycle from now" : "done early — restamp from now (forfeits the wait)"}
+            title={row.ready ? t("routine.markDoneReady", locale) : t("routine.markDoneEarly", locale)}
           >
             ✓
           </button>
@@ -158,7 +160,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
     <div className="dock-acc">
       {banded.map((band) => (
         <div className="dock-acc__section" key={band.key}>
-          {showHeaders && <div className="dock-acc__section-head">{band.label}</div>}
+          {showHeaders && <div className="dock-acc__section-head">{t(band.labelKey, locale)}</div>}
           {band.key === "books" ? renderBooks(band.rows) : band.rows.map(renderRow)}
         </div>
       ))}

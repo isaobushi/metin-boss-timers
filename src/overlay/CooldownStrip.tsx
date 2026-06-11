@@ -16,6 +16,8 @@ import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
 import { CooldownPicker } from "./CooldownPicker";
 import type { CooldownPill } from "./useCooldowns";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -32,6 +34,8 @@ type Props = {
   /** A node (the dock's controlled + picker) dropped into the pills grid as a trailing cell, so it
    *  lines up horizontally with the badges instead of getting its own row below them (ADR-0003). */
   trailing?: ReactNode;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 export function CooldownStrip({
@@ -44,6 +48,7 @@ export function CooldownStrip({
   onDuplicate,
   showAdd = true,
   trailing,
+  locale,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
@@ -84,7 +89,7 @@ export function CooldownStrip({
                 e.preventDefault();
                 onClear(p.defId);
               }}
-              title={`${p.name} — left-click restart · right-click clear`}
+              title={`${p.name} — ${t("cooldownStrip.pillHint", locale)}`}
             >
               <span className="cooldown-pill__tag">{p.tag}</span>
               <span className="cooldown-pill__num">{p.readout}</span>
@@ -93,7 +98,7 @@ export function CooldownStrip({
           {trailing}
         </div>
       )}
-      {showAdd && <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} onDuplicate={onDuplicate} />}
+      {showAdd && <CooldownPicker catalog={catalog} onStart={onStart} onTune={onTune} onDuplicate={onDuplicate} locale={locale} />}
     </div>
   );
 }

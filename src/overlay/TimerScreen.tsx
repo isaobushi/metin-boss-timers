@@ -3,10 +3,14 @@ import type { Boss } from "../engine/config";
 import { Chip } from "./Chip";
 import { useHotkeys } from "./hotkeys";
 import { useTimers } from "./useTimers";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 type Props = {
   boss: Boss;
   onChangeBoss: () => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 /**
@@ -20,7 +24,7 @@ type Props = {
  * quiet footer ← changes dungeon (matching Templum's back control). The + add-picker rides with the
  * cooldown strip above, not here, so it stays lined up with the running-cooldown badges.
  */
-export function TimerScreen({ boss, onChangeBoss }: Props) {
+export function TimerScreen({ boss, onChangeBoss, locale }: Props) {
   const { views, register, onToggle, onReset, onTrigger } = useTimers(boss.skills);
   // Only mounted here, so only the active boss's bindings are registered; a fired key re-arms
   // (reset + start) its timer. Re-registers when this boss's bindings change.
@@ -44,14 +48,15 @@ export function TimerScreen({ boss, onChangeBoss }: Props) {
           />
         </div>
       ))}
-      {views.length === 0 && <div className="empty">no skills — add some in ⚙ settings</div>}
+      {views.length === 0 && <div className="empty">{t("timer.noSkills", locale)}</div>}
       <div className="timer-foot">
-        <button className="icon-btn" onClick={onChangeBoss} title="back to dungeons">
+        <button className="icon-btn" onClick={onChangeBoss} title={t("timer.back", locale)}>
           ←
         </button>
         {views.length > 0 && (
           <span className="timer-hint">
-            <b>left-click</b> stop / start · <b>right-click</b> reset
+            <b>{t("timer.hintLeftClick", locale)}</b> {t("timer.hintStopStart", locale)} ·{" "}
+            <b>{t("timer.hintRightClick", locale)}</b> {t("timer.hintReset", locale)}
           </span>
         )}
       </div>

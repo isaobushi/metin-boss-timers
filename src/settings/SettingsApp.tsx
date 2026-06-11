@@ -20,18 +20,12 @@ import { CapNudge } from "../overlay/CapNudge";
 import { SubscribeScreen } from "../overlay/SubscribeScreen";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
 import type { Entitlement } from "../engine/entitlement";
+import { t } from "../engine/chrome";
 
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
 // skills tool), ⏱ the dungeon cooldowns, ♻ the expiring items, ✓ the routine gates.
 type TabId = "dungeons" | "cooldowns" | "items" | "routine" | "language";
-const TABS: ReadonlyArray<{ id: TabId; icon: string; label: string }> = [
-  { id: "dungeons", icon: "⚔", label: "Dungeons" },
-  { id: "cooldowns", icon: "⏱", label: "Cooldowns" },
-  { id: "items", icon: "♻", label: "Items" },
-  { id: "routine", icon: "✓", label: "Routine" },
-  { id: "language", icon: "🌐", label: "Language" },
-];
 
 // `onClose` is supplied when the settings render inline in the browser (App's modal): Esc
 // and the ✕ button dismiss the modal. In the Tauri settings window it's absent, so closing
@@ -78,38 +72,47 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [close]);
 
+  const locale = cfg.config.locale;
+  const TABS: ReadonlyArray<{ id: TabId; icon: string; label: string }> = [
+    { id: "dungeons", icon: "⚔", label: t("settings.tabDungeons", locale) },
+    { id: "cooldowns", icon: "⏱", label: t("settings.tabCooldowns", locale) },
+    { id: "items", icon: "♻", label: t("settings.tabItems", locale) },
+    { id: "routine", icon: "✓", label: t("settings.tabRoutine", locale) },
+    { id: "language", icon: "🌐", label: t("settings.tabLanguage", locale) },
+  ];
+
   return (
     <div className="settings-app">
       <div className="settings-app__head">
-        <span className="settings-app__title">SETTINGS</span>
+        <span className="settings-app__title">{t("settings.title", locale)}</span>
         <div className="settings-app__actions">
           <button
             className="btn-link"
             onClick={() => {
-              if (window.confirm("Reset all bosses, skills, cooldowns and items to defaults?")) cfg.resetConfig();
+              if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetConfig();
             }}
           >
-            reset to defaults
+            {t("settings.resetToDefaults", locale)}
           </button>
           {onClose && (
-            <button className="btn-link" onClick={onClose} title="close settings">
-              ✕ close
+            <button className="btn-link" onClick={onClose} title={t("settings.closeTitle", locale)}>
+              ✕ {t("settings.close", locale)}
             </button>
           )}
         </div>
       </div>
 
       <div className="settings-tabs" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map((tab_) => (
           <button
-            key={t.id}
+            key={tab_.id}
             role="tab"
-            aria-selected={tab === t.id}
-            className={`settings-tab${tab === t.id ? " is-active" : ""}`}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === tab_.id}
+            className={`settings-tab${tab === tab_.id ? " is-active" : ""}`}
+            onClick={() => setTab(tab_.id)}
           >
-            <span className="settings-tab__icon">{t.icon}</span>
-            {t.label}
+            <span className="settings-tab__icon">{tab_.icon}</span>
+            {tab_.label}
           </button>
         ))}
       </div>
@@ -121,6 +124,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
               <BossSettings
                 key={boss.id}
                 boss={boss}
+                locale={cfg.config.locale}
                 onRenameBoss={(name) => cfg.editBossName(boss.id, name)}
                 onDeleteBoss={() => cfg.removeBoss(boss.id)}
                 onAddSkill={() => cfg.createSkill(boss.id)}
@@ -134,7 +138,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           </div>
 
           <button className="btn-dashed" onClick={() => cfg.createBoss()}>
-            + ADD BOSS
+            {t("settings.addBoss", locale)}
           </button>
         </>
       )}
@@ -142,6 +146,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
       {tab === "cooldowns" && (
         <CooldownSettings
           cooldowns={cfg.config.cooldowns}
+          locale={cfg.config.locale}
           onAdd={() => cfg.createCooldown()}
           onRename={(defId, name) => cfg.editCooldownName(defId, name)}
           onRetag={(defId, tag) => cfg.editCooldownTag(defId, tag)}
@@ -154,9 +159,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
         <RecurringSettings
           recurring={activeRecurring(cfg.config)}
           kind="deadline"
-          title="EXPIRING ITEMS"
-          addLabel="+ ADD ITEM"
-          emptyLabel="no expiring items yet"
+          locale={cfg.config.locale}
           onAdd={() => cfg.createRecurring()}
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
@@ -168,9 +171,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
         <RecurringSettings
           recurring={activeRecurring(cfg.config)}
           kind="gate"
-          title="ROUTINE"
-          addLabel="+ ADD ROUTINE"
-          emptyLabel="no routine items yet"
+          locale={cfg.config.locale}
           onAdd={() => cfg.createRoutine()}
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
@@ -186,12 +187,12 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
       )}
 
       {/* Global backup/trust feature (#56) — export/import a portable copy of the whole config. */}
-      <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} />
+      <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />
 
       {/* Cap-hit nudge (#56): a capped add (boss / reminder) was just refused here. */}
       {cfg.capNudge && (
         <div className="settings-modal">
-          <CapNudge mutation={cfg.capNudge} onUpgrade={openSubscribe} onDismiss={cfg.dismissNudge} />
+          <CapNudge mutation={cfg.capNudge} onUpgrade={openSubscribe} onDismiss={cfg.dismissNudge} locale={cfg.config.locale} />
         </div>
       )}
       {showSubscribe && (
@@ -201,6 +202,7 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
             onStartTrial={() => void applyPurchase(startTrial())}
             onSubscribe={(plan: Plan) => void applyPurchase(subscribe(plan))}
             onClose={() => setShowSubscribe(false)}
+            locale={cfg.config.locale}
           />
         </div>
       )}

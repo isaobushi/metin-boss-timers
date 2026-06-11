@@ -1,4 +1,6 @@
 import type { CooldownDef } from "../engine/cooldown";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
 type Props = {
   cooldowns: CooldownDef[];
@@ -7,6 +9,8 @@ type Props = {
   onRetag: (defId: string, tag: string) => void;
   onSetDuration: (defId: string, durationMs: number) => void;
   onRemove: (defId: string) => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
 };
 
 const MS_PER_MIN = 60_000;
@@ -23,17 +27,17 @@ const MS_PER_HOUR = 3_600_000;
  * out of the stored ms and recombined on edit; the engine clamps the result to [1m, 12h]
  * (overlay/useConfig → setCooldownDuration), so an empty/zero entry snaps back to 1 minute.
  */
-export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDuration, onRemove }: Props) {
+export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDuration, onRemove, locale }: Props) {
   return (
     <div className="panel cooldown-settings">
       <div className="settings-head">
-        <span className="cooldown-settings__title">COOLDOWNS</span>
+        <span className="cooldown-settings__title">{t("cooldown.title", locale)}</span>
       </div>
 
       <div className="cd-head">
-        <span className="cd-head__name">NAME</span>
-        <span className="cd-head__tag">TAG</span>
-        <span className="cd-head__dur">DURATION</span>
+        <span className="cd-head__name">{t("cooldown.colName", locale)}</span>
+        <span className="cd-head__tag">{t("cooldown.colTag", locale)}</span>
+        <span className="cd-head__dur">{t("cooldown.colDuration", locale)}</span>
         <span className="cd-head__x" />
       </div>
 
@@ -47,17 +51,17 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
               className="cd-name"
               value={d.name}
               onChange={(e) => onRename(d.id, e.target.value)}
-              placeholder="name"
+              placeholder={t("cooldown.namePlaceholder", locale)}
             />
             <input
               className="cd-tag"
               value={d.tag}
               onChange={(e) => onRetag(d.id, e.target.value)}
-              placeholder="tag"
+              placeholder={t("cooldown.tagPlaceholder", locale)}
               maxLength={6}
-              title="short label shown in the strip (auto-derived from the name; editable)"
+              title={t("cooldown.tagTitle", locale)}
             />
-            <div className="cd-dur" title="duration (hours / minutes)">
+            <div className="cd-dur" title={t("cooldown.durationTitle", locale)}>
               <input
                 className="cd-dur__n"
                 type="number"
@@ -77,16 +81,16 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
               />
               <span className="cd-dur__u">m</span>
             </div>
-            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title="remove cooldown">
+            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("cooldown.removeCooldown", locale)}>
               ✕
             </button>
           </div>
         );
       })}
-      {cooldowns.length === 0 && <div className="empty">no cooldowns yet</div>}
+      {cooldowns.length === 0 && <div className="empty">{t("cooldown.noCooldowns", locale)}</div>}
 
       <button className="btn-dashed" onClick={onAdd}>
-        + ADD COOLDOWN
+        {t("cooldown.addCooldown", locale)}
       </button>
     </div>
   );

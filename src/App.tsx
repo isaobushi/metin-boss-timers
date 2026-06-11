@@ -132,6 +132,7 @@ export default function App() {
       onDuplicate={cd.duplicate}
       open={addOpen}
       onOpenChange={setAddOpen}
+      locale={cfg.config.locale}
     />
   );
 
@@ -150,6 +151,7 @@ export default function App() {
         onDuplicate={cd.duplicate}
         showAdd={false}
         trailing={cooldownPicker}
+        locale={cfg.config.locale}
       />
     ) : (
       cooldownPicker
@@ -174,6 +176,7 @@ export default function App() {
       activeId={cfg.config.activeCharacterId}
       frozenIds={charFrozenIds}
       canAdd={canAddCharacter}
+      locale={cfg.config.locale}
       onSwitch={cfg.switchCharacter}
       onEdit={(id) => {
         closeCooldownStrip();
@@ -217,7 +220,7 @@ export default function App() {
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
-    belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} />;
+    belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} locale={cfg.config.locale} />;
   } else if (panel === "routine") {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
@@ -226,14 +229,15 @@ export default function App() {
     );
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).
-    belowPanel = <SequenceScreen onBack={() => setPanel("skills")} />;
+    belowPanel = <SequenceScreen onBack={() => setPanel("skills")} locale={cfg.config.locale} />;
   } else if (panel === "timers" && cfg.activeBoss) {
-    belowPanel = <TimerScreen boss={cfg.activeBoss} onChangeBoss={() => setPanel("skills")} />;
+    belowPanel = <TimerScreen boss={cfg.activeBoss} onChangeBoss={() => setPanel("skills")} locale={cfg.config.locale} />;
   } else if (panel === "skills" || panel === "timers") {
     // The dungeon picker (also the fallback if "timers" is somehow open with no active boss).
     belowPanel = (
       <BossSelect
         bosses={cfg.config.bosses}
+        locale={cfg.config.locale}
         onPick={(id) => {
           cfg.selectBoss(id);
           setPanel("timers");
@@ -251,6 +255,7 @@ export default function App() {
         activeBossName={cfg.activeBoss?.name}
         itemsDatum={rec.datum}
         routineDatum={rec.routineDatum}
+        locale={cfg.config.locale}
         onSkills={() => setPanel(skillsOpen ? null : cfg.activeBoss ? "timers" : "skills")}
         onCooldowns={() => {
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
@@ -278,7 +283,7 @@ export default function App() {
       {cooldownStrip}
       {belowPanel}
       {/* Standing upgrade / trial-status entry to Pro (#58); renders nothing for a subscribed user. */}
-      <UpgradeBanner entitlement={cfg.entitlement} onOpen={() => setShowSubscribe(true)} />
+      <UpgradeBanner entitlement={cfg.entitlement} onOpen={() => setShowSubscribe(true)} locale={cfg.config.locale} />
     </>
   );
 
@@ -305,6 +310,7 @@ export default function App() {
               setShowSubscribe(true);
             }}
             onDismiss={cfg.dismissNudge}
+            locale={cfg.config.locale}
           />
         </div>
       )}
@@ -315,6 +321,7 @@ export default function App() {
             onStartTrial={onStartTrial}
             onSubscribe={onSubscribe}
             onClose={() => setShowSubscribe(false)}
+            locale={cfg.config.locale}
           />
         </div>
       )}
