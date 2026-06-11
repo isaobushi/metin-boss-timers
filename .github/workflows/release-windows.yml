@@ -70,8 +70,8 @@ jobs:
           Write-Host "version=$ver -> msix=$msixVersion"
 
           # identity (repo variables, with dev placeholders when unset)
-          $identityName  = if ($env:MSIX_IDENTITY_NAME)          { $env:MSIX_IDENTITY_NAME }          else { "DungeonAid.Dev" }
-          $publisher     = if ($env:MSIX_PUBLISHER)              { $env:MSIX_PUBLISHER }              else { "CN=DungeonAid-Dev-Placeholder" }
+          $identityName  = if ($env:MSIX_IDENTITY_NAME)          { $env:MSIX_IDENTITY_NAME }          else { "DragonsAid.Dev" }
+          $publisher     = if ($env:MSIX_PUBLISHER)              { $env:MSIX_PUBLISHER }              else { "CN=DragonsAid-Dev-Placeholder" }
           $publisherName = if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { "isaobushi" }
           Write-Host "identity=$identityName publisher=$publisher"
 
@@ -86,7 +86,7 @@ jobs:
           $layout = "msix-layout"
           Remove-Item $layout -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path "$layout/Assets" | Out-Null
-          Copy-Item $exe.FullName "$layout/DungeonAid.exe"
+          Copy-Item $exe.FullName "$layout/DragonsAid.exe"
           foreach ($asset in "StoreLogo","Square150x150Logo","Square44x44Logo","Square71x71Logo") {
             Copy-Item "src-tauri/icons/$asset.png" "$layout/Assets/$asset.png"
           }
@@ -105,7 +105,7 @@ jobs:
           if (-not $makeappx) { throw "makeappx.exe not found" }
           Write-Host "makeappx: $($makeappx.FullName)"
 
-          $out = "DungeonAid_${msixVersion}_x64.msix"
+          $out = "DragonsAid_${msixVersion}_x64.msix"
           & $makeappx.FullName pack /d $layout /p $out /o
           if ($LASTEXITCODE -ne 0) { throw "makeappx failed ($LASTEXITCODE)" }
           Write-Host "packed: $out"
@@ -129,7 +129,7 @@ jobs:
       # GitHub release.
       - uses: actions/upload-artifact@v4
         with:
-          name: dungeonaid-msix
+          name: dragonsaid-msix
           path: |
             ${{ steps.pack.outputs.msix }}
             SHA256SUMS.txt

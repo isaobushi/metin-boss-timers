@@ -1,4 +1,4 @@
-# DungeonAid
+# DragonsAid
 
 *A boss-respawn-timer overlay that works with Metin2.*
 
@@ -37,14 +37,14 @@ illustrative backdrop instead.
   game without cluttering your taskbar.
 
 That behaviour profile (global hotkeys + always-on-top + hidden taskbar) is the
-kind of thing antivirus heuristics flag — which is exactly why DungeonAid ships
+kind of thing antivirus heuristics flag — which is exactly why DragonsAid ships
 **only** through the Microsoft Store (Microsoft signs it, so there's no "unknown
 publisher" warning) and keeps its **source public** so the claims above are
 verifiable, not just promised. See the trust story below.
 
-## Get DungeonAid
+## Get DragonsAid
 
-DungeonAid is a paid app on the **Microsoft Store**. Distributing through the
+DragonsAid is a paid app on the **Microsoft Store**. Distributing through the
 Store means Microsoft signs the package — so there's no "unknown publisher" /
 SmartScreen warning to click through, and updates arrive automatically.
 
@@ -56,7 +56,7 @@ runs the same UI in your browser — no install, no account.
 
 ## Trust & verification
 
-DungeonAid registers global hotkeys and draws an always-on-top window — behaviour
+DragonsAid registers global hotkeys and draws an always-on-top window — behaviour
 worth being skeptical about. Two things let you *check* it rather than trust it:
 
 1. **Microsoft-signed.** The Store package is signed by Microsoft during
