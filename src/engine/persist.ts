@@ -40,6 +40,10 @@ const isKnownVersion = (v: unknown): boolean => v === 1 || v === 2 || v === 3;
  */
 const LEGACY_RECURRING_ALIASES: ReadonlyArray<[string, string]> = [
   ["Daily Books", recurringKey("Skill Books")], // renamed before v3 shipped (2026-06-10)
+  // "Snow Wolf" / "Costume of Flame" (seed examples REPLACED by "Alastor Pet" / "White Navy
+  // Uniform Costume", 2026-06-11) are deliberately NOT aliased: those are different in-game items,
+  // not respellings — an old blob's def keeps its frozen name as plain user content, and the
+  // stale-key guard below strips the dead key so it can never render as a raw key.
 ];
 
 const COOLDOWN_KEY_BY_NAME: ReadonlyMap<string, string> = SEEDED_COOLDOWN_KEY_BY_NAME;
@@ -48,21 +52,37 @@ const RECURRING_KEY_BY_NAME: ReadonlyMap<string, string> = new Map([
   ...LEGACY_RECURRING_ALIASES,
 ]);
 
+// Every key a def may legitimately carry — the live seeded keys (alias targets are live keys too).
+// A persisted key OUTSIDE this set is dead (its seed was replaced, or a newer build wrote it): the
+// resolver would fall through both tables and render the raw key string, so the guard strips it.
+const LIVE_COOLDOWN_KEYS: ReadonlySet<string> = new Set(COOLDOWN_KEY_BY_NAME.values());
+const LIVE_RECURRING_KEYS: ReadonlySet<string> = new Set(RECURRING_KEY_BY_NAME.values());
+
 /**
  * Backfill a missing `catalogKey` on a def by matching its `name` against the seeded lookup.
- * A def that already carries a `catalogKey` (a v3 round-trip) is left as-is. A def whose name
- * matches no seed (user-created free-text) is left untouched — no key, name verbatim.
+ * A def already carrying a LIVE `catalogKey` (a v3 round-trip) is left as-is; one carrying a dead
+ * key (its seed was since replaced) has the key stripped — frozen name verbatim, plain user
+ * content from here on. A def whose name matches no seed (user-created free-text) is left
+ * untouched — no key, name verbatim.
  */
 function backfillCooldownKey(def: CooldownDef): CooldownDef {
-  if (def.catalogKey) return def; // already keyed — nothing to do
+  if (def.catalogKey && LIVE_COOLDOWN_KEYS.has(def.catalogKey)) return def; // already keyed — nothing to do
   const key = COOLDOWN_KEY_BY_NAME.get(def.name);
-  return key ? { ...def, catalogKey: key } : def;
+  if (key) return { ...def, catalogKey: key };
+  if (!def.catalogKey) return def;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring-omit (the "_k" idiom)
+  const { catalogKey: _dead, ...rest } = def; // dead key: strip it (see LIVE_COOLDOWN_KEYS)
+  return rest;
 }
 
 function backfillRecurringKey(def: RecurringDef): RecurringDef {
-  if (def.catalogKey) return def; // already keyed — nothing to do
+  if (def.catalogKey && LIVE_RECURRING_KEYS.has(def.catalogKey)) return def; // already keyed — nothing to do
   const key = RECURRING_KEY_BY_NAME.get(def.name);
-  return key ? { ...def, catalogKey: key } : def;
+  if (key) return { ...def, catalogKey: key };
+  if (!def.catalogKey) return def;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring-omit (the "_k" idiom)
+  const { catalogKey: _dead, ...rest } = def; // dead key: strip it (see LIVE_RECURRING_KEYS)
+  return rest;
 }
 
 export type PersistedConfig = {

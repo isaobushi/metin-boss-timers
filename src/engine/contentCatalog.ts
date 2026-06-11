@@ -59,8 +59,8 @@ const DE: Record<string, string> = {
   "cooldown.northwind-war-chief": "Northwind War Chief",
 
   // ---- Recurring seed (deadline items) ----
-  "recurring.snow-wolf":        "Snow Wolf",
-  "recurring.costume-of-flame": "Costume of Flame",
+  "recurring.alastor-pet":      "Alastor Pet",
+  "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
   "recurring.battle-horse":     "Battle Horse",
 
   // ---- Recurring seed (gate chores — universals) ----

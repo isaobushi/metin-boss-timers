@@ -130,8 +130,8 @@ export const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> 
 // seeded ladder *structures* in `recurring.ts` (the rung table + caps), shared — transformation by
 // four defs, language by three. `ladderId` is pure presentation (like `kind`); the deadlines carry none.
 export const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }> = [
-  { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
-  { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
+  { name: "Alastor Pet", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
+  { name: "White Navy Uniform Costume", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
   { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "class-skill" }, // 55 reads M1→G1; 20k EXP/read
   { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // 0→P = 40 (20 to M1)
