@@ -4,8 +4,14 @@ import { ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
 import { COLUMNS, ELEMENTS, findToken, type Token } from "./sequenceTokens";
 import { useSequence, type SequenceController } from "./useSequence";
 import { playSelect } from "./audio";
+import { t } from "../engine/chrome";
+import type { Locale } from "../engine/localeTypes";
 
-type Props = { onBack: () => void };
+type Props = {
+  onBack: () => void;
+  /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
+  locale: Locale;
+};
 
 type Tool = "elements" | "columns";
 
@@ -16,11 +22,11 @@ type Tool = "elements" | "columns";
  * columns — each keeping its own sequence so flipping never loses what was recorded. State
  * is in-memory: leaving the screen starts fresh (same as the timer screens).
  */
-export function SequenceScreen({ onBack }: Props) {
+export function SequenceScreen({ onBack, locale }: Props) {
   const elements = useSequence(4); // Phase 1 — at most four metin groups
   const columns = useSequence(); // Phase 2
   const [tool, setTool] = useState<Tool>("elements");
-  const swap = () => setTool((t) => (t === "elements" ? "columns" : "elements"));
+  const swap = () => setTool((cur) => (cur === "elements" ? "columns" : "elements"));
 
   const isElements = tool === "elements";
   const c = isElements ? elements : columns;
@@ -29,7 +35,7 @@ export function SequenceScreen({ onBack }: Props) {
   return (
     <div className="panel sequence">
       <div className="seq-head">
-        <button className="icon-btn" onClick={onBack} title="back to boss select">
+        <button className="icon-btn" onClick={onBack} title={t("sequence.back", locale)}>
           ←
         </button>
         {/* Labeled destination toggle: the text is where you'll land, so the control says
@@ -37,25 +43,25 @@ export function SequenceScreen({ onBack }: Props) {
         <button
           className="seq-swap"
           onClick={swap}
-          aria-label={isElements ? "Switch to Columns (Phase 2)" : "Switch to Elements (Phase 1)"}
-          title={isElements ? "switch to columns (Phase 2)" : "switch to elements (Phase 1)"}
+          aria-label={isElements ? t("sequence.switchToColumns", locale) : t("sequence.switchToElements", locale)}
+          title={isElements ? t("sequence.switchToColumns", locale).toLowerCase() : t("sequence.switchToElements", locale).toLowerCase()}
         >
           <SwapIcon />
-          <span className="seq-swap__label">{isElements ? "Columns" : "Elements"}</span>
+          <span className="seq-swap__label">{isElements ? t("sequence.columnsLabel", locale) : t("sequence.elementsLabel", locale)}</span>
         </button>
         {/* doubles as the window's drag handle */}
         <span className="seq-head__title" data-tauri-drag-region>
-          {isElements ? "TEMPLUM · ELEMENTS" : "TEMPLUM · COLUMNS"}
+          {isElements ? t("sequence.titleElements", locale) : t("sequence.titleColumns", locale)}
         </span>
         <span className="seq-count">{c.state.steps.length}</span>
-        <button className="icon-btn" onClick={c.undo} disabled={!c.state.steps.length} title="undo last">
+        <button className="icon-btn" onClick={c.undo} disabled={!c.state.steps.length} title={t("sequence.undo", locale)}>
           <UndoIcon />
         </button>
         <button
           className="icon-btn icon-btn--danger"
           onClick={c.clear}
           disabled={!c.state.steps.length}
-          title="clear"
+          title={t("sequence.clear", locale)}
         >
           <TrashIcon />
         </button>
@@ -66,14 +72,15 @@ export function SequenceScreen({ onBack }: Props) {
       <RecallTrack
         c={c}
         alphabet={alphabet}
+        locale={locale}
         trailing={
           isElements ? (
             <button
               className="icon-btn icon-btn--queen"
               onClick={elements.rotate}
               disabled={elements.state.steps.length < 2}
-              aria-label="Queen shift"
-              title="queen: shift the order one place (1·2·3·4 → 4·1·2·3)"
+              aria-label={t("sequence.queenShift", locale)}
+              title={t("sequence.queenShiftTitle", locale)}
             />
           ) : undefined
         }
@@ -149,31 +156,33 @@ function ColumnNode({ t, c }: { t: Token; c: SequenceController }) {
 function RecallTrack({
   c,
   alphabet,
+  locale,
   trailing,
 }: {
   c: SequenceController;
   alphabet: Token[];
+  locale: Locale;
   trailing?: ReactNode;
 }) {
   if (c.state.steps.length === 0) {
-    return <div className="empty">tap above to record the order — tap a chip to tick it off</div>;
+    return <div className="empty">{t("sequence.empty", locale)}</div>;
   }
   return (
     <div className="track">
       {c.state.steps.map((id, i) => {
-        const t = findToken(alphabet, id);
+        const tok = findToken(alphabet, id);
         const done = c.state.done[i];
         const current = i === c.nextIndex;
         return (
           <button
             key={i}
             className={`track-chip${done ? " is-done" : ""}${current ? " is-current" : ""}`}
-            style={{ "--c": t.color } as CSSProperties}
+            style={{ "--c": tok.color } as CSSProperties}
             onClick={() => c.toggleDone(i)}
-            title="tap when destroyed / opened"
+            title={t("sequence.chipTitle", locale)}
           >
             <b>{i + 1}</b>
-            {t.icon ? <ElementIcon name={t.icon} /> : t.label}
+            {tok.icon ? <ElementIcon name={tok.icon} /> : tok.label}
           </button>
         );
       })}
