@@ -9,7 +9,7 @@ type Props = {
 const COPY: Record<Exclude<Entitlement, "subscribed">, { label: string; cta: string }> = {
   trial: { label: "✦ Pro trial active", cta: "Keep Pro" },
   lapsed: { label: "✦ Pro paused — your stable is frozen", cta: "Resubscribe" },
-  never: { label: "✦ Unlock DungeonAid Pro", cta: "Upgrade" },
+  never: { label: "✦ Unlock DragonsAid Pro", cta: "Upgrade" },
 };
 
 /**

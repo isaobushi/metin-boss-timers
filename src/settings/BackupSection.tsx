@@ -7,7 +7,7 @@ type Props = {
   onImport: (text: string) => boolean;
 };
 
-const FILENAME = "dungeonaid-backup.json";
+const FILENAME = "dragonsaid-backup.json";
 
 /**
  * The backup section (PRD #48, issue #56) — export the full config to a portable file, or import one

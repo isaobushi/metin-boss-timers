@@ -8,11 +8,11 @@ laptop — provenance is tied to a tagged public commit → workflow run → art
 
 1. `tauri build --no-bundle` compiles the release binary (`app.exe`).
 2. The workflow lays out a package directory:
-   - the binary, renamed to `DungeonAid.exe`
+   - the binary, renamed to `DragonsAid.exe`
    - `Assets/` — the Store logos copied from `src-tauri/icons/`
    - `AppxManifest.xml` — [`AppxManifest.template.xml`](./AppxManifest.template.xml)
      with its `__PLACEHOLDER__` tokens substituted
-3. `makeappx pack` produces `DungeonAid_<version>_x64.msix`.
+3. `makeappx pack` produces `DragonsAid_<version>_x64.msix`.
 4. The `.msix` gets a signed SLSA provenance attestation and is uploaded as a
    **CI artifact** — it is *not* published to GitHub Releases. A human downloads
    it and submits it to Partner Center, where **Microsoft re-signs it** for the
@@ -27,8 +27,8 @@ workflow stays green.
 
 | Repo variable                  | Manifest field            | Example (Partner Center)        | Dev placeholder fallback        |
 | ------------------------------ | ------------------------- | ------------------------------- | ------------------------------- |
-| `MSIX_IDENTITY_NAME`           | `Identity/@Name`          | `12345Isaobushi.DungeonAid`     | `DungeonAid.Dev`                |
-| `MSIX_PUBLISHER`               | `Identity/@Publisher`     | `CN=ABCD1234-...`               | `CN=DungeonAid-Dev-Placeholder` |
+| `MSIX_IDENTITY_NAME`           | `Identity/@Name`          | `12345Isaobushi.DragonsAid`     | `DragonsAid.Dev`                |
+| `MSIX_PUBLISHER`               | `Identity/@Publisher`     | `CN=ABCD1234-...`               | `CN=DragonsAid-Dev-Placeholder` |
 | `MSIX_PUBLISHER_DISPLAY_NAME`  | `PublisherDisplayName`    | `isaobushi`                     | `isaobushi`                     |
 
 Find the exact strings in Partner Center under **Product → Product identity**.

@@ -46,7 +46,7 @@ export function SubscribeScreen({ entitlement, onStartTrial, onSubscribe, onClos
   return (
     <div className="panel subscribe">
       <div className="panel__title" data-tauri-drag-region>
-        DUNGEONAID PRO
+        DRAGONSAID PRO
       </div>
       <p className="subscribe__lede">{lede}</p>
 

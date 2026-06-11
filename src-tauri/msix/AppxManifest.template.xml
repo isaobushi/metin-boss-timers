@@ -11,7 +11,7 @@
     __VERSION__                -> 4-part version derived from tauri.conf.json
 
   These identity values DIFFER from the Tauri bundle identifier
-  (com.isaobushi.dungeonaid); Partner Center assigns its own. They are supplied
+  (com.isaobushi.dragonsaid); Partner Center assigns its own. They are supplied
   to CI via repo variables (MSIX_IDENTITY_NAME / MSIX_PUBLISHER /
   MSIX_PUBLISHER_DISPLAY_NAME) and fall back to dev placeholders so the workflow
   is green before the Store account exists.
@@ -34,7 +34,7 @@
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>DungeonAid</DisplayName>
+    <DisplayName>DragonsAid</DisplayName>
     <PublisherDisplayName>__PUBLISHER_DISPLAY_NAME__</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -48,9 +48,9 @@
   </Resources>
 
   <Applications>
-    <Application Id="DungeonAid" Executable="DungeonAid.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="DragonsAid" Executable="DragonsAid.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="DungeonAid"
+        DisplayName="DragonsAid"
         Description="A transparent, always-on-top overlay of draining boss respawn timers, started with global hotkeys."
         BackgroundColor="#1a1a1a"
         Square150x150Logo="Assets\Square150x150Logo.png"

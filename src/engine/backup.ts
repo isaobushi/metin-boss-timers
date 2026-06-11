@@ -12,7 +12,7 @@ import { type Config } from "./config";
 import { type PersistedConfig, deserialize, serialize } from "./persist";
 
 /** Marks a JSON blob as one of our backups, so import can reject anything that isn't one. */
-export const BACKUP_FORMAT = "dungeonaid-backup";
+export const BACKUP_FORMAT = "dragonsaid-backup";
 
 /** The portable file shape: a format marker + the same versioned payload `persist` writes to disk. */
 type Backup = { format: typeof BACKUP_FORMAT; config: PersistedConfig };

@@ -1,4 +1,4 @@
-# DungeonAid
+# DragonsAid
 
 A desktop overlay (and matching web demo) that times Metin2 boss respawns and
 dungeon cooldowns over the running game, driven by global hotkeys. This glossary
