@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { readout, readyCrossings, remainingMs, type CooldownDef, type RunningCooldown } from "../engine/cooldown";
+import { resolveDisplayName } from "../engine/contentCatalog";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
@@ -46,7 +47,9 @@ export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
     return {
       defId: r.defId,
       tag: def?.tag ?? "?",
-      name: def?.name ?? r.defId,
+      // Seeded dungeons resolve their name per-locale (PRD #77, locale hardcoded "en" until #83);
+      // a user-added cooldown (no catalogKey) renders its free-text name verbatim.
+      name: def ? resolveDisplayName(def, "en") : r.defId,
       readout: readout(rem),
       ready: rem <= 0,
     };

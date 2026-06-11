@@ -14,6 +14,13 @@ export type CooldownDef = {
   /** Short label shown in the compact strip; auto-derived from the name (see `deriveTag`). */
   tag: string;
   durationMs: number;
+  /**
+   * Stable, locale-independent identity for a SEEDED cooldown (PRD #77) — present only on the
+   * shipped seed, absent on a user-added def (which renders its free-text `name` verbatim). The
+   * overlay resolves the display name through `contentCatalog.displayName(catalogKey, locale)`
+   * when set; `name` remains the English fallback. Pure presentation, like `tag`.
+   */
+  catalogKey?: string;
 };
 
 /** A started cooldown: its absolute `expiry`, plus `startedAt` for progress derivation. */

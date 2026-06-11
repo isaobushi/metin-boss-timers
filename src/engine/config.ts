@@ -20,6 +20,7 @@ import {
 import { type Character, DEFAULT_CHARACTER_NAME, activeCharacter, makeCharacter } from "./character";
 import { type Build, type Empire, type Race, subsetFor } from "./skillCatalog";
 import { clampDuration } from "./cooldownTuning";
+import { cooldownKey, recurringKey } from "./contentKeys";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -96,7 +97,7 @@ const DEFAULT_COOLDOWN_MS = 1 * MS_PER_HOUR;
 // The example dungeons a fresh install ships with. Durations are "examples not gospel" —
 // the user retunes them per server (the catalog editor is a later slice). Tags are
 // auto-derived from the names so the seed and any user-added cooldown stay consistent.
-const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
+export const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
   { name: "Hydra", durationMs: 15 * MS_PER_MIN },
   { name: "Razador", durationMs: 1 * MS_PER_HOUR },
   { name: "Nemere", durationMs: 4 * MS_PER_HOUR },
@@ -120,7 +121,7 @@ const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> = [
 // The trailing quota comments are now made live by `ladderId`: each gate points at one of the five
 // seeded ladder *structures* in `recurring.ts` (the rung table + caps), shared — transformation by
 // four defs, language by three. `ladderId` is pure presentation (like `kind`); the deadlines carry none.
-const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }> = [
+export const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }> = [
   { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
   { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
@@ -172,6 +173,7 @@ function seedCooldowns(): CooldownDef[] {
     name: cd.name,
     tag: deriveTag(cd.name),
     durationMs: cd.durationMs,
+    catalogKey: cooldownKey(cd.name),
   }));
 }
 
@@ -190,6 +192,10 @@ function mintRecurring(
     name: r.name,
     durationMs: r.durationMs,
     kind: r.kind,
+    // Stable, locale-independent identity (PRD #77), derived from the (English) name so a config-seed
+    // chore and the matching skill-catalog preform — same name — agree on one key. The overlay
+    // resolves the display name through this; `name` stays the English fallback.
+    catalogKey: recurringKey(r.name),
     ...(r.ladderId ? { ladderId: r.ladderId } : {}),
     // A class Ability carries its school (the catalog preform's `build`) so the dock can band the
     // Skill Books by school (#57); pure presentation, like `ladderId`. Non-ability sources have none.

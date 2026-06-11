@@ -1,4 +1,6 @@
 import type { RoutineSection } from "../engine/recurring";
+import { displayName } from "../engine/contentCatalog";
+import { raceKey } from "../engine/contentKeys";
 import { RungCurtain } from "./RungCurtain";
 import type { RoutineRow } from "./useRecurring";
 
@@ -133,9 +135,12 @@ export function RoutineAccordion({ rows, race, onDone, onRead, onSetRung }: Prop
       }
       bySchool.get(key)!.push(r);
     }
+    // Resolve the Race prefix per-locale (PRD #77, "en" until #83); `key` (the school/Build) is
+    // already resolved upstream in useRecurring. A character with no race renders just the school.
+    const raceLabel = race ? displayName(raceKey(race), "en") : undefined;
     return order.map((key) => (
       <div className="dock-acc__school" key={key || "_"}>
-        {key && <div className="dock-acc__school-head">{race ? `${race} - ${key}` : key}</div>}
+        {key && <div className="dock-acc__school-head">{raceLabel ? `${raceLabel} - ${key}` : key}</div>}
         {bySchool.get(key)!.map(renderRow)}
       </div>
     ));
