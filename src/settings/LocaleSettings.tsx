@@ -18,8 +18,8 @@ type Props = {
  * highlighting the current choice. Switching fires `onChange` immediately — the overlay
  * re-resolves seeded content on the next render via the live locale from `useConfig`.
  *
- * Only `en` is available until Slice 5; the selector is still shown so the wiring is
- * testable and the UX is in place for when more locales land.
+ * Offers every entry in `SUPPORTED_LOCALES` (en + de since slice #85); new locales appear
+ * here automatically as their content tables land.
  */
 export function LocaleSettings({ locale, onChange }: Props) {
   return (

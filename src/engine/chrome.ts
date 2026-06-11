@@ -425,8 +425,13 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "backup.invalid":  "Diese Datei ist kein gültiges Backup — nichts wurde geändert.",
 };
 
-/** Per-locale tables: `en` is complete; every other locale is `Partial` with English fallback. */
-const TABLES: Record<string, Record<string, string>> & { en: ChromeTable } = {
+/**
+ * Per-locale tables: `en` is complete; every other locale is `Partial` with English fallback.
+ * Keyed by `Locale` (not `string`) so adding a locale to the union without a chrome table — or
+ * typo-ing its key here — is a compile error, matching the exhaustiveness `contentCatalog.ts`
+ * already gets from its own `Record<Locale, …>` TABLES.
+ */
+const TABLES: Record<Locale, Partial<ChromeTable>> & { en: ChromeTable } = {
   en: EN,
   de: DE_PARTIAL,
 };
@@ -437,14 +442,15 @@ const TABLES: Record<string, Record<string, string>> & { en: ChromeTable } = {
  * any key present in the English table, which is every `ChromeKey`). Pure: exported so tests
  * can drive the fallback path with stub tables before a second locale ships.
  */
-export function resolveChrome(tables: Record<string, Record<string, string>>, key: string, locale: string): string {
+export function resolveChrome(tables: Record<string, Partial<Record<string, string>>>, key: string, locale: string): string {
   return tables[locale]?.[key] ?? tables["en"]?.[key] ?? key;
 }
 
 /**
  * Resolve a UI chrome string in `locale`. Falls back to English when the locale lacks the key
- * (so a partially-authored locale never renders blank). Only `en` ships until Slice 5; the
- * signature is intentionally two-arg (no default) so a new call site can't silently un-localize.
+ * (so a partially-authored locale never renders blank — `de` deliberately omits the long prose
+ * strings). The signature is intentionally two-arg (no default) so a new call site can't
+ * silently un-localize.
  *
  * For game content (boss/ability/item names) use `displayName(catalogKey, locale)` in
  * `contentCatalog.ts` — these are separate concerns and must NOT share a table.

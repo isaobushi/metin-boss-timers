@@ -90,7 +90,8 @@ describe("t(key, 'de') — German chrome table", () => {
 // ---- resolveChrome() — the pure fallback core ----
 
 describe("resolveChrome() — pure fallback core", () => {
-  // Simulate what Slice 5 will add: a partial 'de' table with only one key translated.
+  // NOT pre-Slice-5 scaffolding — keep these: stub tables cover the paths the typed `t()` API
+  // can't reach (a locale with NO table at all, an unknown key), so they stay after `de` landed.
   const EN_STUB = { "foo.bar": "Hello", "foo.baz": "World" } as Record<string, string>;
   // A partial table: only "foo.bar" is translated in this stub locale.
   const PARTIAL_STUB = { "foo.bar": "Hallo" } as Record<string, string>;

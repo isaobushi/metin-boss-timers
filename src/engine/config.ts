@@ -65,7 +65,7 @@ export type Config = {
   /**
    * The active content locale (PRD #77, slice #83). Persisted and switchable at runtime; the overlay
    * reads this to resolve seeded item display names through the content catalog. Defaults to `"en"`
-   * (the only locale with a content table until Slice 5); first-run is seeded from the OS language via
+   * (the guaranteed-complete fallback table); first-run is seeded from the OS language via
    * `overlay/osLocale.ts` with a clean English fallback.
    */
   locale: Locale;
