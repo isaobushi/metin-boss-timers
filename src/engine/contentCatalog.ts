@@ -45,10 +45,12 @@ function buildEnglish(): Record<string, string> {
 const EN = buildEnglish();
 
 // ---- German content table (slice #85) ----
-// TODO(#85): placeholder — replace every value with the official German client transcription
-// (see de-transcription.md). Every key from seededContentKeys() is listed explicitly so the
-// completeness guard passes and a human can vet each row. Values are set to the English string
-// as a safe fallback until the transcription worksheet is returned.
+// TRANSCRIBED, not translated: values come from the user's official-German-client worksheet
+// (de-transcription.md), cross-checked row by row against the Gameforge DE wiki — where the two
+// disagreed the user picked the wiki spelling. Every key from seededContentKeys() is listed
+// explicitly so the completeness guard passes and a human can vet each row.
+// TODO(#85): two values still await client transcription and sit at their English fallback:
+// recurring.alastor-pet and recurring.white-navy-uniform-costume (seed swap of 2026-06-11).
 const DE: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
   "cooldown.hydra":             "Hydra",
@@ -56,116 +58,116 @@ const DE: Record<string, string> = {
   "cooldown.nemere":            "Nemere",
   "cooldown.meley":             "Meley",
   "cooldown.balathor":          "Balathor",
-  "cooldown.northwind-war-chief": "Northwind War Chief",
+  "cooldown.northwind-war-chief": "Nordwind-Kriegshäuptling",
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet":      "Alastor Pet",
   "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
-  "recurring.battle-horse":     "Battle Horse",
+  "recurring.battle-horse":     "Kampfgaul",
 
   // ---- Recurring seed (gate chores — universals) ----
-  "recurring.skill-books":      "Skill Books",
-  "recurring.transformation":   "Transformation",
+  "recurring.skill-books":      "Fertigkeitsbücher",
+  "recurring.transformation":   "Verwandlung",
   "recurring.inspiration":      "Inspiration",
   "recurring.charisma":         "Charisma",
-  "recurring.mining":           "Mining",
-  "recurring.leadership":       "Leadership",
-  "recurring.jinno-language":   "Jinno Language",
-  "recurring.chunjo-language":  "Chunjo Language",
-  "recurring.shinsoo-language": "Shinsoo Language",
-  "recurring.biologist":        "Biologist",
+  "recurring.mining":           "Bergbau",
+  "recurring.leadership":       "Führung",
+  "recurring.jinno-language":   "Jinno-Sprache",
+  "recurring.chunjo-language":  "Chunjo-Sprache",
+  "recurring.shinsoo-language": "Shinsoo-Sprache",
+  "recurring.biologist":        "Biologe",
 
   // ---- Catalog universals ----
-  "recurring.ward-skill":       "Ward Skill",
+  "recurring.ward-skill":       "Bannkreis",
 
   // ---- Warrior / Body ----
-  "recurring.aura-of-the-sword":  "Aura of the Sword",
-  "recurring.berserk":            "Berserk",
-  "recurring.dash":               "Dash",
-  "recurring.sword-spin":         "Sword Spin",
-  "recurring.three-way-cut":      "Three-Way Cut",
-  "recurring.life-force":         "Life Force",
-  "recurring.sword-spin-boost":   "Sword Spin Boost",
-  "recurring.earthquake":         "Earthquake",
+  "recurring.aura-of-the-sword":  "Aura des Schwertes",
+  "recurring.berserk":            "Kampfrausch",
+  "recurring.dash":               "Sausen",
+  "recurring.sword-spin":         "Schwertwirbel",
+  "recurring.three-way-cut":      "Dreiwege-Schnitt",
+  "recurring.life-force":         "Lebenswille",
+  "recurring.sword-spin-boost":   "Schwertwirbel-Boost",
+  "recurring.earthquake":         "Erdbeben",
 
   // ---- Warrior / Mental ----
-  "recurring.bash":               "Bash",
-  "recurring.stump":              "Stump",
-  "recurring.sword-strike":       "Sword Strike",
-  "recurring.sword-orb":          "Sword Orb",
-  "recurring.spirit-strike":      "Spirit Strike",
-  "recurring.strong-body":        "Strong Body",
-  "recurring.spirit-strike-boost": "Spirit Strike Boost",
+  "recurring.bash":               "Heftiges Schlagen",
+  "recurring.stump":              "Stampfer",
+  "recurring.sword-strike":       "Schwertschlag",
+  "recurring.sword-orb":          "Schwertzirkel",
+  "recurring.spirit-strike":      "Durchschlag",
+  "recurring.strong-body":        "Starker Körper",
+  "recurring.spirit-strike-boost": "Durchschlag-Boost",
   // recurring.earthquake shared with Body — keyed once above
 
   // ---- Ninja / Blade-Fight ----
-  "recurring.ambush":             "Ambush",
-  "recurring.fast-attack":        "Fast Attack",
-  "recurring.rolling-dagger":     "Rolling Dagger",
-  "recurring.poisonous-cloud":    "Poisonous Cloud",
-  "recurring.insidious-poison":   "Insidious Poison",
-  "recurring.stealth":            "Stealth",
-  "recurring.ambush-boost":       "Ambush Boost",
-  "recurring.astral-light":       "Astral Light",
+  "recurring.ambush":             "Hinterhalt",
+  "recurring.fast-attack":        "Blitzangriff",
+  "recurring.rolling-dagger":     "Degenwirbel",
+  "recurring.poisonous-cloud":    "Giftwolke",
+  "recurring.insidious-poison":   "Schleichendes Gift",
+  "recurring.stealth":            "Tarnung",
+  "recurring.ambush-boost":       "Hinterhalt-Boost",
+  "recurring.astral-light":       "Lichtsterne",
 
   // ---- Ninja / Archery ----
-  "recurring.repetitive-shot":    "Repetitive Shot",
-  "recurring.arrow-shower":       "Arrow Shower",
-  "recurring.fire-arrow":         "Fire Arrow",
-  "recurring.poison-arrow":       "Poison Arrow",
-  "recurring.spark":              "Spark",
-  "recurring.feather-walk":       "Feather Walk",
-  "recurring.fire-arrow-boost":   "Fire Arrow Boost",
-  "recurring.tempestus":          "Tempestus",
+  "recurring.repetitive-shot":    "Wiederholter Schuss",
+  "recurring.arrow-shower":       "Pfeilregen",
+  "recurring.fire-arrow":         "Feuerpfeil",
+  "recurring.poison-arrow":       "Giftpfeil",
+  "recurring.spark":              "Funkenschlag",
+  "recurring.feather-walk":       "Federschreiten",
+  "recurring.fire-arrow-boost":   "Feuerpfeil-Boost",
+  "recurring.tempestus":          "Sturmschuss",
 
   // ---- Sura / Weaponry ----
-  "recurring.finger-strike":      "Finger Strike",
-  "recurring.hell-strike":        "Hell Strike",
-  "recurring.dragon-swirl":       "Dragon Swirl",
-  "recurring.enchanted-blade":    "Enchanted Blade",
-  "recurring.fear":               "Fear",
-  "recurring.dispel":             "Dispel",
-  "recurring.finger-strike-boost": "Finger Strike Boost",
-  "recurring.infernus":           "Infernus",
+  "recurring.finger-strike":      "Fingerschlag",
+  "recurring.hell-strike":        "Höllenstoß",
+  "recurring.dragon-swirl":       "Drachenwirbel",
+  "recurring.enchanted-blade":    "Verzauberte Klinge",
+  "recurring.fear":               "Furcht",
+  "recurring.dispel":             "Zauber aufheben",
+  "recurring.finger-strike-boost": "Fingerschlag-Boost",
+  "recurring.infernus":           "Feuergeist",
 
   // ---- Sura / Black Magic ----
-  "recurring.dark-orb":           "Dark Orb",
-  "recurring.dark-strike":        "Dark Strike",
-  "recurring.flame-strike":       "Flame Strike",
-  "recurring.flame-spirit":       "Flame Spirit",
+  "recurring.dark-orb":           "Dunkler Stein",
+  "recurring.dark-strike":        "Dunkler Schlag",
+  "recurring.flame-strike":       "Flammenschlag",
+  "recurring.flame-spirit":       "Geist der Flamme",
   // recurring.spirit-strike shared with Warrior Mental — keyed once above
-  "recurring.death-wave":         "Death Wave",
-  "recurring.dark-strike-boost":  "Dark Strike Boost",
-  "recurring.lethal-wave":        "Lethal Wave",
+  "recurring.death-wave":         "Todeswelle",
+  "recurring.dark-strike-boost":  "Dunkler Schlag-Boost",
+  "recurring.lethal-wave":        "Dunkle Welle",
 
   // ---- Shaman / Dragon ----
-  "recurring.dragon-s-roar":      "Dragon's Roar",
-  "recurring.shooting-dragon":    "Shooting Dragon",
-  "recurring.flying-talisman":    "Flying Talisman",
-  "recurring.dragon-s-aid":       "Dragon's Aid",
-  "recurring.blessing":           "Blessing",
-  "recurring.reflect":            "Reflect",
-  "recurring.shooting-dragon-boost": "Shooting Dragon Boost",
+  "recurring.dragon-s-roar":      "Drachengebrüll",
+  "recurring.shooting-dragon":    "Drachenschießen",
+  "recurring.flying-talisman":    "Fliegender Talisman",
+  "recurring.dragon-s-aid":       "Hilfe des Drachen",
+  "recurring.blessing":           "Segen",
+  "recurring.reflect":            "Reflektieren",
+  "recurring.shooting-dragon-boost": "Drachenschießen-Boost",
   "recurring.meteor":             "Meteor",
 
   // ---- Shaman / Healing ----
-  "recurring.cure":               "Cure",
-  "recurring.swiftness":          "Swiftness",
-  "recurring.attack-up":          "Attack Up",
-  "recurring.lightning-claw":     "Lightning Claw",
-  "recurring.lightning-throw":    "Lightning Throw",
-  "recurring.summon-lightning":   "Summon Lightning",
-  "recurring.summon-lightning-boost": "Summon Lightning Boost",
-  "recurring.ethereal-shield":    "Ethereal Shield",
+  "recurring.cure":               "Kurieren",
+  "recurring.swiftness":          "Schnelligkeit",
+  "recurring.attack-up":          "Angriff+",
+  "recurring.lightning-claw":     "Blitzkralle",
+  "recurring.lightning-throw":    "Blitzwurf",
+  "recurring.summon-lightning":   "Blitz heraufbeschwören",
+  "recurring.summon-lightning-boost": "Blitz heraufbeschwören-Boost",
+  "recurring.ethereal-shield":    "Ätherschild",
 
   // ---- Lycan / Instinct ----
-  "recurring.crimson-wolf-soul":  "Crimson Wolf Soul",
-  "recurring.indigo-wolf-soul":   "Indigo Wolf Soul",
-  "recurring.shred":              "Shred",
-  "recurring.wolf-s-breath":      "Wolf's Breath",
-  "recurring.wolf-s-claw":        "Wolf's Claw",
-  "recurring.wolf-pounce":        "Wolf Pounce",
-  "recurring.wolf-s-breath-boost": "Wolf's Breath Boost",
+  "recurring.crimson-wolf-soul":  "Purpurwolfseele",
+  "recurring.indigo-wolf-soul":   "Indigowolfseele",
+  "recurring.shred":              "Zerreißen",
+  "recurring.wolf-s-breath":      "Atem des Wolfes",
+  "recurring.wolf-s-claw":        "Wolfsklaue",
+  "recurring.wolf-pounce":        "Wolfssprung",
+  "recurring.wolf-s-breath-boost": "Atem des Wolfes-Boost",
   "recurring.cicatrix":           "Cicatrix",
 
   // ---- Empires ----
@@ -174,34 +176,34 @@ const DE: Record<string, string> = {
   "empire.jinno":   "Jinno",
 
   // ---- Races ----
-  "race.warrior": "Warrior",
+  "race.warrior": "Krieger",
   "race.ninja":   "Ninja",
   "race.sura":    "Sura",
-  "race.shaman":  "Shaman",
-  "race.lycan":   "Lycan",
+  "race.shaman":  "Schamane",
+  "race.lycan":   "Lykaner",
 
   // ---- Builds (schools) ----
-  "build.body":        "Body",
+  "build.body":        "Körper",
   "build.mental":      "Mental",
-  "build.blade-fight": "Blade-Fight",
-  "build.archery":     "Archery",
-  "build.weaponry":    "Weaponry",
-  "build.black-magic": "Black Magic",
-  "build.dragon":      "Dragon",
-  "build.healing":     "Healing",
-  "build.instinct":    "Instinct",
+  "build.blade-fight": "Klinge",
+  "build.archery":     "Bogenschießen",
+  "build.weaponry":    "Waffen",
+  "build.black-magic": "Schwarze Magie",
+  "build.dragon":      "Drachen",
+  "build.healing":     "Heilung",
+  "build.instinct":    "Instinkt",
 
   // ---- Biologist consignment items ----
-  "biologist.orc-tooth":            "Orc Tooth",
-  "biologist.curse-book":           "Curse Book",
-  "biologist.demon-s-keepsake":     "Demon's Keepsake",
-  "biologist.ice-marble":           "Ice Marble",
-  "biologist.zelkova-branch":       "Zelkova Branch",
-  "biologist.tugyi-s-tablet":       "Tugyi's Tablet",
-  "biologist.red-ghost-tree-branch": "Red Ghost Tree Branch",
-  "biologist.leaders-notes":        "Leaders' Notes",
-  "biologist.malevolence-jewel":    "Malevolence Jewel",
-  "biologist.wisdom-jewel":         "Wisdom Jewel",
+  "biologist.orc-tooth":            "Orkzahn",
+  "biologist.curse-book":           "Fluchsammlung",
+  "biologist.demon-s-keepsake":     "Dämonenandenken",
+  "biologist.ice-marble":           "Eisige Murmel",
+  "biologist.zelkova-branch":       "Zelkowazweig",
+  "biologist.tugyi-s-tablet":       "Tugyis Tafel",
+  "biologist.red-ghost-tree-branch": "Roter Geisterbaumzweig",
+  "biologist.leaders-notes":        "Anführer-Notizen",
+  "biologist.malevolence-jewel":    "Bosheitsjuwel",
+  "biologist.wisdom-jewel":         "Weisheitsjuwel",
 };
 
 const TABLES: Record<Locale, Record<string, string>> = {
