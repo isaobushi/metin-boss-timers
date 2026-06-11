@@ -4,6 +4,7 @@
 // owns no state, lets the caller (`SettingsApp`) drive through `useConfig`.
 import { SUPPORTED_LOCALES, type Locale } from "../engine/contentCatalog";
 import { LOCALE_LABELS } from "../engine/localeTypes";
+import { t } from "../engine/chrome";
 
 type Props = {
   /** The currently active locale. */
@@ -24,7 +25,7 @@ export function LocaleSettings({ locale, onChange }: Props) {
   return (
     <div className="panel locale-settings">
       <div className="settings-head">
-        <span className="locale-settings__title">LANGUAGE</span>
+        <span className="locale-settings__title">{t("locale.title", locale)}</span>
       </div>
       <div className="locale-settings__opts">
         {SUPPORTED_LOCALES.map((l) => (
@@ -39,7 +40,7 @@ export function LocaleSettings({ locale, onChange }: Props) {
         ))}
       </div>
       <p className="locale-settings__hint">
-        Content names are shown in the selected language. Free-text names you typed yourself are never changed.
+        {t("locale.hint", locale)}
       </p>
     </div>
   );
