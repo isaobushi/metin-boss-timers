@@ -302,7 +302,10 @@ describe("v1 → v2 migration (default-character wrap)", () => {
     expect(restored.recurringSeq).toBe(4);
   });
 
-  it("leaves bosses, cooldowns and the running cooldown set untouched by the migration", () => {
+  it("leaves bosses, already-keyed cooldowns and the running cooldown set untouched", () => {
+    // The fixture's cooldowns come from serialize(makeConfig()) and so ALREADY carry catalogKeys —
+    // this asserts the migration doesn't touch keyed defs. The keyless-cooldown backfill path is
+    // exercised by the v2→v3 suite below, whose fixtures persist defs without keys.
     const legacy = legacyV1();
     const restored = deserialize(legacy);
     expect(restored.bosses).toEqual(legacy.bosses);
@@ -493,6 +496,19 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
     expect(snowWolf.catalogKey).toBe(recurringKey("Snow Wolf")); // "recurring.snow-wolf"
     expect(skillBooks.catalogKey).toBe(recurringKey("Skill Books")); // "recurring.skill-books"
     expect(leadership.catalogKey).toBe(recurringKey("Leadership")); // "recurring.leadership"
+  });
+
+  it("backfills via the legacy alias when a blob froze a since-renamed seed name", () => {
+    // "Skill Books" briefly shipped as "Daily Books" (renamed 2026-06-10): a blob persisted in
+    // that window froze the old spelling, which no live seed matches — the alias table maps it.
+    const payload = v2BlobWithSeededDefs();
+    payload.characters[0].recurring.push({
+      id: "recurring-5", name: "Daily Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill",
+    });
+    const restored = deserialize(payload);
+    const daily = rec(restored).find((d) => d.name === "Daily Books")!;
+    expect(daily.catalogKey).toBe(recurringKey("Skill Books")); // aliased to the current key
+    expect(daily.name).toBe("Daily Books"); // the frozen name itself stays verbatim
   });
 
   it("leaves user-created free-text defs untouched (no catalogKey, name verbatim)", () => {

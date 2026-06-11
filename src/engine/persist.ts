@@ -4,14 +4,14 @@
 // back to shipped defaults on anything malformed. The on-disk store adapter (Tauri
 // plugin-store) lives separately and just hands raw values through these two functions.
 
-import { COOLDOWN_SEED, RECURRING_SEED, type Boss, type Config, type SkillCfg, makeConfig } from "./config";
+import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
 import { type Character, DEFAULT_CHARACTER_NAME, makeCharacter } from "./character";
 import type { CooldownDef, RunningCooldown } from "./cooldown";
 import type { RecurringDef, RecurringKind, RecurringProgress, RunningRecurring } from "./recurring";
 import type { Build, Empire, Race } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
-import { cooldownKey, recurringKey } from "./contentKeys";
-import { catalogChoreNames } from "./skillCatalog";
+import { recurringKey } from "./contentKeys";
+import { SEEDED_COOLDOWN_KEY_BY_NAME, SEEDED_RECURRING_KEY_BY_NAME } from "./contentCatalog";
 
 /**
  * Bumped whenever the persisted shape changes; future migrations branch on it.
@@ -28,22 +28,23 @@ export const SCHEMA_VERSION = 3;
 const isKnownVersion = (v: unknown): boolean => v === 1 || v === 2 || v === 3;
 
 // ---- catalogKey migration helpers (slice #82) ----
-// Name → catalogKey lookup maps for every seeded source. Built once at module load; pure static data.
-
-/** Name → cooldown catalogKey for every entry in COOLDOWN_SEED. */
-const COOLDOWN_KEY_BY_NAME: ReadonlyMap<string, string> = new Map(
-  COOLDOWN_SEED.map((cd) => [cd.name, cooldownKey(cd.name)]),
-);
+// The name → key direction lives in the content catalog (one enumeration owns both directions);
+// the migration only ADDS the legacy aliases — old spellings a seed shipped under briefly.
 
 /**
- * Name → recurring catalogKey for every seeded recurring source: the config RECURRING_SEED plus
- * the skill-catalog chore names (class Abilities and Languages). The two sources agree on the same
- * name → same key (by design: both derive from the English name), so overlapping entries are
- * idempotent.
+ * Seed names that were renamed after a build had already persisted them: a blob from that window
+ * holds the OLD spelling, which no live seed matches, so each alias maps it to its current key.
+ * (The frozen-name guard in contentCatalog.test.ts fails CI on a future seed rename until the
+ * rename gets an alias here.)
  */
+const LEGACY_RECURRING_ALIASES: ReadonlyArray<[string, string]> = [
+  ["Daily Books", recurringKey("Skill Books")], // renamed before v3 shipped (2026-06-10)
+];
+
+const COOLDOWN_KEY_BY_NAME: ReadonlyMap<string, string> = SEEDED_COOLDOWN_KEY_BY_NAME;
 const RECURRING_KEY_BY_NAME: ReadonlyMap<string, string> = new Map([
-  ...RECURRING_SEED.map((r) => [r.name, recurringKey(r.name)] as [string, string]),
-  ...catalogChoreNames().map((name) => [name, recurringKey(name)] as [string, string]),
+  ...SEEDED_RECURRING_KEY_BY_NAME,
+  ...LEGACY_RECURRING_ALIASES,
 ]);
 
 /**
