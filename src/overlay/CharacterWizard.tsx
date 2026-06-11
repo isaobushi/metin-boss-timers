@@ -21,15 +21,15 @@ type Props = {
   mode?: "new" | "edit";
   /** Pre-fill for the edit flow — the character's current name + class axes. */
   initial?: { name: string; empire?: Empire; race?: Race; builds?: Build[] };
-  /** The active content locale — passed through so Empire/Race/Build names are resolved per-locale (slice #83). */
-  locale?: Locale;
+  /** The active content locale — Empire/Race/Build names resolve per-locale (slice #83). Required so a new call site can't silently un-localize. */
+  locale: Locale;
   /** Commit the collected draft (the caller runs `createCharacter`/`editCharacter` and closes the panel). */
   onCreate: (draft: CharacterDraft) => void;
   /** Dismiss without saving — omitted on first-run, where there's nothing to return to. */
   onCancel?: () => void;
 };
 
-export function CharacterWizard({ mode = "new", initial, locale = "en", onCreate, onCancel }: Props) {
+export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [empire, setEmpire] = useState<Empire | undefined>(initial?.empire);
   const [race, setRace] = useState<Race | undefined>(initial?.race);

@@ -85,18 +85,20 @@ export function useConfig() {
     let alive = true;
     loadPersisted().then(async (raw) => {
       if (!alive) return;
-      const config = deserialize(raw); // null/corrupt → shipped defaults; ids seeded past max
-      // First-run: if no locale was persisted (new install), seed from the OS language. A persisted
-      // config already carries a locale (round-trips through serialize), so readOsLocale is only
-      // meaningful when the restored config still holds the shipped DEFAULT_LOCALE. We always run the
-      // read on first hydration so a user who hasn't yet customised locale gets the OS default.
+      setConfig(deserialize(raw)); // null/corrupt → shipped defaults; ids seeded past max
+      setHydrated(true);
+      // OS-locale seed (slice #83): when no locale was persisted — a new install, or an upgrade from
+      // a pre-#83 payload — ask the OS and patch just the locale. Runs AFTER hydration so first paint
+      // never waits on the (slice 5) Tauri IPC round-trip, and as a functional updater so an edit or
+      // cross-window broadcast landing during the await is preserved: only the locale field is written.
+      // The seeded value persists via the normal change effect, so this runs at most once per install.
+      // Today `readOsLocale` is a stub returning "en" (deserialize's own default) — inert scaffolding
+      // until the real plugin-os call lands in slice 5.
       if (!raw || !(raw as Record<string, unknown>).locale) {
         const osLocale = await readOsLocale();
-        setConfig({ ...config, locale: osLocale });
-      } else {
-        setConfig(config);
+        if (!alive) return; // unmounted during the await — don't write into a dead instance
+        setConfig((c) => ({ ...c, locale: osLocale }));
       }
-      setHydrated(true);
     });
     return () => {
       alive = false;

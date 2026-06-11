@@ -10,3 +10,12 @@ export const DEFAULT_LOCALE: Locale = "en";
 
 /** Every locale currently shipped with a content table. The completeness guard holds for each. */
 export const SUPPORTED_LOCALES: Locale[] = ["en"];
+
+/**
+ * Human-readable label per locale (the Settings picker). Exhaustive by construction — adding a
+ * locale to the `Locale` union without a label here is a compile error (same contract as
+ * `SOUND_LABELS` in sounds.ts), so the picker can never silently fall back to a raw code.
+ */
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: "English",
+};

@@ -92,12 +92,14 @@ describe("locale persist round-trip", () => {
   });
 });
 
-// ---- re-resolution: switching locale resolves seeded content, user strings + progress untouched ----
-// These are ENGINE-level tests: they verify the resolver (resolveDisplayName) re-derives the
-// right string when the caller passes a different locale. The overlay picks up the live locale
-// from context and passes it to the resolver at render time.
+// ---- locale is presentation-only: the resolver answers per-locale, stored data never moves ----
+// HONEST SCOPE: `Locale = "en"` is a single-member union until Slice 5, so a real en→de
+// transition is unwritable here — these tests pin the CONTRACT (locale lives beside, never
+// inside, user data; names resolve at render time through the catalog), not an observable
+// re-resolution. When a second locale lands, add the before/after test: resolveDisplayName
+// returns a different string for the same key under the new locale.
 
-describe("locale switch re-resolves seeded content while user data stays put", () => {
+describe("locale is presentation-only — writing the locale field never touches stored data", () => {
   it("resolveDisplayName returns the same English string for any supported locale (only en exists)", () => {
     // Until Slice 5 all locales map to the same English strings — so "switching" is a no-op visually,
     // but the wiring is tested: the locale argument flows through correctly.
@@ -109,7 +111,7 @@ describe("locale switch re-resolves seeded content while user data stays put", (
     expect(resolveDisplayName({ name: "My Custom Boss" }, "en")).toBe("My Custom Boss");
   });
 
-  it("switching locale does not touch recurring defs (the catalog is read-only for localization)", () => {
+  it("recurring defs are read-only for localization (resolution happens at render, not in Config)", () => {
     // The recurring catalog in Config is untouched by a locale change — localization is a
     // PRESENTATION concern resolved at render time, not a mutation of the stored name.
     const c = makeConfig();
@@ -121,33 +123,33 @@ describe("locale switch re-resolves seeded content while user data stays put", (
     expect(first.name).toBe(activeRecurring(c)[0].name);
   });
 
-  it("ladder progress (recurringProgress) is preserved across a simulated locale switch", () => {
-    // A locale change only changes the locale value in Config; the progress map is not touched.
+  it("ladder progress (recurringProgress) is untouched when the locale field is rewritten", () => {
+    // A locale change only writes the locale value on Config; the progress map is not touched.
     let c = makeConfig();
     const def = activeRecurring(c).find((d) => d.ladderId === "class-skill")!;
     c = markRead(c, def.id, 1000, true); // advance rank by one read
     const progressBefore = activeRecurringProgress(c);
     expect(progressBefore.length).toBe(1); // one rung advancement recorded
 
-    // Simulate a locale switch: just change the `locale` field on Config (presentation only).
+    // Rewrite the `locale` field on Config (en→en — the only writable value today).
     const switched = { ...c, locale: "en" as const };
     // Progress map is unchanged.
     expect(activeRecurringProgress(switched)).toEqual(progressBefore);
   });
 
-  it("markRecurring (gate restamp) is unaffected by a locale change", () => {
+  it("the recurringRunning set is untouched when the locale field is rewritten", () => {
     let c = makeConfig();
     const gateId = activeRecurring(c).find((d) => d.kind === "gate")!.id;
     c = markRecurring(c, gateId, 1000);
     const runningBefore = c.characters.find((ch) => ch.id === c.activeCharacterId)!.recurringRunning;
 
-    // A locale change does not disturb the running set.
+    // Rewriting the locale field does not disturb the running set.
     const switched = { ...c, locale: "en" as const };
     expect(switched.characters.find((ch) => ch.id === switched.activeCharacterId)!.recurringRunning)
       .toEqual(runningBefore);
   });
 
-  it("seeded recurring name (the English fallback `name` field) is untouched across a switch", () => {
+  it("seeded recurring name (the English fallback `name` field) is untouched when the locale field is rewritten", () => {
     // Per spec: user-created free-text names and seeded def names must stay exactly as typed/seeded.
     const c = makeConfig();
     const def = activeRecurring(c).find((d) => d.catalogKey === recurringKey("Skill Books"))!;

@@ -1,5 +1,5 @@
 import type { RoutineSection } from "../engine/recurring";
-import { displayName } from "../engine/contentCatalog";
+import { displayName, type Locale } from "../engine/contentCatalog";
 import { raceKey } from "../engine/contentKeys";
 import { RungCurtain } from "./RungCurtain";
 import type { RoutineRow } from "./useRecurring";
@@ -16,6 +16,8 @@ type Props = {
   rows: RoutineRow[];
   /** The active character's race — prefixes the Skill Books school sub-headers ("Sura - Black Magic", #57). */
   race?: string;
+  /** The active content locale — resolves the Race prefix per-locale (slice #83). Required so a new call site can't silently un-localize. */
+  locale: Locale;
   /** Mark a plain (ladder-less) routine done — restamps a full cycle from now (also starts one). */
   onDone: (defId: string) => void;
   /** Log a ladder read outcome: ✓ (success) advances the rank + restamps the gate, ✗ (fail) restamps only. */
@@ -49,7 +51,7 @@ type Props = {
  * each under a "Race - School" header (e.g. "Sura - Black Magic") — the only band that sub-groups.
  * Row rendering is identical across sections.
  */
-export function RoutineAccordion({ rows, race, onDone, onRead, onSetRung }: Props) {
+export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung }: Props) {
   if (rows.length === 0) {
     return (
       <div className="dock-acc">
@@ -135,9 +137,9 @@ export function RoutineAccordion({ rows, race, onDone, onRead, onSetRung }: Prop
       }
       bySchool.get(key)!.push(r);
     }
-    // Resolve the Race prefix per-locale (PRD #77, "en" until #83); `key` (the school/Build) is
-    // already resolved upstream in useRecurring. A character with no race renders just the school.
-    const raceLabel = race ? displayName(raceKey(race), "en") : undefined;
+    // Resolve the Race prefix per-locale (PRD #77, slice #83 wires up the live locale); `key` (the
+    // school/Build) is already resolved upstream in useRecurring. No race → just the school.
+    const raceLabel = race ? displayName(raceKey(race), locale) : undefined;
     return order.map((key) => (
       <div className="dock-acc__school" key={key || "_"}>
         {key && <div className="dock-acc__school-head">{raceLabel ? `${raceLabel} - ${key}` : key}</div>}

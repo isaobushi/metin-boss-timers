@@ -19,7 +19,6 @@ import { displayName, resolveDisplayName } from "../engine/contentCatalog";
 import { buildKey } from "../engine/contentKeys";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
-import { useLocale } from "./useLocale";
 import type { useConfig } from "./useConfig";
 
 /** A deadline expiring item projected for the Items accordion: identity, label, live state. */
@@ -90,8 +89,8 @@ export type RoutineDatum = { ready: number; total: number };
  */
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
-  const locale = useLocale(cfg); // live locale from persisted config (slice #83)
   const { config, markRecurringDone, markReadOutcome, setLadderRung } = cfg;
+  const locale = config.locale; // live locale from persisted config (slice #83)
   // The recurring side belongs to the ACTIVE character now (#47): read its slices, not the (gone)
   // top-level Config fields. Everything downstream is unchanged — it's the same shapes, re-scoped.
   const catalog = activeRecurring(config);

@@ -222,7 +222,7 @@ export default function App() {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
     belowPanel = (
-      <RoutineAccordion rows={rec.routineRows} race={rec.activeRace} onDone={rec.markDone} onRead={rec.markRead} onSetRung={rec.setRung} />
+      <RoutineAccordion rows={rec.routineRows} race={rec.activeRace} locale={cfg.config.locale} onDone={rec.markDone} onRead={rec.markRead} onSetRung={rec.setRung} />
     );
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).

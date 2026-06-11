@@ -3,7 +3,6 @@ import { readout, readyCrossings, remainingMs, type CooldownDef, type RunningCoo
 import { resolveDisplayName } from "../engine/contentCatalog";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
-import { useLocale } from "./useLocale";
 import type { useConfig } from "./useConfig";
 
 /** A running cooldown projected for the strip: identity, labels, and the live readout. */
@@ -25,9 +24,9 @@ export type CooldownPill = {
  */
 export function useCooldowns(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
-  const locale = useLocale(cfg); // live locale from persisted config (slice #83)
 
   const { config, beginCooldown, reCooldown, stopCooldown, tuneCooldown, dupeCooldown } = cfg;
+  const locale = config.locale; // live locale from persisted config (slice #83)
   const catalog: CooldownDef[] = config.cooldowns;
 
   // Best-effort ready cue (ADR-0002): compare each observation of the running set against

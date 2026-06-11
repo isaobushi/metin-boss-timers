@@ -3,6 +3,7 @@
 // Mirrors the BackupSection / RecurringSettings idiom: receives values + callbacks as props,
 // owns no state, lets the caller (`SettingsApp`) drive through `useConfig`.
 import { SUPPORTED_LOCALES, type Locale } from "../engine/contentCatalog";
+import { LOCALE_LABELS } from "../engine/localeTypes";
 
 type Props = {
   /** The currently active locale. */
@@ -10,14 +11,6 @@ type Props = {
   /** Called when the user selects a different locale. */
   onChange: (locale: Locale) => void;
 };
-
-/** Display label for a locale code — fine as a stub until Slice 5 adds more. */
-function localeLabel(locale: Locale): string {
-  switch (locale) {
-    case "en": return "English";
-    default: return locale;
-  }
-}
 
 /**
  * The locale-selector section inside Settings. Renders one button per supported locale,
@@ -41,7 +34,7 @@ export function LocaleSettings({ locale, onChange }: Props) {
             onClick={() => onChange(l)}
             aria-pressed={locale === l}
           >
-            {localeLabel(l)}
+            {LOCALE_LABELS[l]}
           </button>
         ))}
       </div>
