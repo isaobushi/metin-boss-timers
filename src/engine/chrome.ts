@@ -25,7 +25,6 @@ import type { Locale } from "./localeTypes";
 // `en` value must match the literal that was in the component before this migration — verified
 // by the issue's "English output unchanged" acceptance criterion.
 
-/* eslint-disable @typescript-eslint/naming-convention */
 const EN = {
   // ---- DockBar ----
   "dock.drag":            "drag to move",
@@ -39,7 +38,8 @@ const EN = {
   // ---- TimerScreen ----
   "timer.noSkills":       "no skills — add some in ⚙ settings",
   "timer.back":           "back to dungeons",
-  "timer.hint":           "left-click stop / start · right-click reset",
+  // Note: timer.hint ("left-click stop / start · right-click reset") is rendered with inline
+  // <b> tags in JSX and cannot be a plain t() string; the bold structure is kept as-is.
 
   // ---- BossSelect ----
   "bossSelect.title":     "SELECT DUNGEON",
@@ -161,6 +161,14 @@ const EN = {
   "subscribe.ledeLapsed":           "Welcome back. Resubscribe to instantly thaw your frozen stable — nothing was lost.",
   "subscribe.ledeSubscribed":       "You're Pro. Thanks for keeping the app growing.",
   "subscribe.ledeDefault":          "The maintained, growing Pro app — curated dungeon knowledge, for your whole stable.",
+  "subscribe.unlock1":              "Prebuilt dungeon sequences — Templum Serpens & more",
+  "subscribe.unlock2":              "Your whole stable — unlimited character profiles",
+  "subscribe.unlock3":              "Skill catalog autofilled by race & empire",
+  "subscribe.unlock4":              "Per-ability ladders — M1→G1 books-remaining tracking",
+  "subscribe.unlock5":              "Every cap lifted — bosses, reminders, characters",
+  "subscribe.resubscribe":          "Resubscribe",
+  "subscribe.subscribe":            "Subscribe",
+  "subscribe.orSubscribeNow":       "or subscribe now",
 
   // ---- UpgradeBanner ----
   "banner.trialLabel":          "✦ Pro trial active",
@@ -202,7 +210,6 @@ const EN = {
   "backup.imported":  "Backup imported.",
   "backup.invalid":   "That file isn't a valid backup — nothing was changed.",
 } as const;
-/* eslint-enable @typescript-eslint/naming-convention */
 
 /** Every chrome key in the English table — the only valid argument to `t()`. */
 export type ChromeKey = keyof typeof EN;
