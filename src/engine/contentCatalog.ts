@@ -71,3 +71,20 @@ export function resolveDisplayName(item: { catalogKey?: string; name: string }, 
 export function seededContentKeys(): string[] {
   return Object.keys(EN);
 }
+
+/**
+ * Name → catalogKey reverse lookup over one kind's namespace, derived FROM the English table itself
+ * (not by re-walking the seeds), so it can never drift from `buildEnglish` — one enumeration owns
+ * both directions. Injective within a namespace because every key is derived from its name.
+ */
+function reverseEnglish(kind: string): ReadonlyMap<string, string> {
+  const byName = new Map<string, string>();
+  for (const [key, name] of Object.entries(EN)) if (key.startsWith(`${kind}.`)) byName.set(name, key);
+  return byName;
+}
+
+/** Name → cooldown catalogKey for every seeded cooldown (slice #82's migration matches against this). */
+export const SEEDED_COOLDOWN_KEY_BY_NAME: ReadonlyMap<string, string> = reverseEnglish("cooldown");
+
+/** Name → recurring catalogKey for every seeded recurring source (config seed + catalog chores). */
+export const SEEDED_RECURRING_KEY_BY_NAME: ReadonlyMap<string, string> = reverseEnglish("recurring");

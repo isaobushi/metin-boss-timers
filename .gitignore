@@ -26,3 +26,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Business/outreach data lives outside the repo (kept in ~/dev), never committed
+metin2-influencer-contacts.csv

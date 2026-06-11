@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LOCALE,
+  SEEDED_COOLDOWN_KEY_BY_NAME,
+  SEEDED_RECURRING_KEY_BY_NAME,
   SUPPORTED_LOCALES,
   displayName,
   resolveDisplayName,
@@ -68,6 +70,38 @@ describe("rung-label scoping (#81 decision)", () => {
     // ...and no tier label leaked into the content catalog as a key.
     const tierLeak = seededContentKeys().some((k) => /\.(m\d+|g\d+|p|\d+)$/.test(k));
     expect(tierLeak).toBe(false);
+  });
+});
+
+describe("frozen-name guard (#82)", () => {
+  // The persistence migration backfills catalogKeys by matching the names FROZEN in old blobs
+  // against the live seed tables, so a seed name is a persisted contract: renaming one strands
+  // every blob that froze the old spelling. This pin fails CI on any rename until the old
+  // spelling gets a LEGACY_*_ALIASES entry in persist.ts (the "Daily Books" precedent).
+  it("the seeded cooldown names are exactly the frozen set", () => {
+    expect([...SEEDED_COOLDOWN_KEY_BY_NAME.keys()].sort()).toEqual([
+      "Balathor", "Hydra", "Meley", "Nemere", "Northwind War Chief", "Razador",
+    ]);
+  });
+
+  it("the seeded recurring names are exactly the frozen set", () => {
+    expect([...SEEDED_RECURRING_KEY_BY_NAME.keys()].sort()).toEqual([
+      "Ambush", "Ambush Boost", "Arrow Shower", "Astral Light", "Attack Up", "Aura of the Sword",
+      "Bash", "Battle Horse", "Berserk", "Biologist", "Blessing", "Charisma", "Chunjo Language",
+      "Cicatrix", "Costume of Flame", "Crimson Wolf Soul", "Cure", "Dark Orb", "Dark Strike",
+      "Dark Strike Boost", "Dash", "Death Wave", "Dispel", "Dragon Swirl", "Dragon's Aid",
+      "Dragon's Roar", "Earthquake", "Enchanted Blade", "Ethereal Shield", "Fast Attack", "Fear",
+      "Feather Walk", "Finger Strike", "Finger Strike Boost", "Fire Arrow", "Fire Arrow Boost",
+      "Flame Spirit", "Flame Strike", "Flying Talisman", "Hell Strike", "Indigo Wolf Soul",
+      "Infernus", "Insidious Poison", "Inspiration", "Jinno Language", "Leadership", "Lethal Wave",
+      "Life Force", "Lightning Claw", "Lightning Throw", "Meteor", "Mining", "Poison Arrow",
+      "Poisonous Cloud", "Reflect", "Repetitive Shot", "Rolling Dagger", "Shinsoo Language",
+      "Shooting Dragon", "Shooting Dragon Boost", "Shred", "Skill Books", "Snow Wolf", "Spark",
+      "Spirit Strike", "Spirit Strike Boost", "Stealth", "Strong Body", "Stump", "Summon Lightning",
+      "Summon Lightning Boost", "Swiftness", "Sword Orb", "Sword Spin", "Sword Spin Boost",
+      "Sword Strike", "Tempestus", "Three-Way Cut", "Transformation", "Ward Skill", "Wolf Pounce",
+      "Wolf's Breath", "Wolf's Breath Boost", "Wolf's Claw",
+    ]);
   });
 });
 
