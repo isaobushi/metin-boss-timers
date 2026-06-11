@@ -29,11 +29,13 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # Pinned (not windows-latest): the latest label repoints to windows-2025
+    # by 2026-06-15, so pin explicitly to keep builds deterministic.
+    runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -113,7 +115,7 @@ jobs:
 
       # Signed SLSA provenance for the MSIX: artifact -> run -> commit SHA. Kept
       # for transparency even though the .msix goes to Partner Center, not users.
-      - uses: actions/attest-build-provenance@v1
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.pack.outputs.msix }}
 
@@ -127,7 +129,7 @@ jobs:
 
       # The .msix is a CI artifact for Partner Center submission — NOT a public
       # GitHub release.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dragonsaid-msix
           path: |
