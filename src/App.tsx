@@ -22,6 +22,10 @@ import { ExpiringAccordion } from "./overlay/ExpiringAccordion";
 import { RoutineAccordion } from "./overlay/RoutineAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
+import { SubscribeScreen } from "./overlay/SubscribeScreen";
+import { UpgradeBanner } from "./overlay/UpgradeBanner";
+import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
+import type { Entitlement } from "./engine/entitlement";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
@@ -55,6 +59,9 @@ export default function App() {
   // Browser only: settings renders inline (a modal over the still-mounted overlay) rather
   // than a second OS window/tab. Tauri spawns a real settings window, so this stays false.
   const [showSettings, setShowSettings] = useState(false);
+  // The in-app subscribe screen (#58), shown as a modal over the overlay. Opened by the upgrade banner
+  // (and, later, the #56 cap-hit nudges).
+  const [showSubscribe, setShowSubscribe] = useState(false);
 
   // Restore the overlay's last position and persist it as it's dragged; in the browser the
   // returned ref turns the .overlay element into a draggable floating panel.
@@ -77,6 +84,24 @@ export default function App() {
     else setShowSettings(true);
   }, []);
   const closeSettings = useCallback(() => setShowSettings(false), []);
+
+  // The subscribe flow (#58). Both actions run the STUBBED Store purchase (pending #16); on success we
+  // reflect the granted entitlement immediately. In production the real path is Store → OS-cached
+  // license → the #55 adapter re-reads it; the dev-setter here stands in for that loop so Pro unlocks
+  // at runtime as the screen promises.
+  const { setEntitlement } = cfg;
+  const applyPurchase = useCallback(
+    async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {
+      const result = await run;
+      if (result.ok) {
+        setEntitlement(result.entitlement);
+        setShowSubscribe(false);
+      }
+    },
+    [setEntitlement],
+  );
+  const onStartTrial = useCallback(() => void applyPurchase(startTrial()), [applyPurchase]);
+  const onSubscribe = useCallback((plan: Plan) => void applyPurchase(subscribe(plan)), [applyPurchase]);
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
   // pinned independently, so it can be open alongside one of the panels.
@@ -241,6 +266,8 @@ export default function App() {
       />
       {cooldownStrip}
       {belowPanel}
+      {/* Standing upgrade / trial-status entry to Pro (#58); renders nothing for a subscribed user. */}
+      <UpgradeBanner entitlement={cfg.entitlement} onOpen={() => setShowSubscribe(true)} />
     </>
   );
 
@@ -257,6 +284,40 @@ export default function App() {
           <SettingsApp onClose={closeSettings} />
         </div>
       )}
+      {showSubscribe && (
+        <div className="settings-modal">
+          <SubscribeScreen
+            entitlement={cfg.entitlement}
+            onStartTrial={onStartTrial}
+            onSubscribe={onSubscribe}
+            onClose={() => setShowSubscribe(false)}
+          />
+        </div>
+      )}
+      {/* Dev-only entitlement switcher: the web demo's stubbed license always reads `subscribed`, so
+          this is the only way to exercise the Lite/trial/lapsed UI (banner, subscribe screen, and the
+          #56 frozen rendering/nudges) without a real Store. Browser-only — never in the desktop app. */}
+      {inBrowser && <DevEntitlementSwitch value={cfg.entitlement} onSet={cfg.setEntitlement} />}
     </>
+  );
+}
+
+const ENTITLEMENTS: Entitlement[] = ["subscribed", "trial", "lapsed", "never"];
+
+/** A throwaway dev affordance (browser demo only) to flip the entitlement and preview each tier's UI. */
+function DevEntitlementSwitch({ value, onSet }: { value: Entitlement; onSet: (e: Entitlement) => void }) {
+  return (
+    <div className="dev-ent-switch">
+      <span className="dev-ent-switch__label">tier</span>
+      {ENTITLEMENTS.map((e) => (
+        <button
+          key={e}
+          className={`dev-ent-switch__btn${value === e ? " is-active" : ""}`}
+          onClick={() => onSet(e)}
+        >
+          {e}
+        </button>
+      ))}
+    </div>
   );
 }
