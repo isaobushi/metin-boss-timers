@@ -6,7 +6,7 @@ status: accepted
 
 ## Context
 
-DragonsAid times two things today: **Skills** grouped under a **Boss** (relative, cyclic,
+Dragon's Aid times two things today: **Skills** grouped under a **Boss** (relative, cyclic,
 session-only timers) and **Cooldowns** (one-shot, absolute-expiry, persistent). The overlay's
 home is the boss-select list, which only fronts those two tools.
 

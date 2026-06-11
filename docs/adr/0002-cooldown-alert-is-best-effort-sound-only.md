@@ -10,7 +10,7 @@ When a Cooldown reaches zero the user may want to be alerted. The strongest vers
 of that — *guaranteed* firing at an exact future moment hours away, even while the
 app is backgrounded or closed — would require OS-scheduled notifications, a Tauri
 notification plugin, and a new **capability** in `src-tauri/capabilities/`.
-DragonsAid's README makes a headline trust promise: global hotkeys + always-on-top
+Dragon's Aid's README makes a headline trust promise: global hotkeys + always-on-top
 are the *only* unusual capabilities, no network, **verifiable from source**.
 
 ## Decision
