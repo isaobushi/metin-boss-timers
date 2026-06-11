@@ -17,6 +17,7 @@ import { readout, remainingMs, start } from "./cooldown";
 import { remainingMs as recurringRemainingMs } from "./recurring";
 import { SCHEMA_VERSION, deserialize, serialize } from "./persist";
 import { DEFAULT_SOUND_ID } from "./sounds";
+import { cooldownKey, recurringKey } from "./contentKeys";
 
 // Read the active character's recurring slices (the recurring side relocated under a Character, #47).
 const rec = (c: Config) => activeRecurring(c);
@@ -134,11 +135,12 @@ describe("cooldown persistence (additive, no version bump)", () => {
     };
     const restored = deserialize(payload);
     expect(restored.bosses.length).toBeGreaterThan(0); // config survives
-    expect(restored.cooldowns).toEqual([valid]); // bad entry dropped, good one kept
+    // "Hydra" is seeded: the v3 migration adds its catalogKey, so include it in the expectation.
+    expect(restored.cooldowns).toEqual([{ ...valid, catalogKey: cooldownKey("Hydra") }]); // bad entry dropped, good one kept + key backfilled
   });
 
-  it("is at the multi-character schema version (v1 still migrates, never wipes — see migration suite)", () => {
-    expect(SCHEMA_VERSION).toBe(2);
+  it("is at the catalogKey-migration schema version (v1/v2 still migrate, never wipe — see migration suite)", () => {
+    expect(SCHEMA_VERSION).toBe(3);
   });
 
   it("restores a running cooldown whose expiry already passed as Ready", () => {
@@ -288,8 +290,11 @@ describe("v1 → v2 migration (default-character wrap)", () => {
     expect(ch.empire).toBeUndefined();
     expect(ch.race).toBeUndefined();
     expect(ch.builds).toEqual([]);
-    // the prior recurring/running/progress are now the default character's, intact
-    expect(ch.recurring).toEqual(legacy.recurring);
+    // the prior recurring items are now the default character's, with catalogKeys backfilled by the
+    // v3 migration (seeded names gain a key; the raw fixture has none, so we compare only the fields
+    // that were already in the fixture — the catalog-key backfill is tested in the v3 suite).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    expect(ch.recurring.map(({ catalogKey: _k, ...rest }) => rest)).toEqual(legacy.recurring);
     expect(ch.recurringRunning).toEqual(legacy.recurringRunning);
     expect(ch.recurringProgress).toEqual(legacy.recurringProgress);
     // seqs seeded past the migrated ids
@@ -321,7 +326,14 @@ describe("v1 → v2 migration (default-character wrap)", () => {
   });
 
   it("drops a malformed recurring entry + legacy tag while migrating, without nuking the rest", () => {
-    const expected = { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" };
+    // "Snow Wolf" is seeded, so the v3 migration backfills its catalogKey — include it in the expectation.
+    const expected = {
+      id: "recurring-1",
+      name: "Snow Wolf",
+      durationMs: 259_200_000,
+      kind: "deadline",
+      catalogKey: recurringKey("Snow Wolf"),
+    };
     const payload = {
       version: 1,
       bosses: serialize(makeConfig()).bosses,
@@ -333,7 +345,7 @@ describe("v1 → v2 migration (default-character wrap)", () => {
     };
     const restored = deserialize(payload);
     expect(restored.bosses.length).toBeGreaterThan(0); // config survives
-    expect(rec(restored)).toEqual([expected]); // tag stripped, bad entries dropped, good one kept
+    expect(rec(restored)).toEqual([expected]); // tag stripped, bad entries dropped, good one kept + key backfilled
   });
 
   it("drops a malformed progress entry while migrating", () => {
@@ -424,5 +436,224 @@ describe("fallback to shipped defaults", () => {
 
   it("falls back on an empty boss list so the overlay is never empty", () => {
     expectDefaults({ version: SCHEMA_VERSION, bosses: [] });
+  });
+});
+
+// ---- v2 → v3 migration: backfill catalogKey by name-match (#82) ----
+// A pre-v3 blob is one with `version: 2` (or `version: 1`). After `deserialize` the seeded
+// defs must carry the correct `catalogKey`; user-created free-text defs must be left untouched;
+// ladder progress and Biologist stage counts must survive unchanged.
+
+describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
+  // A v2 persisted blob exactly as it sat on disk before the catalogKey migration: version 2,
+  // seeded cooldown defs WITHOUT a catalogKey (they had none until slice #81 added the field,
+  // and even after #81 the field is only set on NEWLY persisted defs — old users' disks still
+  // have the pre-key shape). The recurring data lives inside characters (v2 shape).
+  const v2BlobWithSeededDefs = () => ({
+    version: 2,
+    bosses: serialize(makeConfig()).bosses,
+    cooldowns: [
+      // seeded cooldown — no catalogKey on disk (pre-#81 save)
+      { id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 },
+      { id: "cooldown-2", name: "Razador", tag: "Raz", durationMs: 3_600_000 },
+    ],
+    running: [],
+    characters: [
+      {
+        id: "character-1",
+        name: DEFAULT_CHARACTER_NAME,
+        builds: [],
+        recurring: [
+          // seeded recurring — no catalogKey on disk
+          { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+          { id: "recurring-4", name: "Skill Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill" },
+          { id: "recurring-9", name: "Leadership", durationMs: 86_400_000, kind: "gate", ladderId: "leadership" },
+        ],
+        recurringRunning: [],
+        recurringProgress: [{ defId: "recurring-4", position: 12 }],
+      },
+    ],
+    activeCharacterId: "character-1",
+  });
+
+  it("backfills the correct catalogKey onto seeded cooldown defs by name-match", () => {
+    const restored = deserialize(v2BlobWithSeededDefs());
+    const hydra = restored.cooldowns.find((d) => d.name === "Hydra")!;
+    const razador = restored.cooldowns.find((d) => d.name === "Razador")!;
+    expect(hydra.catalogKey).toBe(cooldownKey("Hydra")); // "cooldown.hydra"
+    expect(razador.catalogKey).toBe(cooldownKey("Razador")); // "cooldown.razador"
+  });
+
+  it("backfills the correct catalogKey onto seeded recurring defs by name-match", () => {
+    const restored = deserialize(v2BlobWithSeededDefs());
+    const recs = rec(restored);
+    const snowWolf = recs.find((d) => d.name === "Snow Wolf")!;
+    const skillBooks = recs.find((d) => d.name === "Skill Books")!;
+    const leadership = recs.find((d) => d.name === "Leadership")!;
+    expect(snowWolf.catalogKey).toBe(recurringKey("Snow Wolf")); // "recurring.snow-wolf"
+    expect(skillBooks.catalogKey).toBe(recurringKey("Skill Books")); // "recurring.skill-books"
+    expect(leadership.catalogKey).toBe(recurringKey("Leadership")); // "recurring.leadership"
+  });
+
+  it("leaves user-created free-text defs untouched (no catalogKey, name verbatim)", () => {
+    const payload = {
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [
+        // seeded — gets a key
+        { id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 },
+        // user-created — NOT in seed, must stay as-is
+        { id: "cooldown-7", name: "My Custom Boss", tag: "Mcu", durationMs: 7_200_000 },
+      ],
+      running: [],
+      characters: [
+        {
+          id: "character-1",
+          name: DEFAULT_CHARACTER_NAME,
+          builds: [],
+          recurring: [
+            // seeded — gets a key
+            { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+            // user-created — NOT in seed, must stay as-is
+            { id: "recurring-99", name: "My Custom Chore", durationMs: 86_400_000, kind: "gate" },
+          ],
+          recurringRunning: [],
+          recurringProgress: [],
+        },
+      ],
+      activeCharacterId: "character-1",
+    };
+    const restored = deserialize(payload);
+    const custom = restored.cooldowns.find((d) => d.name === "My Custom Boss")!;
+    expect(custom.catalogKey).toBeUndefined(); // not seeded — no key
+    expect(custom.name).toBe("My Custom Boss"); // name verbatim
+
+    const customRec = rec(restored).find((d) => d.name === "My Custom Chore")!;
+    expect(customRec.catalogKey).toBeUndefined(); // not seeded — no key
+    expect(customRec.name).toBe("My Custom Chore"); // name verbatim
+
+    // seeded one still gets its key
+    expect(restored.cooldowns.find((d) => d.name === "Hydra")!.catalogKey).toBe(cooldownKey("Hydra"));
+    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
+  });
+
+  it("ladder progress (rung position) and Biologist stage counts survive the migration unchanged", () => {
+    const payload = v2BlobWithSeededDefs();
+    const restored = deserialize(payload);
+    // the progress map is unchanged — position 12 on Skill Books
+    expect(recProg(restored)).toEqual([{ defId: "recurring-4", position: 12 }]);
+    // ladderId itself is preserved on the def
+    expect(rec(restored).find((d) => d.name === "Skill Books")!.ladderId).toBe("class-skill");
+  });
+
+  it("a SCHEMA_VERSION mismatch (unknown future version) falls back cleanly without crashing", () => {
+    const defaults = makeConfig();
+    const unknownVersion = {
+      version: 999, // not a known migratable version
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [{ id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 }],
+    };
+    // Must fall back to shipped defaults with no crash
+    const c = deserialize(unknownVersion);
+    expect(c.bosses).toHaveLength(defaults.bosses.length);
+    expect(c.cooldowns).not.toHaveLength(0); // defaults have seeded cooldowns
+  });
+
+  it("a mixed seeded+user-created fixture: seeded gain keys, user-created stay untouched", () => {
+    // The comprehensive fixture: a v2 blob with both flavours side-by-side
+    const payload = {
+      version: 2,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [
+        { id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 }, // seeded
+        { id: "cooldown-2", name: "Meley", tag: "Mel", durationMs: 10_800_000 }, // seeded
+        { id: "cooldown-3", name: "Guild Dungeon", tag: "Gui", durationMs: 3_600_000 }, // user
+        { id: "cooldown-4", name: "Razador", tag: "Raz", durationMs: 3_600_000 }, // seeded
+      ],
+      running: [],
+      characters: [
+        {
+          id: "character-1",
+          name: DEFAULT_CHARACTER_NAME,
+          builds: [],
+          recurring: [
+            { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" }, // seeded
+            { id: "recurring-2", name: "Costume of Flame", durationMs: 1_209_600_000, kind: "deadline" }, // seeded
+            { id: "recurring-3", name: "My Pet", durationMs: 86_400_000, kind: "deadline" }, // user
+            { id: "recurring-4", name: "Skill Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill" }, // seeded
+            { id: "recurring-5", name: "Biologist", durationMs: 79_200_000, kind: "gate", ladderId: "biologist" }, // seeded
+            { id: "recurring-6", name: "Do the thing", durationMs: 86_400_000, kind: "gate" }, // user
+          ],
+          recurringRunning: [],
+          recurringProgress: [{ defId: "recurring-4", position: 7 }, { defId: "recurring-5", position: 3 }],
+        },
+      ],
+      activeCharacterId: "character-1",
+    };
+    const restored = deserialize(payload);
+
+    // seeded cooldowns gain keys
+    expect(restored.cooldowns.find((d) => d.name === "Hydra")!.catalogKey).toBe(cooldownKey("Hydra"));
+    expect(restored.cooldowns.find((d) => d.name === "Meley")!.catalogKey).toBe(cooldownKey("Meley"));
+    expect(restored.cooldowns.find((d) => d.name === "Razador")!.catalogKey).toBe(cooldownKey("Razador"));
+
+    // user-created cooldown stays untouched
+    const userCd = restored.cooldowns.find((d) => d.name === "Guild Dungeon")!;
+    expect(userCd.catalogKey).toBeUndefined();
+    expect(userCd.name).toBe("Guild Dungeon");
+
+    // seeded recurring defs gain keys
+    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
+    expect(rec(restored).find((d) => d.name === "Costume of Flame")!.catalogKey).toBe(recurringKey("Costume of Flame"));
+    expect(rec(restored).find((d) => d.name === "Skill Books")!.catalogKey).toBe(recurringKey("Skill Books"));
+    expect(rec(restored).find((d) => d.name === "Biologist")!.catalogKey).toBe(recurringKey("Biologist"));
+
+    // user-created recurring defs stay untouched
+    const userPet = rec(restored).find((d) => d.name === "My Pet")!;
+    expect(userPet.catalogKey).toBeUndefined();
+    expect(userPet.name).toBe("My Pet");
+    const userChore = rec(restored).find((d) => d.name === "Do the thing")!;
+    expect(userChore.catalogKey).toBeUndefined();
+
+    // progress survives unchanged
+    expect(recProg(restored)).toEqual([{ defId: "recurring-4", position: 7 }, { defId: "recurring-5", position: 3 }]);
+  });
+
+  it("v1 (legacy singleton) blobs also get catalogKey backfilled during migration", () => {
+    // A v1 blob with seeded recurring at the top level (no characters array); the v1 → default-char
+    // migration wraps it, and the catalogKey migration runs on top.
+    const legacyV1WithSeeded = {
+      version: 1,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [{ id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 }],
+      running: [],
+      recurring: [
+        { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+        { id: "recurring-99", name: "My Chore", durationMs: 86_400_000, kind: "gate" }, // user
+      ],
+      recurringRunning: [],
+      recurringProgress: [{ defId: "recurring-1", position: 0 }],
+    };
+    const restored = deserialize(legacyV1WithSeeded);
+    expect(restored.cooldowns.find((d) => d.name === "Hydra")!.catalogKey).toBe(cooldownKey("Hydra"));
+    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
+    const userChore = rec(restored).find((d) => d.name === "My Chore")!;
+    expect(userChore.catalogKey).toBeUndefined();
+    expect(userChore.name).toBe("My Chore");
+    // progress survives
+    expect(recProg(restored)).toEqual([{ defId: "recurring-1", position: 0 }]);
+  });
+
+  it("already-keyed defs (a v3 round-trip) are not double-patched", () => {
+    // A v3 payload already has catalogKeys from the serializer; they must survive verbatim.
+    const c = makeConfig();
+    const payload = throughDisk(c); // version: 3, keys already present
+    const restored = deserialize(payload);
+    // Seeded cooldown keys should match what makeConfig() sets (same as cooldownKey(name))
+    const hydra = restored.cooldowns.find((d) => d.name === "Hydra")!;
+    expect(hydra.catalogKey).toBe(cooldownKey("Hydra")); // correct key, set once
+    // Seeded recurring keys too
+    const snowWolf = rec(restored).find((d) => d.name === "Snow Wolf")!;
+    expect(snowWolf.catalogKey).toBe(recurringKey("Snow Wolf"));
   });
 });

@@ -4,22 +4,64 @@
 // back to shipped defaults on anything malformed. The on-disk store adapter (Tauri
 // plugin-store) lives separately and just hands raw values through these two functions.
 
-import { type Boss, type Config, type SkillCfg, makeConfig } from "./config";
+import { COOLDOWN_SEED, RECURRING_SEED, type Boss, type Config, type SkillCfg, makeConfig } from "./config";
 import { type Character, DEFAULT_CHARACTER_NAME, makeCharacter } from "./character";
 import type { CooldownDef, RunningCooldown } from "./cooldown";
 import type { RecurringDef, RecurringKind, RecurringProgress, RunningRecurring } from "./recurring";
 import type { Build, Empire, Race } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
+import { cooldownKey, recurringKey } from "./contentKeys";
+import { catalogChoreNames } from "./skillCatalog";
 
 /**
- * Bumped whenever the persisted shape changes; future migrations branch on it. v2 (multi-character,
- * PRD #47) moves the recurring side under per-character bags; v1 is the legacy singleton shape, which
- * `deserialize` MIGRATES rather than rejects. Any other version deserializes to shipped defaults.
+ * Bumped whenever the persisted shape changes; future migrations branch on it.
+ * v3 (catalogKey migration, slice #82): on load, seeded CooldownDef/RecurringDef instances that lack
+ * a `catalogKey` gain one by matching their frozen English `name` against the seed tables — so an
+ * existing user who upgrades and switches locale gets a fully localized overlay.
+ * v2 (multi-character, PRD #47) moves the recurring side under per-character bags; v1 is the legacy
+ * singleton shape. v1 and v2 are both MIGRATED rather than rejected. Any other version falls back to
+ * shipped defaults.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
-/** The persisted shapes `deserialize` understands: the current v2 and the migratable legacy v1. */
-const isKnownVersion = (v: unknown): boolean => v === 1 || v === 2;
+/** The persisted shapes `deserialize` understands: the current v3 and the migratable v1/v2. */
+const isKnownVersion = (v: unknown): boolean => v === 1 || v === 2 || v === 3;
+
+// ---- catalogKey migration helpers (slice #82) ----
+// Name → catalogKey lookup maps for every seeded source. Built once at module load; pure static data.
+
+/** Name → cooldown catalogKey for every entry in COOLDOWN_SEED. */
+const COOLDOWN_KEY_BY_NAME: ReadonlyMap<string, string> = new Map(
+  COOLDOWN_SEED.map((cd) => [cd.name, cooldownKey(cd.name)]),
+);
+
+/**
+ * Name → recurring catalogKey for every seeded recurring source: the config RECURRING_SEED plus
+ * the skill-catalog chore names (class Abilities and Languages). The two sources agree on the same
+ * name → same key (by design: both derive from the English name), so overlapping entries are
+ * idempotent.
+ */
+const RECURRING_KEY_BY_NAME: ReadonlyMap<string, string> = new Map([
+  ...RECURRING_SEED.map((r) => [r.name, recurringKey(r.name)] as [string, string]),
+  ...catalogChoreNames().map((name) => [name, recurringKey(name)] as [string, string]),
+]);
+
+/**
+ * Backfill a missing `catalogKey` on a def by matching its `name` against the seeded lookup.
+ * A def that already carries a `catalogKey` (a v3 round-trip) is left as-is. A def whose name
+ * matches no seed (user-created free-text) is left untouched — no key, name verbatim.
+ */
+function backfillCooldownKey(def: CooldownDef): CooldownDef {
+  if (def.catalogKey) return def; // already keyed — nothing to do
+  const key = COOLDOWN_KEY_BY_NAME.get(def.name);
+  return key ? { ...def, catalogKey: key } : def;
+}
+
+function backfillRecurringKey(def: RecurringDef): RecurringDef {
+  if (def.catalogKey) return def; // already keyed — nothing to do
+  const key = RECURRING_KEY_BY_NAME.get(def.name);
+  return key ? { ...def, catalogKey: key } : def;
+}
 
 export type PersistedConfig = {
   version: number;
@@ -64,14 +106,23 @@ export function deserialize(raw: unknown): Config {
   const skillIds = bosses.flatMap((b) => b.skills.map((s) => s.id));
   // Cooldowns are ADDITIVE and lenient: absent → empty (a pre-feature config is preserved,
   // never wiped), and a single malformed entry is dropped rather than nuking the config.
-  const cooldowns = readCooldowns(raw);
+  const rawCooldowns = readCooldowns(raw);
   const running = readRunning(raw);
   // Characters own the recurring side (PRD #47). A v2 payload carries an explicit `characters` list;
   // a v1 (legacy singleton) payload is MIGRATED — its top-level recurring data is wrapped into one
   // default character — so existing users lose no chores on upgrade. Bosses/cooldowns are global and
   // deserialize identically for both versions.
-  const characters = readCharacters(raw);
-  const activeCharacterId = readActiveCharacterId(raw, characters);
+  const rawCharacters = readCharacters(raw);
+  const activeCharacterId = readActiveCharacterId(raw, rawCharacters);
+
+  // v3 migration (slice #82): backfill `catalogKey` on seeded defs that lack one. Runs for every
+  // version we admit (v1, v2, v3): a v3 round-trip is a no-op because keys are already set; v1/v2
+  // payloads gain the missing keys without touching user-created free-text defs.
+  const cooldowns = rawCooldowns.map(backfillCooldownKey);
+  const characters = rawCharacters.map((ch) => ({
+    ...ch,
+    recurring: ch.recurring.map(backfillRecurringKey),
+  }));
 
   // `recurringSeq` is global (ids unique across every character), so seed it past the max recurring
   // id found in ANY character's catalog; `characterSeq` past the max `character-N`.
