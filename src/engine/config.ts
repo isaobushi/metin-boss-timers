@@ -21,6 +21,7 @@ import { type Character, DEFAULT_CHARACTER_NAME, activeCharacter, makeCharacter 
 import { type Build, type Empire, type Race, subsetFor } from "./skillCatalog";
 import { clampDuration } from "./cooldownTuning";
 import { cooldownKey, recurringKey } from "./contentKeys";
+import { DEFAULT_LOCALE, type Locale } from "./localeTypes";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -61,6 +62,13 @@ export type Config = {
   cooldownSeq: number;
   recurringSeq: number;
   characterSeq: number;
+  /**
+   * The active content locale (PRD #77, slice #83). Persisted and switchable at runtime; the overlay
+   * reads this to resolve seeded item display names through the content catalog. Defaults to `"en"`
+   * (the only locale with a content table until Slice 5); first-run is seeded from the OS language via
+   * `overlay/osLocale.ts` with a clean English fallback.
+   */
+  locale: Locale;
 };
 
 // Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
@@ -226,6 +234,7 @@ export function makeConfig(): Config {
     cooldownSeq: 0,
     recurringSeq: 0,
     characterSeq: 0,
+    locale: DEFAULT_LOCALE,
   };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);

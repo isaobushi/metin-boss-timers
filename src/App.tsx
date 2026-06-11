@@ -200,6 +200,7 @@ export default function App() {
           ? { name: editingChar.name, empire: editingChar.empire, race: editingChar.race, builds: editingChar.builds }
           : undefined
       }
+      locale={cfg.config.locale}
       onCreate={(draft) => {
         if (editingChar) cfg.editCharacter(editingChar.id, draft);
         else cfg.createCharacter(draft);

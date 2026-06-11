@@ -10,6 +10,7 @@ import type { CooldownDef, RunningCooldown } from "./cooldown";
 import type { RecurringDef, RecurringKind, RecurringProgress, RunningRecurring } from "./recurring";
 import type { Build, Empire, Race } from "./skillCatalog";
 import { DEFAULT_SOUND_ID, isSoundId } from "./sounds";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "./localeTypes";
 
 /**
  * Bumped whenever the persisted shape changes; future migrations branch on it. v2 (multi-character,
@@ -31,6 +32,8 @@ export type PersistedConfig = {
   characters: Character[];
   /** Which character is active (null = none). Re-pointed to a survivor on load if it dangles. */
   activeCharacterId: string | null;
+  /** The persisted content locale (slice #83); optional so old payloads round-trip cleanly. */
+  locale?: Locale;
 };
 
 /**
@@ -48,6 +51,7 @@ export function serialize(c: Config): PersistedConfig {
     running: c.running,
     characters: c.characters,
     activeCharacterId: c.activeCharacterId,
+    locale: c.locale,
   };
 }
 
@@ -87,6 +91,7 @@ export function deserialize(raw: unknown): Config {
     cooldownSeq: maxIdSeq(cooldowns.map((c) => c.id), "cooldown"),
     recurringSeq: maxIdSeq(recurringIds, "recurring"),
     characterSeq: maxIdSeq(characters.map((ch) => ch.id), "character"),
+    locale: readLocale(raw),
   };
 }
 
@@ -279,4 +284,17 @@ function readActiveCharacterId(raw: unknown, characters: Character[]): string | 
   const ids = new Set(characters.map((c) => c.id));
   if (isObj(raw) && isStr(raw.activeCharacterId) && ids.has(raw.activeCharacterId)) return raw.activeCharacterId;
   return characters[0]?.id ?? null;
+}
+
+/**
+ * The persisted locale (slice #83): lenient + optional. A known supported locale is kept; an unknown
+ * value (future locale not yet in this build, or a corrupt entry) falls back to `DEFAULT_LOCALE` so
+ * the overlay always has a valid locale to resolve against. A pre-feature payload (no `locale` field)
+ * also falls back to `DEFAULT_LOCALE` — additive, never wipes.
+ */
+function readLocale(raw: unknown): Locale {
+  if (isObj(raw) && isStr(raw.locale) && (SUPPORTED_LOCALES as string[]).includes(raw.locale)) {
+    return raw.locale as Locale;
+  }
+  return DEFAULT_LOCALE;
 }

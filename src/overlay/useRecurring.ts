@@ -19,6 +19,7 @@ import { displayName, resolveDisplayName } from "../engine/contentCatalog";
 import { buildKey } from "../engine/contentKeys";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
+import { useLocale } from "./useLocale";
 import type { useConfig } from "./useConfig";
 
 /** A deadline expiring item projected for the Items accordion: identity, label, live state. */
@@ -89,6 +90,7 @@ export type RoutineDatum = { ready: number; total: number };
  */
 export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   const now = useNow(); // the shared 1s app-level tick (overlay/useNow)
+  const locale = useLocale(cfg); // live locale from persisted config (slice #83)
   const { config, markRecurringDone, markReadOutcome, setLadderRung } = cfg;
   // The recurring side belongs to the ACTIVE character now (#47): read its slices, not the (gone)
   // top-level Config fields. Everything downstream is unchanged — it's the same shapes, re-scoped.
@@ -126,8 +128,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
       const rem = r ? remainingMs(r, now) : null;
       return {
         defId: def.id,
-        // Seeded items resolve per-locale (PRD #77, "en" until #83); user-added defs render verbatim.
-        name: resolveDisplayName(def, "en"),
+        // Seeded items resolve per-locale (PRD #77, slice #83 wires up the live locale); user-added verbatim.
+        name: resolveDisplayName(def, locale),
         rem,
         due: r ? isDue(r, now) : false,
         alarm: r ? inAlarm(r, now) : false,
@@ -169,19 +171,19 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     const lp = ladderProgress(def.ladderId, pos);
     return {
       defId: def.id,
-      // Seeded chores/Abilities resolve per-locale (PRD #77, "en" until #83); user-added defs verbatim.
-      name: resolveDisplayName(def, "en"),
+      // Seeded chores/Abilities resolve per-locale (PRD #77, slice #83 wires up the live locale); user-added verbatim.
+      name: resolveDisplayName(def, locale),
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,
       running: r != null,
       section: routineSection(def.ladderId),
       // The school band label is a Build (school) name — resolved per-locale through its content key.
-      ...(def.school ? { school: displayName(buildKey(def.school), "en") } : {}),
+      ...(def.school ? { school: displayName(buildKey(def.school), locale) } : {}),
       ...(lp
         ? {
             ladder: {
               // Biologist consignment item names inside the readout resolve per-locale too.
-              text: ladderText(def.ladderId, pos, (k) => displayName(k, "en"))!,
+              text: ladderText(def.ladderId, pos, (k) => displayName(k, locale))!,
               capped: lp.capped,
               ladderId: def.ladderId!,
               rungLabel: lp.rungLabel,

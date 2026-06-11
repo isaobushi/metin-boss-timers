@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest";
+import { pickLocale } from "./locale";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./localeTypes";
+import { resolveDisplayName } from "./contentCatalog";
+import { deserialize, serialize } from "./persist";
+import { makeConfig, activeRecurring, activeRecurringProgress, markRecurring, markRead } from "./config";
+import { cooldownKey, recurringKey } from "./contentKeys";
+
+// ---- pickLocale — the pure OS-locale → supported-locale mapping ----
+
+describe("pickLocale", () => {
+  it("returns the default locale for null/undefined/empty input", () => {
+    expect(pickLocale(null)).toBe(DEFAULT_LOCALE);
+    expect(pickLocale(undefined)).toBe(DEFAULT_LOCALE);
+    expect(pickLocale("")).toBe(DEFAULT_LOCALE);
+    expect(pickLocale("   ")).toBe(DEFAULT_LOCALE);
+  });
+
+  it('maps "en" to "en" (exact match)', () => {
+    expect(pickLocale("en")).toBe("en");
+  });
+
+  it('maps a supported locale with a region subtag via prefix match ("en-AU" → "en")', () => {
+    expect(pickLocale("en-AU")).toBe("en");
+    expect(pickLocale("en-US")).toBe("en");
+    expect(pickLocale("en-GB")).toBe("en");
+  });
+
+  it("normalises underscore separators (e.g. \"en_AU\" → \"en\")", () => {
+    expect(pickLocale("en_AU")).toBe("en");
+    expect(pickLocale("en_US")).toBe("en");
+  });
+
+  it("is case-insensitive (\"EN\", \"EN-AU\" all map to \"en\")", () => {
+    expect(pickLocale("EN")).toBe("en");
+    expect(pickLocale("EN-AU")).toBe("en");
+  });
+
+  it("falls back to English for an unsupported language (no German table yet)", () => {
+    expect(pickLocale("de")).toBe("en");
+    expect(pickLocale("de-DE")).toBe("en");
+    expect(pickLocale("fr-FR")).toBe("en");
+    expect(pickLocale("zh-CN")).toBe("en");
+  });
+
+  it("falls back to English for a completely garbage string", () => {
+    expect(pickLocale("not-a-locale-xyz-9999")).toBe("en");
+  });
+
+  it("covers every entry in SUPPORTED_LOCALES with an exact-match round-trip", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(pickLocale(locale)).toBe(locale);
+    }
+  });
+});
+
+// ---- locale persist round-trip ----
+// `locale` lives on Config and is carried through serialize/deserialize so the user's
+// choice survives a disk hop.
+
+describe("locale persist round-trip", () => {
+  const throughDisk = (raw: unknown) => JSON.parse(JSON.stringify(raw));
+
+  it("serialize includes locale when set", () => {
+    const c = { ...makeConfig(), locale: "en" as const };
+    const payload = serialize(c);
+    expect(payload.locale).toBe("en");
+  });
+
+  it("round-trips locale through a JSON disk hop", () => {
+    const c = { ...makeConfig(), locale: "en" as const };
+    const restored = deserialize(throughDisk(serialize(c)));
+    expect(restored.locale).toBe("en");
+  });
+
+  it("defaults to 'en' when locale is absent from the persisted payload (pre-feature config)", () => {
+    const c = makeConfig();
+    const payload = serialize(c);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (payload as any).locale;
+    const restored = deserialize(throughDisk(payload));
+    expect(restored.locale).toBe("en");
+  });
+
+  it("defaults to 'en' when locale is an unknown/future value on disk (lenient)", () => {
+    const c = makeConfig();
+    const payload = serialize(c);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (payload as any).locale = "klingon";
+    const restored = deserialize(throughDisk(payload));
+    expect(restored.locale).toBe("en");
+  });
+});
+
+// ---- re-resolution: switching locale resolves seeded content, user strings + progress untouched ----
+// These are ENGINE-level tests: they verify the resolver (resolveDisplayName) re-derives the
+// right string when the caller passes a different locale. The overlay picks up the live locale
+// from context and passes it to the resolver at render time.
+
+describe("locale switch re-resolves seeded content while user data stays put", () => {
+  it("resolveDisplayName returns the same English string for any supported locale (only en exists)", () => {
+    // Until Slice 5 all locales map to the same English strings — so "switching" is a no-op visually,
+    // but the wiring is tested: the locale argument flows through correctly.
+    const key = cooldownKey("Hydra");
+    expect(resolveDisplayName({ catalogKey: key, name: "Hydra" }, "en")).toBe("Hydra");
+  });
+
+  it("a user-created def (no catalogKey) is always rendered verbatim regardless of locale", () => {
+    expect(resolveDisplayName({ name: "My Custom Boss" }, "en")).toBe("My Custom Boss");
+  });
+
+  it("switching locale does not touch recurring defs (the catalog is read-only for localization)", () => {
+    // The recurring catalog in Config is untouched by a locale change — localization is a
+    // PRESENTATION concern resolved at render time, not a mutation of the stored name.
+    const c = makeConfig();
+    const defs = activeRecurring(c);
+    const first = defs[0];
+    // Resolving in "en" for any locale returns the English name (only en exists now).
+    expect(resolveDisplayName(first, "en")).toBe(first.name);
+    // The def itself is unchanged — localization is presentation-only.
+    expect(first.name).toBe(activeRecurring(c)[0].name);
+  });
+
+  it("ladder progress (recurringProgress) is preserved across a simulated locale switch", () => {
+    // A locale change only changes the locale value in Config; the progress map is not touched.
+    let c = makeConfig();
+    const def = activeRecurring(c).find((d) => d.ladderId === "class-skill")!;
+    c = markRead(c, def.id, 1000, true); // advance rank by one read
+    const progressBefore = activeRecurringProgress(c);
+    expect(progressBefore.length).toBe(1); // one rung advancement recorded
+
+    // Simulate a locale switch: just change the `locale` field on Config (presentation only).
+    const switched = { ...c, locale: "en" as const };
+    // Progress map is unchanged.
+    expect(activeRecurringProgress(switched)).toEqual(progressBefore);
+  });
+
+  it("markRecurring (gate restamp) is unaffected by a locale change", () => {
+    let c = makeConfig();
+    const gateId = activeRecurring(c).find((d) => d.kind === "gate")!.id;
+    c = markRecurring(c, gateId, 1000);
+    const runningBefore = c.characters.find((ch) => ch.id === c.activeCharacterId)!.recurringRunning;
+
+    // A locale change does not disturb the running set.
+    const switched = { ...c, locale: "en" as const };
+    expect(switched.characters.find((ch) => ch.id === switched.activeCharacterId)!.recurringRunning)
+      .toEqual(runningBefore);
+  });
+
+  it("seeded recurring name (the English fallback `name` field) is untouched across a switch", () => {
+    // Per spec: user-created free-text names and seeded def names must stay exactly as typed/seeded.
+    const c = makeConfig();
+    const def = activeRecurring(c).find((d) => d.catalogKey === recurringKey("Skill Books"))!;
+    const nameBefore = def.name;
+
+    const switched = { ...c, locale: "en" as const };
+    const defAfter = activeRecurring(switched).find((d) => d.id === def.id)!;
+    expect(defAfter.name).toBe(nameBefore);
+  });
+});

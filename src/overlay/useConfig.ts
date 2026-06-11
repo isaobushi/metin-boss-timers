@@ -43,6 +43,8 @@ import { exportConfig, importConfig } from "../engine/backup";
 import { loadPersisted, savePersisted } from "./configStore";
 import { resolveLaunchEntitlement } from "./entitlementSource";
 import { broadcastConfig, subscribeConfig } from "./configSync";
+import type { Locale } from "../engine/contentCatalog";
+import { readOsLocale } from "./osLocale";
 
 /**
  * Thin React control layer over the pure config model. It holds the `Config` and the
@@ -81,9 +83,19 @@ export function useConfig() {
 
   useEffect(() => {
     let alive = true;
-    loadPersisted().then((raw) => {
+    loadPersisted().then(async (raw) => {
       if (!alive) return;
-      setConfig(deserialize(raw)); // null/corrupt → shipped defaults; ids seeded past max
+      const config = deserialize(raw); // null/corrupt → shipped defaults; ids seeded past max
+      // First-run: if no locale was persisted (new install), seed from the OS language. A persisted
+      // config already carries a locale (round-trips through serialize), so readOsLocale is only
+      // meaningful when the restored config still holds the shipped DEFAULT_LOCALE. We always run the
+      // read on first hydration so a user who hasn't yet customised locale gets the OS default.
+      if (!raw || !(raw as Record<string, unknown>).locale) {
+        const osLocale = await readOsLocale();
+        setConfig({ ...config, locale: osLocale });
+      } else {
+        setConfig(config);
+      }
       setHydrated(true);
     });
     return () => {
@@ -294,6 +306,9 @@ export function useConfig() {
     setActiveBossId(null);
   }, []);
 
+  // Switch the active locale — persisted + cross-window synced like any other config edit.
+  const changeLocale = useCallback((locale: Locale) => setConfig((c) => ({ ...c, locale })), []);
+
   // Dismiss the cap-hit nudge (#56) — the user closed it or opened the subscribe screen.
   const dismissNudge = useCallback(() => setCapNudge(null), []);
 
@@ -359,5 +374,6 @@ export function useConfig() {
     removeCharacter,
     selectBoss,
     resetConfig,
+    changeLocale,
   };
 }
