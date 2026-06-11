@@ -12,6 +12,8 @@
 //   • `deadline` (pet, costume, mount)    — act before zero or lose the thing; `isDue`
 //                                            reads as "overdue".
 
+import { biologistItemKey } from "./contentKeys";
+
 /** Which face a recurring item presents (pure presentation; see module header). */
 export type RecurringKind = "gate" | "deadline";
 
@@ -34,6 +36,14 @@ export type RecurringDef = {
    * (#57). Nothing in the running-set engine reads it; absent on every non-ability gate.
    */
   school?: string;
+  /**
+   * Stable, locale-independent identity for a SEEDED recurring item (PRD #77) — present on the
+   * shipped seed and the skill-catalog preforms, absent on a user-added def (which renders its
+   * free-text `name` verbatim). The overlay resolves the display name through
+   * `contentCatalog.displayName(catalogKey, locale)` when set; `name` remains the English fallback.
+   * Pure presentation, like `ladderId`/`kind`.
+   */
+  catalogKey?: string;
 };
 
 /** A running recurring item: its absolute `expiry`, plus `startedAt` for progress derivation. */
@@ -196,6 +206,9 @@ export type LadderStructure = {
   rungs: LadderRung[];
   /** `stage`-style per-stage display name (the consignment item), index-aligned to rungs (Biologist). */
   hints?: string[];
+  /** `stage`-style per-stage content key, index-aligned to `hints` — lets `ladderText` resolve the
+   *  consignment item name per-locale (PRD #77); falls back to `hints` when no resolver is passed. */
+  hintKeys?: string[];
   /** `stage`-style per-stage required item count — the `x/qty` denominator; the cap is their sum. */
   quantities?: number[];
   /** Suffix on the trophy readout, e.g. " (books)" — Skill Books cap at G1 because G→P is Soul Stones. */
@@ -240,7 +253,7 @@ const triangular10 = Array.from({ length: 10 }, (_, i) => i + 1); // [1..10], su
 // before the chain opens the next — so the app tracks a real per-stage counter (item x/qty), not a
 // one-tap-per-stage hint. Item names (late ones carry localization aliases — primary shown, alt in
 // the trailing comment) are index-aligned with their required counts below.
-const BIOLOGIST_HINTS = [
+export const BIOLOGIST_HINTS = [
   "Orc Tooth",
   "Curse Book",
   "Demon's Keepsake",
@@ -307,6 +320,7 @@ export const LADDERS: Record<string, LadderStructure> = {
       BIOLOGIST_QTYS.slice(0, 9), // 9 steps between 10 stages; the 10th qty rolls into the cap
     ),
     hints: BIOLOGIST_HINTS,
+    hintKeys: BIOLOGIST_HINTS.map(biologistItemKey),
     quantities: BIOLOGIST_QTYS,
   },
 };
@@ -370,7 +384,11 @@ export function ladderProgress(ladderId: string | undefined, position: number): 
  * (Biologist) reads "Stage 5/10 · Zelkova Branch 3/25" — the current stage plus how many of its
  * required items are in — capping to "Stage 10/10 ✓". Null for an unknown ladder.
  */
-export function ladderText(ladderId: string | undefined, position: number): string | null {
+export function ladderText(
+  ladderId: string | undefined,
+  position: number,
+  resolveHint?: (key: string) => string,
+): string | null {
   const l = ladderById(ladderId);
   const p = ladderProgress(ladderId, position);
   if (!l || !p) return null;
@@ -382,7 +400,10 @@ export function ladderText(ladderId: string | undefined, position: number): stri
     for (let k = 0; k < l.rungs.length; k++) if (l.rungs[k].entry <= pos) i = k;
     const inStage = pos - l.rungs[i].entry; // items consigned toward this stage
     const qty = l.quantities?.[i] ?? 0;
-    const item = l.hints?.[i];
+    // Resolve the consignment item per-locale when a resolver is supplied (PRD #77); the bare
+    // `hints` English string is the fallback, so callers/tests without a resolver are unaffected.
+    const key = l.hintKeys?.[i];
+    const item = resolveHint && key ? resolveHint(key) : l.hints?.[i];
     return item ? `Stage ${i + 1}/${total} · ${item} ${inStage}/${qty}` : `Stage ${i + 1}/${total}`;
   }
   if (p.capped) return `${p.rungLabel} ✓ max${l.capNote ?? ""}`;

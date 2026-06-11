@@ -15,6 +15,8 @@ import {
   type RunningRecurring,
 } from "../engine/recurring";
 import { activeCharacter, activeRecurring, activeRecurringProgress, activeRecurringRunning } from "../engine/config";
+import { displayName, resolveDisplayName } from "../engine/contentCatalog";
+import { buildKey } from "../engine/contentKeys";
 import { playCooldownReady } from "./audio";
 import { useNow } from "./useNow";
 import type { useConfig } from "./useConfig";
@@ -124,7 +126,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
       const rem = r ? remainingMs(r, now) : null;
       return {
         defId: def.id,
-        name: def.name,
+        // Seeded items resolve per-locale (PRD #77, "en" until #83); user-added defs render verbatim.
+        name: resolveDisplayName(def, "en"),
         rem,
         due: r ? isDue(r, now) : false,
         alarm: r ? inAlarm(r, now) : false,
@@ -166,14 +169,24 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
     const lp = ladderProgress(def.ladderId, pos);
     return {
       defId: def.id,
-      name: def.name,
+      // Seeded chores/Abilities resolve per-locale (PRD #77, "en" until #83); user-added defs verbatim.
+      name: resolveDisplayName(def, "en"),
       text: ready ? "ready" : readout(remainingMs(r!, now)),
       ready,
       running: r != null,
       section: routineSection(def.ladderId),
-      ...(def.school ? { school: def.school } : {}),
+      // The school band label is a Build (school) name — resolved per-locale through its content key.
+      ...(def.school ? { school: displayName(buildKey(def.school), "en") } : {}),
       ...(lp
-        ? { ladder: { text: ladderText(def.ladderId, pos)!, capped: lp.capped, ladderId: def.ladderId!, rungLabel: lp.rungLabel } }
+        ? {
+            ladder: {
+              // Biologist consignment item names inside the readout resolve per-locale too.
+              text: ladderText(def.ladderId, pos, (k) => displayName(k, "en"))!,
+              capped: lp.capped,
+              ladderId: def.ladderId!,
+              rungLabel: lp.rungLabel,
+            },
+          }
         : {}),
     };
   });

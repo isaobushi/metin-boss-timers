@@ -1,0 +1,79 @@
+// Pure content-catalog resolver (PRD #77, slice #81): the deep module that owns "how a seeded item
+// is spelled in a given locale". Its interface is one stable shape — `displayName(catalogKey,
+// locale) -> string` — hiding all per-locale data behind it. Like the rest of the engine it owns no
+// clock, no React, no storage.
+//
+// SEPARATION OF CONCERNS: this resolver handles GAME CONTENT (bosses, abilities, chores, items,
+// Empire/Race/Build) — names that must be TRANSCRIBED from each official client, never free-
+// translated. UI chrome (buttons, settings labels) is a different concern with its own `t()` lookup
+// (slice #84); it is deliberately NOT handled here, so a game term is never accidentally translated.
+//
+// ENGLISH IS BUILT FROM THE SEED LITERALS, not hand-duplicated: the `en` table is assembled by
+// re-indexing the existing seed/catalog/hint names under their `catalogKey`. So there is exactly one
+// place the English string lives (the seed), `en` can never drift from it, and `displayName(key,
+// "en")` returns the same string the def's frozen `name` already holds — which is why routing the
+// overlay through the resolver is a no-op in English (slice #81) and only diverges once a hand-
+// authored locale (German, slice #85) is added.
+
+import { COOLDOWN_SEED, RECURRING_SEED } from "./config";
+import { BUILDS, EMPIRES, RACES, catalogChoreNames } from "./skillCatalog";
+import { BIOLOGIST_HINTS } from "./recurring";
+import { biologistItemKey, buildKey, cooldownKey, empireKey, raceKey, recurringKey } from "./contentKeys";
+
+/** A supported content locale. Expands to the official-client regions as their tables land (#85+). */
+export type Locale = "en";
+
+/** The fallback locale: every seeded key is guaranteed to resolve here (see the completeness guard). */
+export const DEFAULT_LOCALE: Locale = "en";
+
+/** Every locale currently shipped with a content table. The completeness guard holds for each. */
+export const SUPPORTED_LOCALES: Locale[] = ["en"];
+
+/**
+ * The English content table, re-indexed from the seed/catalog/hint literals by `catalogKey`. Every
+ * seeded source contributes: the cooldown + recurring seeds, every catalog chore (universals, class
+ * Abilities, Languages), the Empire/Race/Build enums, and the Biologist consignment items. Names that
+ * repeat across sources (e.g. a chore present in both the config seed and the catalog, or a shared
+ * 9th skill) collapse to one key with the same value — idempotent, never conflicting.
+ */
+function buildEnglish(): Record<string, string> {
+  const en: Record<string, string> = {};
+  for (const cd of COOLDOWN_SEED) en[cooldownKey(cd.name)] = cd.name;
+  for (const r of RECURRING_SEED) en[recurringKey(r.name)] = r.name;
+  for (const name of catalogChoreNames()) en[recurringKey(name)] = name;
+  for (const e of EMPIRES) en[empireKey(e)] = e;
+  for (const r of RACES) en[raceKey(r)] = r;
+  for (const b of BUILDS) en[buildKey(b)] = b;
+  for (const item of BIOLOGIST_HINTS) en[biologistItemKey(item)] = item;
+  return en;
+}
+
+const EN = buildEnglish();
+
+const TABLES: Record<Locale, Record<string, string>> = {
+  en: EN,
+};
+
+/**
+ * Resolve a seeded item's display name in `locale`. Falls back to the English string when the locale
+ * lacks the key (so a partially-authored locale never renders blank), and — defensively — to the raw
+ * key only for a key in no table at all (unreachable for seeded keys, which the completeness guard
+ * pins into `en`). Pure: same `(key, locale)` always yields the same string.
+ */
+export function displayName(catalogKey: string, locale: Locale = DEFAULT_LOCALE): string {
+  return TABLES[locale]?.[catalogKey] ?? EN[catalogKey] ?? catalogKey;
+}
+
+/**
+ * The display name for any def-like item: resolve a SEEDED item (one carrying a `catalogKey`) through
+ * the locale tables, but render a USER-CREATED item's free-text `name` verbatim — the overlay's single
+ * seam for "seeded content localizes, user content is left exactly as typed".
+ */
+export function resolveDisplayName(item: { catalogKey?: string; name: string }, locale: Locale = DEFAULT_LOCALE): string {
+  return item.catalogKey ? displayName(item.catalogKey, locale) : item.name;
+}
+
+/** Every seeded content key (the keys of the English table) — the set the completeness guard checks. */
+export function seededContentKeys(): string[] {
+  return Object.keys(EN);
+}

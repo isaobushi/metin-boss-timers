@@ -7,6 +7,8 @@
 // inline panel below the dock, width-matched to the other dock surfaces.
 import { useMemo, useState } from "react";
 import { type Build, type Empire, type Race, buildsFor } from "../engine/skillCatalog";
+import { displayName } from "../engine/contentCatalog";
+import { buildKey, empireKey, raceKey } from "../engine/contentKeys";
 import type { CharacterDraft } from "../engine/config";
 
 const EMPIRES: Empire[] = ["Shinsoo", "Chunjo", "Jinno"];
@@ -97,7 +99,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${empire === e ? " is-sel" : ""}`}
               onClick={() => setEmpire(e)}
             >
-              {e}
+              {displayName(empireKey(e), "en")}
             </button>
           ))}
         </div>
@@ -111,7 +113,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${race === r ? " is-sel" : ""}`}
               onClick={() => chooseRace(r)}
             >
-              {r}
+              {displayName(raceKey(r), "en")}
             </button>
           ))}
         </div>
@@ -125,7 +127,7 @@ export function CharacterWizard({ mode = "new", initial, onCreate, onCancel }: P
               className={`char-wizard__opt${builds.includes(b) ? " is-sel" : ""}`}
               onClick={() => toggleBuild(b)}
             >
-              {b}
+              {displayName(buildKey(b), "en")}
             </button>
           ))}
         </div>

@@ -118,9 +118,26 @@ const ABILITIES: Record<Build, string[]> = {
   Instinct: ["Crimson Wolf Soul", "Indigo Wolf Soul", "Shred", "Wolf's Breath", "Wolf's Claw", "Wolf Pounce", "Wolf's Breath Boost", "Cicatrix"],
 };
 
+/** The three Empires (value list, for iteration + content-catalog keying — PRD #77). */
+export const EMPIRES: Empire[] = ["Shinsoo", "Chunjo", "Jinno"];
+/** The five Races (value list, for iteration + content-catalog keying). */
+export const RACES: Race[] = ["Warrior", "Ninja", "Sura", "Shaman", "Lycan"];
+/** Every Build (school) across all races (value list, for content-catalog keying). */
+export const BUILDS: Build[] = [
+  "Body",
+  "Mental",
+  "Blade-Fight",
+  "Archery",
+  "Weaponry",
+  "Black Magic",
+  "Dragon",
+  "Healing",
+  "Instinct",
+];
+
 // The three Language chores, one per Empire. A character reads the *other two* empires' languages
 // (never its own) — `subsetFor` filters on `empire`. Each is a 20-rung ladder capped at M1.
-const LANGUAGES: ChorePreform[] = (["Shinsoo", "Chunjo", "Jinno"] as Empire[]).map((empire) => ({
+const LANGUAGES: ChorePreform[] = EMPIRES.map((empire) => ({
   name: `${empire} Language`,
   durationMs: GATE_MS,
   kind: "gate",
@@ -158,6 +175,16 @@ const abilityPreform = (race: Race, build: Build, name: string): ChorePreform =>
 /** The (race-independent) Builds a Race can specialise into — Lycan returns exactly one. */
 export function buildsFor(race: Race): Build[] {
   return BUILDS_BY_RACE[race];
+}
+
+/**
+ * Every recurring-chore display name the catalog can mint — the universal chores, all class
+ * Abilities (across every Build), and the three Languages. Used by `contentCatalog` to build the
+ * English content table (PRD #77); names repeat across the catalog (e.g. Warrior's shared 9th
+ * skill), and the catalog map de-dupes them to one key. Order is not significant here.
+ */
+export function catalogChoreNames(): string[] {
+  return [...UNIVERSAL.map((p) => p.name), ...Object.values(ABILITIES).flat(), ...LANGUAGES.map((p) => p.name)];
 }
 
 /**

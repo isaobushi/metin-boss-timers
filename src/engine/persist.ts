@@ -158,7 +158,12 @@ function readCooldowns(raw: unknown): CooldownDef[] {
 function readCooldownDef(c: unknown): CooldownDef | null {
   if (!isObj(c) || !isStr(c.id) || !isStr(c.name) || !isStr(c.tag) || !isNum(c.durationMs)) return null;
   // rebuild explicitly so unknown extra fields are dropped (matches readBoss/readSkill)
-  return { id: c.id, name: c.name, tag: c.tag, durationMs: c.durationMs };
+  const def: CooldownDef = { id: c.id, name: c.name, tag: c.tag, durationMs: c.durationMs };
+  // catalogKey (PRD #77) is optional + lenient: preserve a valid string so a seeded def keeps its
+  // locale-independent identity across a disk hop. A pre-#77 config simply has none (the name-match
+  // backfill that gives old seeded defs a key is slice #82, not here).
+  if (isStr(c.catalogKey)) def.catalogKey = c.catalogKey;
+  return def;
 }
 
 /** Validated running cooldowns, or `[]` when absent. Absolute `expiry` is kept verbatim. */
@@ -190,6 +195,10 @@ function readRecurringDef(r: unknown): RecurringDef | null {
   // ladderId is optional + lenient: keep a valid string (the ladder lookup tolerates an unknown id),
   // drop anything else — a pre-ladder config simply has no rank, exactly as it did before #44.
   if (isStr(r.ladderId)) def.ladderId = r.ladderId;
+  // school (#57) and catalogKey (#77) are optional + lenient too: preserve a valid string so a seeded
+  // Ability keeps its band label and a seeded def keeps its locale-independent identity across a hop.
+  if (isStr(r.school)) def.school = r.school;
+  if (isStr(r.catalogKey)) def.catalogKey = r.catalogKey;
   return def;
 }
 
