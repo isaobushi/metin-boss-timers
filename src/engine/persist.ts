@@ -63,27 +63,28 @@ const LIVE_RECURRING_KEYS: ReadonlySet<string> = new Set(RECURRING_KEY_BY_NAME.v
  * A def already carrying a LIVE `catalogKey` (a v3 round-trip) is left as-is; one carrying a dead
  * key (its seed was since replaced) has the key stripped — frozen name verbatim, plain user
  * content from here on. A def whose name matches no seed (user-created free-text) is left
- * untouched — no key, name verbatim.
+ * untouched — no key, name verbatim. One generic body serves both def kinds: the logic must
+ * never drift between cooldowns and recurring.
  */
-function backfillCooldownKey(def: CooldownDef): CooldownDef {
-  if (def.catalogKey && LIVE_COOLDOWN_KEYS.has(def.catalogKey)) return def; // already keyed — nothing to do
-  const key = COOLDOWN_KEY_BY_NAME.get(def.name);
+function backfillKey<T extends { name: string; catalogKey?: string }>(
+  def: T,
+  keyByName: ReadonlyMap<string, string>,
+  liveKeys: ReadonlySet<string>,
+): T {
+  if (def.catalogKey && liveKeys.has(def.catalogKey)) return def; // already keyed — nothing to do
+  const key = keyByName.get(def.name);
   if (key) return { ...def, catalogKey: key };
   if (!def.catalogKey) return def;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring-omit (the "_k" idiom)
-  const { catalogKey: _dead, ...rest } = def; // dead key: strip it (see LIVE_COOLDOWN_KEYS)
-  return rest;
+  const { catalogKey: _dead, ...rest } = def; // dead key: strip it (see the LIVE_* key sets)
+  return rest as T; // `catalogKey` is optional on every T, so the omit stays within T
 }
 
-function backfillRecurringKey(def: RecurringDef): RecurringDef {
-  if (def.catalogKey && LIVE_RECURRING_KEYS.has(def.catalogKey)) return def; // already keyed — nothing to do
-  const key = RECURRING_KEY_BY_NAME.get(def.name);
-  if (key) return { ...def, catalogKey: key };
-  if (!def.catalogKey) return def;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring-omit (the "_k" idiom)
-  const { catalogKey: _dead, ...rest } = def; // dead key: strip it (see LIVE_RECURRING_KEYS)
-  return rest;
-}
+const backfillCooldownKey = (def: CooldownDef): CooldownDef =>
+  backfillKey(def, COOLDOWN_KEY_BY_NAME, LIVE_COOLDOWN_KEYS);
+
+const backfillRecurringKey = (def: RecurringDef): RecurringDef =>
+  backfillKey(def, RECURRING_KEY_BY_NAME, LIVE_RECURRING_KEYS);
 
 export type PersistedConfig = {
   version: number;
