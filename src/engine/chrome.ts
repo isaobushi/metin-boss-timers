@@ -38,8 +38,13 @@ const EN = {
   // ---- TimerScreen ----
   "timer.noSkills":       "no skills — add some in ⚙ settings",
   "timer.back":           "back to dungeons",
-  // Note: timer.hint ("left-click stop / start · right-click reset") is rendered with inline
-  // <b> tags in JSX and cannot be a plain t() string; the bold structure is kept as-is.
+  // The hint renders with inline <b> tags, so it is split at the bold boundaries: the JSX keeps
+  // the structure (<b>{leftClick}</b> {stopStart} · <b>{rightClick}</b> {reset}) and each segment
+  // is its own key — a translator authors all four; the · separator stays layout, not language.
+  "timer.hintLeftClick":  "left-click",
+  "timer.hintStopStart":  "stop / start",
+  "timer.hintRightClick": "right-click",
+  "timer.hintReset":      "reset",
 
   // ---- BossSelect ----
   "bossSelect.title":     "SELECT DUNGEON",
@@ -48,6 +53,10 @@ const EN = {
   "sequence.back":            "back to boss select",
   "sequence.switchToColumns": "Switch to Columns (Phase 2)",
   "sequence.switchToElements": "Switch to Elements (Phase 1)",
+  // The title (tooltip) variants are authored separately rather than derived by .toLowerCase():
+  // a runtime case transform would corrupt locales with their own casing rules (German nouns).
+  "sequence.switchToColumnsTitle": "switch to columns (Phase 2)",
+  "sequence.switchToElementsTitle": "switch to elements (Phase 1)",
   "sequence.columnsLabel":    "Columns",
   "sequence.elementsLabel":   "Elements",
   "sequence.undo":            "undo last",
@@ -106,6 +115,10 @@ const EN = {
   "picker.hint":              "scroll to change time",
   "picker.itemTitle":         "click to start · scroll to tune duration",
 
+  // ---- CooldownStrip ----
+  // The pill tooltip's chrome suffix; the `${name} — ` prefix is game content and stays in JSX.
+  "cooldownStrip.pillHint":   "left-click restart · right-click clear",
+
   // ---- ExpiringAccordion ----
   "expiring.empty":           "no expiring items yet",
   "expiring.refresh":         "refresh — restamp a full cycle from now",
@@ -113,6 +126,10 @@ const EN = {
 
   // ---- RoutineAccordion ----
   "routine.empty":            "no routine items yet",
+  // Section-band headers (#57). These name UI groupings, not game terms — chrome, not catalog.
+  "routine.sectionBooks":     "Skill Books",
+  "routine.sectionLanguages": "Languages",
+  "routine.sectionChores":    "Utilities",
   "routine.readSuccessReady": "successful read — advance the rung and restamp the 24h gate",
   "routine.readSuccessEarly": "read now (skipped the cooldown) — advance the rung and restamp from now",
   "routine.readFailReady":    "failed read — book burned, no advance; restamp the 24h gate",
@@ -189,7 +206,7 @@ const EN = {
   "settings.title":             "SETTINGS",
   "settings.resetToDefaults":   "reset to defaults",
   "settings.resetConfirm":      "Reset all bosses, skills, cooldowns and items to defaults?",
-  "settings.close":             "close settings",
+  "settings.close":             "close",
   "settings.tabDungeons":       "Dungeons",
   "settings.tabCooldowns":      "Cooldowns",
   "settings.tabItems":          "Items",

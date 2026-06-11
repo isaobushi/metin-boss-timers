@@ -1,6 +1,13 @@
 import type { Mutation } from "../engine/entitlement";
-import { t } from "../engine/chrome";
+import { t, type ChromeKey } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+
+/** Cap copy per mutation — exhaustive by type, so a new `Mutation` variant is a compile error here. */
+const COPY: Record<Mutation, ChromeKey> = {
+  addBoss: "cap.addBoss",
+  addCharacter: "cap.addCharacter",
+  addReminder: "cap.addReminder",
+};
 
 type Props = {
   mutation: Mutation;
@@ -16,10 +23,7 @@ type Props = {
  * the cap is stated honestly, the close is always there, nothing is pre-checked or guilt-framed.
  */
 export function CapNudge({ mutation, onUpgrade, onDismiss, locale }: Props) {
-  const text =
-    mutation === "addBoss" ? t("cap.addBoss", locale) :
-    mutation === "addCharacter" ? t("cap.addCharacter", locale) :
-    t("cap.addReminder", locale);
+  const text = t(COPY[mutation], locale);
   return (
     <div className="cap-nudge" role="alert">
       <p className="cap-nudge__text">{text}</p>

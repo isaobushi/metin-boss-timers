@@ -16,6 +16,7 @@ import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
 import { CooldownPicker } from "./CooldownPicker";
 import type { CooldownPill } from "./useCooldowns";
+import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
@@ -88,7 +89,7 @@ export function CooldownStrip({
                 e.preventDefault();
                 onClear(p.defId);
               }}
-              title={`${p.name} — left-click restart · right-click clear`}
+              title={`${p.name} — ${t("cooldownStrip.pillHint", locale)}`}
             >
               <span className="cooldown-pill__tag">{p.tag}</span>
               <span className="cooldown-pill__num">{p.readout}</span>

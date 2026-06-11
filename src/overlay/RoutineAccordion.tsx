@@ -3,13 +3,13 @@ import { displayName, type Locale } from "../engine/contentCatalog";
 import { raceKey } from "../engine/contentKeys";
 import { RungCurtain } from "./RungCurtain";
 import type { RoutineRow } from "./useRecurring";
-import { t } from "../engine/chrome";
+import { t, type ChromeKey } from "../engine/chrome";
 
 /** The Routine bands in display order (#57): race Abilities first, then Languages, then the universals. */
-const SECTIONS: { key: RoutineSection; label: string }[] = [
-  { key: "books", label: "Skill Books" },
-  { key: "languages", label: "Languages" },
-  { key: "chores", label: "Utilities" },
+const SECTIONS: { key: RoutineSection; labelKey: ChromeKey }[] = [
+  { key: "books", labelKey: "routine.sectionBooks" },
+  { key: "languages", labelKey: "routine.sectionLanguages" },
+  { key: "chores", labelKey: "routine.sectionChores" },
 ];
 
 type Props = {
@@ -160,7 +160,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
     <div className="dock-acc">
       {banded.map((band) => (
         <div className="dock-acc__section" key={band.key}>
-          {showHeaders && <div className="dock-acc__section-head">{band.label}</div>}
+          {showHeaders && <div className="dock-acc__section-head">{t(band.labelKey, locale)}</div>}
           {band.key === "books" ? renderBooks(band.rows) : band.rows.map(renderRow)}
         </div>
       ))}

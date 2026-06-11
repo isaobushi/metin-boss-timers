@@ -55,7 +55,8 @@ export function TimerScreen({ boss, onChangeBoss, locale }: Props) {
         </button>
         {views.length > 0 && (
           <span className="timer-hint">
-            <b>left-click</b> stop / start · <b>right-click</b> reset
+            <b>{t("timer.hintLeftClick", locale)}</b> {t("timer.hintStopStart", locale)} ·{" "}
+            <b>{t("timer.hintRightClick", locale)}</b> {t("timer.hintReset", locale)}
           </span>
         )}
       </div>

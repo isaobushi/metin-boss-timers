@@ -1,6 +1,13 @@
 import type { Entitlement } from "../engine/entitlement";
-import { t } from "../engine/chrome";
+import { t, type ChromeKey } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+
+/** Banner copy per non-subscribed state — one typed entry pairs label and CTA, exhaustive by type. */
+const COPY: Record<Exclude<Entitlement, "subscribed">, { labelKey: ChromeKey; ctaKey: ChromeKey }> = {
+  trial: { labelKey: "banner.trialLabel", ctaKey: "banner.trialCta" },
+  lapsed: { labelKey: "banner.lapsedLabel", ctaKey: "banner.lapsedCta" },
+  never: { labelKey: "banner.neverLabel", ctaKey: "banner.neverCta" },
+};
 
 type Props = {
   entitlement: Entitlement;
@@ -17,8 +24,7 @@ type Props = {
  */
 export function UpgradeBanner({ entitlement, onOpen, locale }: Props) {
   if (entitlement === "subscribed") return null;
-  const labelKey = entitlement === "trial" ? "banner.trialLabel" : entitlement === "lapsed" ? "banner.lapsedLabel" : "banner.neverLabel";
-  const ctaKey = entitlement === "trial" ? "banner.trialCta" : entitlement === "lapsed" ? "banner.lapsedCta" : "banner.neverCta";
+  const { labelKey, ctaKey } = COPY[entitlement];
   return (
     <div className={`upgrade-banner upgrade-banner--${entitlement}`}>
       <span className="upgrade-banner__label">{t(labelKey, locale)}</span>
