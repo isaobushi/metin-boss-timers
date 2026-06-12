@@ -25,7 +25,7 @@ const PRO_OFFER_TOKENS: [&str; 2] = ["dragonsaid_pro_annual", "dragonsaid_pro_mo
 pub async fn read_store_license() -> String {
   #[cfg(windows)]
   {
-    // The WinRT `.get()` waits block; keep them off the async runtime's core threads.
+    // The WinRT `.join()` waits block; keep them off the async runtime's core threads.
     return tauri::async_runtime::spawn_blocking(win::read_license)
       .await
       .unwrap_or_else(|_| "unverifiable".into());
@@ -74,7 +74,8 @@ mod win {
 
   fn read_license_inner() -> windows::core::Result<String> {
     let ctx = StoreContext::GetDefault()?;
-    let license = ctx.GetAppLicenseAsync()?.get()?;
+    // .join() = the blocking wait (windows-future 0.3 renamed .get()); we're on a blocking thread.
+    let license = ctx.GetAppLicenseAsync()?.join()?;
     let addons = license.AddOnLicenses()?;
     // Manual IMapView walk (HSTRING → StoreLicense): "active" if ANY Pro add-on license is live,
     // "expired" if Pro entries exist but none live (the definitive lapse the mapper freezes on),
@@ -108,7 +109,7 @@ mod win {
     // Parent the Store dialog to our window — without this, RequestPurchaseAsync fails in Win32 apps.
     let init: IInitializeWithWindow = ctx.cast()?;
     unsafe { init.Initialize(HWND(hwnd as *mut _))? };
-    let result = ctx.RequestPurchaseAsync(&HSTRING::from(store_id))?.get()?;
+    let result = ctx.RequestPurchaseAsync(&HSTRING::from(store_id))?.join()?;
     let status = result.Status()?;
     Ok(
       if status == StorePurchaseStatus::Succeeded {
