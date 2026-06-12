@@ -31,9 +31,11 @@ import { allows, partition, type Entitlement } from "./engine/entitlement";
 import { shouldRunTour } from "./engine/config";
 import { driveForStep } from "./engine/tourDrive";
 import type { TourStep } from "./engine/tourSteps";
+import type { SettingsTab } from "./engine/settingsLink";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
+import { emitTransient } from "./overlay/transientSync";
 import { quitApp } from "./overlay/quitApp";
 import { unlockAudio } from "./overlay/audio";
 
@@ -64,6 +66,9 @@ export default function App() {
   // Browser only: settings renders inline (a modal over the still-mounted overlay) rather
   // than a second OS window/tab. Tauri spawns a real settings window, so this stays false.
   const [showSettings, setShowSettings] = useState(false);
+  // Browser only: the tab a deep link (#72) lands the inline modal on at mount; the Tauri
+  // window carries its landing tab in the URL hash instead (settingsWindow.ts owns that).
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   // The in-app subscribe screen (#58), shown as a modal over the overlay. Opened by the upgrade banner
   // (and, later, the #56 cap-hit nudges).
   const [showSubscribe, setShowSubscribe] = useState(false);
@@ -88,11 +93,29 @@ export default function App() {
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
 
-  // ⚙ opens the real settings window under Tauri, or the inline modal in the browser.
-  const openSettings = useCallback(() => {
-    if (isTauri()) openSettingsWindow();
-    else setShowSettings(true);
-  }, []);
+  // ⚙ opens the real settings window under Tauri, or the inline modal in the browser; the tour's
+  // "make it yours" nudge (#72) passes a landing tab. Neither exits the tour (decided on #96's
+  // deferral): settings is its own surface, the card holds its beat. The browser split mirrors
+  // the Tauri adapter's: a fresh modal mounts on `settingsTab` (its useState seed — prop changes
+  // after mount are ignored by design), one already showing re-tabs over the transient bus (a
+  // BroadcastChannel delivers to sibling instances in the same document).
+  const openSettingsTo = useCallback(
+    (tab?: SettingsTab) => {
+      if (isTauri()) {
+        openSettingsWindow(tab);
+        return;
+      }
+      if (showSettings) {
+        if (tab) emitTransient({ kind: "settings-navigate", tab });
+        return;
+      }
+      setSettingsTab(tab ?? null);
+      setShowSettings(true);
+    },
+    [showSettings],
+  );
+  // Zero-arg wrapper for the dock's ⚙ (its onClick must not leak the MouseEvent as a tab).
+  const openSettings = useCallback(() => openSettingsTo(), [openSettingsTo]);
   const closeSettings = useCallback(() => setShowSettings(false), []);
 
   // The subscribe flow (#58). Both actions run the STUBBED Store purchase (pending #16); on success we
@@ -366,7 +389,9 @@ export default function App() {
           the beat's live tool (pinned strip / exclusive panel) below — so all three read together.
           Finish, Skip, and clicking ⚔/♻/✓ all mark the tour seen forever (a second character never
           re-triggers it). It follows the blocking wizard: tourActive is false while the wizard shows. */}
-      {tourActive && <TourCard onFinish={endTour} onSkip={endTour} onStepChange={onTourStep} locale={cfg.config.locale} />}
+      {tourActive && (
+        <TourCard onFinish={endTour} onSkip={endTour} onStepChange={onTourStep} onDeepLink={openSettingsTo} locale={cfg.config.locale} />
+      )}
       {cooldownStrip}
       {belowPanel}
       {/* Standing upgrade / trial-status entry to Pro (#58); renders nothing for a subscribed user. */}
@@ -384,7 +409,7 @@ export default function App() {
       </div>
       {showSettings && (
         <div className="settings-modal">
-          <SettingsApp onClose={closeSettings} />
+          <SettingsApp onClose={closeSettings} initialTab={settingsTab ?? undefined} />
         </div>
       )}
       {/* Cap-hit nudge (#56): a capped add (here, a 2nd character) was just refused. Upgrade → subscribe. */}

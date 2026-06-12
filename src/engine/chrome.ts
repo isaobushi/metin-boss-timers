@@ -189,6 +189,7 @@ const EN = {
   "tour.back":           "← Back",
   "tour.finish":         "Got it",
   "tour.skip":           "Skip tour →",
+  "tour.makeItYours":    "⚙ Make it yours →",
 
   // ---- SubscribeScreen ----
   "subscribe.title":                "DRAGONSAID PRO",
@@ -239,6 +240,12 @@ const EN = {
   "settings.tabLanguage":       "Language",
   "settings.addBoss":           "+ ADD BOSS",
   "settings.closeTitle":        "close settings",
+  // Per-tab explainer headers (#72) — a persistent one-liner in glossary language, teaching on
+  // every visit (not just first-run). Wording mirrors the tour beats so the two surfaces agree.
+  "settings.explainDungeons":   "Dungeons — your bosses and their skill chips: names, durations, sounds and global hotkeys.",
+  "settings.explainCooldowns":  "Cooldowns — one-shot dungeon respawns; set each one's duration here.",
+  "settings.explainItems":      "Expiring items — pet, costume, mount; set how long each cycle runs.",
+  "settings.explainRoutine":    "Routine — the menu of rolling chores; add entries and tune each one's window.",
 
   // ---- LocaleSettings ----
   "locale.title":   "LANGUAGE",
@@ -420,6 +427,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "tour.back":           "← Zurück",
   "tour.finish":         "Verstanden",
   "tour.skip":           "Tour überspringen →",
+  "tour.makeItYours":    "⚙ Pass es an →",
 
   // ---- SubscribeScreen ----
   // Short UI labels translated; long prose lede strings omitted (English fallback).
@@ -459,6 +467,10 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "settings.tabLanguage":     "Sprache",
   "settings.addBoss":         "+ BOSS HINZUFÜGEN",
   "settings.closeTitle":      "Einstellungen schließen",
+  "settings.explainDungeons":  "Dungeons — deine Bosse und ihre Skill-Chips: Namen, Dauern, Sounds und globale Hotkeys.",
+  "settings.explainCooldowns": "Cooldowns — einmalige Dungeon-Respawns; stell hier die Dauer für jeden ein.",
+  "settings.explainItems":     "Ablaufende Items — Pet, Kostüm, Mount; stell ein, wie lange jeder Zyklus läuft.",
+  "settings.explainRoutine":   "Routine — das Menü wiederkehrender Aufgaben; füge Einträge hinzu und stimm ihre Fenster ab.",
 
   // ---- LocaleSettings ----
   "locale.title":  "SPRACHE",

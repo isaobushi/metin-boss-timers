@@ -87,6 +87,33 @@ describe("t(key, 'de') — German chrome table", () => {
   });
 });
 
+// ---- settings explainer headers (#72) ----
+
+describe("settings tab explainers (#72)", () => {
+  const EXPLAINERS: ChromeKey[] = [
+    "settings.explainDungeons",
+    "settings.explainCooldowns",
+    "settings.explainItems",
+    "settings.explainRoutine",
+  ];
+
+  it("resolve to non-empty strings in both shipped locales", () => {
+    for (const key of EXPLAINERS) {
+      for (const locale of ["en", "de"] as const) {
+        expect(t(key, locale), `${key} (${locale})`).toBeTruthy();
+      }
+    }
+  });
+
+  it("respect the glossary avoid-words (no reminder/daily/quest/alarm)", () => {
+    for (const key of EXPLAINERS) {
+      for (const locale of ["en", "de"] as const) {
+        expect(t(key, locale), `${key} (${locale})`).not.toMatch(/\b(reminder|daily|quest|alarm)/i);
+      }
+    }
+  });
+});
+
 // ---- resolveChrome() — the pure fallback core ----
 
 describe("resolveChrome() — pure fallback core", () => {

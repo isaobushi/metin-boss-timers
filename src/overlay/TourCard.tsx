@@ -3,10 +3,18 @@ import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 import { advanceTour, initialTour, type TourEvent } from "../engine/tourMachine";
 import { TOUR_STEPS, type TourStep } from "../engine/tourSteps";
+import type { SettingsTab } from "../engine/settingsLink";
 
 type Props = {
   onFinish: () => void;
   onSkip: () => void;
+  /**
+   * The "make it yours" nudge (slice 4, #72): opens the settings window on the beat's target
+   * tab. It must NOT exit the tour (decided on #96's deferral): settings is a separate window,
+   * the card stays on its beat, and the user comes back to Next — replay doesn't exist until #73,
+   * so a curious tap must not burn the tour.
+   */
+  onDeepLink: (tab: SettingsTab) => void;
   /**
    * Fires with the active step on mount and on every move (slice 3, #71) — App drives the real
    * shell from it (spotlight ring, exclusive panel, cooldown pin via tourDrive). Step state stays
@@ -32,10 +40,12 @@ type Props = {
  * Deliberately no scrim: the game must stay visible behind the overlay (a dim layer would black out
  * the transparent window the app floats over). Focus is the positive ring on the glyph, nothing else.
  */
-export function TourCard({ onFinish, onSkip, onStepChange, locale }: Props) {
+export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }: Props) {
   const [tour, setTour] = useState(initialTour);
   const step = TOUR_STEPS[tour.index];
   const last = tour.index === TOUR_STEPS.length - 1;
+  // Extracted so the truthiness guard narrows into the onClick closure (no non-null assertion).
+  const deepLink = step.settingsDeepLink;
 
   // Mirror the active beat up to App before paint (layout, not passive, effect): the shell must
   // re-drive panel state in the same frame, or a beat change — and especially mount over lingering
@@ -60,6 +70,11 @@ export function TourCard({ onFinish, onSkip, onStepChange, locale }: Props) {
         </span>
       </div>
       <p className="tour-card__body">{t(step.copy.body, locale)}</p>
+      {deepLink && (
+        <button className="tour-card__nudge" onClick={() => onDeepLink(deepLink)}>
+          {t("tour.makeItYours", locale)}
+        </button>
+      )}
       <div className="tour-card__actions">
         <button className="tour-card__skip" onClick={() => dispatch("skip")}>
           {t("tour.skip", locale)}

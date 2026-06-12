@@ -547,6 +547,14 @@ body[data-window="settings"] {
 .settings-tab__icon {
   font-size: 14px;
 }
+/* The per-tab explainer header (#72) — a persistent teaching one-liner under the tab strip. */
+.settings-explainer {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #cfc8e0;
+  opacity: 0.75;
+}
 .settings-app .panel {
   width: 100%; /* fill the wider settings window rather than the overlay's fixed 316px */
 }
@@ -1712,6 +1720,23 @@ body[data-window="settings"] {
   font-size: 12px;
   line-height: 1.45;
   opacity: 0.85;
+}
+/* The "make it yours" nudge (#72) — a quiet inline link to the beat's settings tab; it must read
+   secondary to Next (the tour's main path), so it styles as a link, not a button. */
+.tour-card__nudge {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #cdbcff;
+  font: 600 11px/1 inherit;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.tour-card__nudge:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 .tour-card__actions {
   display: flex;

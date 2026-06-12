@@ -70,7 +70,17 @@ describe("tourSteps (#70)", () => {
     expect(t(routine.copy.body, "en")).toMatch(/not behind/i);
   });
 
-  it("settings deep links are unwired until slice 4 (#72)", () => {
-    for (const step of TOUR_STEPS) expect(step.settingsDeepLink).toBeNull();
+  it("tool beats deep-link to their settings tab; framing beats carry no nudge (#72)", () => {
+    const links = Object.fromEntries(TOUR_STEPS.map((s) => [s.id, s.settingsDeepLink]));
+    expect(links).toEqual({
+      welcome: null,
+      dock: null,
+      skills: "dungeons", // the ⚔ boss/skill editor lives on the Dungeons tab
+      cooldowns: "cooldowns",
+      items: "items",
+      routine: "routine",
+      settings: "dungeons", // ⚙'s nudge is the generic "go see settings" — lands on the default tab
+      done: null,
+    });
   });
 });
