@@ -35,7 +35,7 @@ import type { SettingsTab } from "./engine/settingsLink";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
-import { emitTransient } from "./overlay/transientSync";
+import { emitTransient, subscribeTransient } from "./overlay/transientSync";
 import { quitApp } from "./overlay/quitApp";
 import { unlockAudio } from "./overlay/audio";
 
@@ -77,6 +77,19 @@ export default function App() {
   // outside the tour. Assigning the engine's TourSegment to DockSpotlight here is the deliberate
   // compile-time seam between the duplicated unions (engine must not import overlay).
   const [tourSpot, setTourSpot] = useState<DockSpotlight>(null);
+  // Tour replays requested by settings' "Show me around" row (#73), arriving over the transient
+  // bus — the reverse direction of settings-navigate. Session-only state OR-ed into `tourActive`,
+  // so the replay path never touches the persisted `hasSeenTour` gate (a crash mid-replay must
+  // not resurrect first-run). A counter rather than a boolean: it keys TourCard, so a request
+  // landing mid-tour remounts the card and restarts from beat 1 instead of being swallowed.
+  const [replayNonce, setReplayNonce] = useState(0);
+  useEffect(
+    () =>
+      subscribeTransient((msg) => {
+        if (msg.kind === "tour-replay") setReplayNonce((n) => n + 1);
+      }),
+    [],
+  );
 
   // Restore the overlay's last position and persist it as it's dragged; in the browser the
   // returned ref turns the .overlay element into a draggable floating panel.
@@ -143,7 +156,9 @@ export default function App() {
   // The first-run tour (#68) holds the same exclusive slot right after the wizard. While either gate
   // holds it, the tool panels are shadowed — so their glyphs must not read open, and a tool click
   // during the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
-  const tourActive = !showWizard && shouldRunTour(cfg.hydrated, cfg.config);
+  // A replay request (#73) is OR-ed in as a second, independent way into the same tour — it still
+  // defers to the wizard, and the wizard's close re-admits a pending replay just like first-run.
+  const tourActive = !showWizard && (shouldRunTour(cfg.hydrated, cfg.config) || replayNonce > 0);
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
   // pinned independently, so it can be open alongside one of the panels. While the WIZARD shadows
@@ -196,8 +211,11 @@ export default function App() {
   // reset is unconditional), or the clicked tool for the dock escape hatches. Force-OPEN, no
   // toggle: even when the tour has that very panel open (its glyph lit + ringed), clicking the
   // glyph the card just pointed at must keep the tool open, not snap it shut as the card leaves.
+  // A replay's exit (#73) clears only the transient nonce: `hasSeenTour` is already true, and
+  // re-writing it would churn a persist + broadcast for a no-op value.
   const endTour = (to: Panel = null) => {
-    cfg.completeTour();
+    if (!cfg.config.hasSeenTour) cfg.completeTour();
+    setReplayNonce(0);
     setTourSpot(null);
     closeCooldownStrip();
     setPanel(to);
@@ -390,7 +408,14 @@ export default function App() {
           Finish, Skip, and clicking ⚔/♻/✓ all mark the tour seen forever (a second character never
           re-triggers it). It follows the blocking wizard: tourActive is false while the wizard shows. */}
       {tourActive && (
-        <TourCard onFinish={endTour} onSkip={endTour} onStepChange={onTourStep} onDeepLink={openSettingsTo} locale={cfg.config.locale} />
+        <TourCard
+          key={replayNonce} // a replay request mid-tour remounts the card → restart from beat 1 (#73)
+          onFinish={endTour}
+          onSkip={endTour}
+          onStepChange={onTourStep}
+          onDeepLink={openSettingsTo}
+          locale={cfg.config.locale}
+        />
       )}
       {cooldownStrip}
       {belowPanel}

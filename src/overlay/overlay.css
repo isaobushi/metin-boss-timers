@@ -2022,6 +2022,25 @@ body[data-window="settings"] {
   cursor: default;
 }
 
+/* ---- tour-replay row (#73, settings) — mirrors the backup section's separated-block shape ---- */
+.tour-replay {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #2a2540;
+}
+.tour-replay .btn-dashed {
+  width: 100%;
+}
+.tour-replay__hint {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  opacity: 0.5;
+}
+
 /* ---- backup section (#56, settings) ---- */
 .backup-section {
   display: flex;

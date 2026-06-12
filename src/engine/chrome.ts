@@ -184,7 +184,7 @@ const EN = {
   "tour.settingsTitle":  "SETTINGS",
   "tour.settingsBody":   "⚙ opens the settings window — bosses, hotkeys, sounds, language and backups live there. No need to go in now.",
   "tour.doneTitle":      "ALL SET",
-  "tour.doneBody":       "That's the dock. Replay this tour any time from Settings. Good hunting!",
+  "tour.doneBody":       "That's the dock. Find this tour again under ⚙ → Show me around. Good hunting!",
   "tour.next":           "Next →",
   "tour.back":           "← Back",
   "tour.finish":         "Got it",
@@ -246,6 +246,9 @@ const EN = {
   "settings.explainCooldowns":  "Cooldowns — one-shot dungeon respawns; set each one's duration here.",
   "settings.explainItems":      "Expiring items — pet, costume, mount; set how long each cycle runs.",
   "settings.explainRoutine":    "Routine — the menu of rolling chores; add entries and tune each one's window.",
+  // The tour-replay row (#73) — the permanent home the Done beat points at (tour.doneBody).
+  "settings.showAround":        "↻ SHOW ME AROUND",
+  "settings.showAroundHint":    "Replay the quick tour of the dock and its tools.",
 
   // ---- LocaleSettings ----
   "locale.title":   "LANGUAGE",
@@ -422,7 +425,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "tour.settingsTitle":  "EINSTELLUNGEN",
   "tour.settingsBody":   "⚙ öffnet das Einstellungsfenster — Bosse, Hotkeys, Sounds, Sprache und Backups wohnen dort. Da müssen wir jetzt nicht rein.",
   "tour.doneTitle":      "FERTIG",
-  "tour.doneBody":       "Das ist die Leiste. Du kannst diese Tour jederzeit in den Einstellungen neu starten. Gute Jagd!",
+  "tour.doneBody":       "Das ist die Leiste. Du findest diese Tour jederzeit unter ⚙ → Führ mich herum. Gute Jagd!",
   "tour.next":           "Weiter →",
   "tour.back":           "← Zurück",
   "tour.finish":         "Verstanden",
@@ -471,6 +474,8 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "settings.explainCooldowns": "Cooldowns — einmalige Dungeon-Respawns; stell hier die Dauer für jeden ein.",
   "settings.explainItems":     "Ablaufende Items — Pet, Kostüm, Mount; stell ein, wie lange jeder Zyklus läuft.",
   "settings.explainRoutine":   "Routine — das Menü wiederkehrender Aufgaben; füge Einträge hinzu und stimm ihre Fenster ab.",
+  "settings.showAround":       "↻ FÜHR MICH HERUM",
+  "settings.showAroundHint":   "Die kurze Tour durch die Leiste und ihre Werkzeuge erneut abspielen.",
 
   // ---- LocaleSettings ----
   "locale.title":  "SPRACHE",
