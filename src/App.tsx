@@ -7,7 +7,7 @@
 // are registered while a boss's timer screen is active.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
-import { DockBar, type DockSegment } from "./overlay/DockBar";
+import { DockBar, type DockSegment, type DockSpotlight } from "./overlay/DockBar";
 import { CharacterSwitcher } from "./overlay/CharacterSwitcher";
 import { CharacterWizard } from "./overlay/CharacterWizard";
 import { TourCard } from "./overlay/TourCard";
@@ -29,6 +29,8 @@ import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
 import { allows, partition, type Entitlement } from "./engine/entitlement";
 import { shouldRunTour } from "./engine/config";
+import { driveForStep } from "./engine/tourDrive";
+import type { TourStep } from "./engine/tourSteps";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
@@ -65,6 +67,11 @@ export default function App() {
   // The in-app subscribe screen (#58), shown as a modal over the overlay. Opened by the upgrade banner
   // (and, later, the #56 cap-hit nudges).
   const [showSubscribe, setShowSubscribe] = useState(false);
+  // The tour's spotlight glyph (#71) — App's mirror of the active beat's dockSegment (the card owns
+  // the step itself; onStepChange reports it). Null whenever no beat rings a glyph, including always
+  // outside the tour. Assigning the engine's TourSegment to DockSpotlight here is the deliberate
+  // compile-time seam between the duplicated unions (engine must not import overlay).
+  const [tourSpot, setTourSpot] = useState<DockSpotlight>(null);
 
   // Restore the overlay's last position and persist it as it's dragged; in the browser the
   // returned ref turns the .overlay element into a draggable floating panel.
@@ -116,12 +123,13 @@ export default function App() {
   const tourActive = !showWizard && shouldRunTour(cfg.hydrated, cfg.config);
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
-  // pinned independently, so it can be open alongside one of the panels. While a first-run gate
-  // shadows the exclusive slot, lingering `panel` state must not light a glyph whose panel isn't
-  // actually rendered (the strip is a sibling of the slot, so ⏱ stays honest either way).
+  // pinned independently, so it can be open alongside one of the panels. While the WIZARD shadows
+  // the exclusive slot, lingering `panel` state must not light a glyph whose panel isn't actually
+  // rendered. The tour no longer shadows (slice #71): it drives the real panels open under the
+  // coach card, so their glyphs light honestly — the spotlight ring rides on top of that.
   const skillsOpen = panel === "skills" || panel === "timers" || panel === "sequence";
   const openSegs = new Set<DockSegment>();
-  if (!showWizard && !tourActive) {
+  if (!showWizard) {
     if (skillsOpen) openSegs.add("skills");
     if (panel === "items") openSegs.add("items");
     if (panel === "routine") openSegs.add("routine");
@@ -129,17 +137,47 @@ export default function App() {
   if (cooldownsPinned) openSegs.add("cooldowns");
   // items/routine share the single exclusive panel, so they toggle it; cooldowns toggles its pin.
   const toggle = (seg: Panel) => setPanel((p) => (p === seg ? null : seg));
-  // Exiting the tour by clicking a tool: mark it seen and force-OPEN the tool — no toggle, since any
-  // lingering `panel` state was shadowed by the tour and so was never visible to toggle off.
-  const exitTourTo = (seg: Panel) => {
-    cfg.completeTour();
-    setPanel(seg);
-  };
+
   // The cooldown strip + its add-picker float above the panel; opening another tool should dismiss
   // them so they don't sit over (and block) the panel being opened.
   const closeCooldownStrip = () => {
     setCooldownsPinned(false);
     setAddOpen(false);
+  };
+
+  // The card reports each beat (#71); drive the real shell to match — ring on the beat's glyph, its
+  // live panel open under the card, the strip pinned on the ⏱ beat. The ⚔ beat shows the real chips
+  // surface: adopt the seeded landing boss if none is active yet (bosses can never be empty — config
+  // re-seeds on last delete). Fires before paint (the card's layout effect), so mount over lingering
+  // pre-tour panel state resets it without a flash. Deps are primitives on purpose (#96 review):
+  // `activeBoss` itself is re-derived from a fresh `bosses` array on every config write, so the
+  // object would hand this callback — and the card's layout effect keyed on it — a new identity per
+  // write, re-driving the same beat for nothing.
+  const { selectBoss } = cfg;
+  const hasActiveBoss = cfg.activeBoss != null;
+  const firstBossId = cfg.config.bosses[0]?.id;
+  const onTourStep = useCallback(
+    (step: TourStep) => {
+      const drive = driveForStep(step);
+      setTourSpot(drive.spotlight);
+      setCooldownsPinned(drive.pinCooldowns);
+      setAddOpen(false);
+      if (drive.panel === "timers" && !hasActiveBoss) selectBoss(firstBossId ?? null);
+      setPanel(drive.panel);
+    },
+    [hasActiveBoss, selectBoss, firstBossId],
+  );
+  // The ONE teardown for every tour exit (#96 review: the reset must not fragment across exit
+  // paths): mark it seen, kill the ring, close the tour-pinned strip, and land on `to` — null for
+  // Finish/Skip (back to rest; Skip can fire mid-beat with a tour-opened panel showing, so the
+  // reset is unconditional), or the clicked tool for the dock escape hatches. Force-OPEN, no
+  // toggle: even when the tour has that very panel open (its glyph lit + ringed), clicking the
+  // glyph the card just pointed at must keep the tool open, not snap it shut as the card leaves.
+  const endTour = (to: Panel = null) => {
+    cfg.completeTour();
+    setTourSpot(null);
+    closeCooldownStrip();
+    setPanel(to);
   };
 
   // One controlled add-picker instance. `addOpen` lets the ⏱ segment jump straight to the menu. It
@@ -230,15 +268,11 @@ export default function App() {
   );
 
   // The one exclusive tool panel rendered below the pinned strip (null = only bar + strip show).
+  // During the tour (#71) this chain runs normally — the tour drives `panel`, so each beat's REAL
+  // panel renders here, live over the seeded data, while the coach card sits above it.
   let belowPanel = null;
   if (showWizard) {
     belowPanel = characterWizard;
-  } else if (tourActive) {
-    // The first-run coach card (#68) — the tour's placeholder, in the same exclusive-panel slot
-    // (ADR-0003). It follows the blocking wizard and precedes the tool panels until the user exits;
-    // Finish, Skip, and clicking any tool glyph all mark the tour seen forever (a second character
-    // never re-triggers it).
-    belowPanel = <TourCard onFinish={cfg.completeTour} onSkip={cfg.completeTour} locale={cfg.config.locale} />;
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
@@ -274,16 +308,30 @@ export default function App() {
       <DockBar
         leading={characterSwitcher}
         open={openSegs}
+        // Gated: opening the character wizard mid-tour (✎ / + New) unmounts the card but leaves
+        // `tourSpot` set — the ring must not keep pulsing under the wizard. It returns when the
+        // wizard closes and the card re-mounts (the gate is unseen until finished/skipped).
+        spotlight={tourActive ? tourSpot : null}
         activeBossName={cfg.activeBoss?.name}
         itemsDatum={rec.datum}
         routineDatum={rec.routineDatum}
         locale={cfg.config.locale}
         onSkills={() => {
           const target = cfg.activeBoss ? "timers" : "skills";
-          if (tourActive) exitTourTo(target);
+          if (tourActive) endTour(target);
           else setPanel(skillsOpen ? null : target);
         }}
         onCooldowns={() => {
+          // Mid-tour, ⏱ exits like the other tools (#96 review): the tour drives the pin now, so
+          // the plain toggle would collapse the strip the ⏱ beat just opened while the ring kept
+          // pulsing on it. Force-OPEN the strip (re-pin after the teardown unpins; + menu when
+          // nothing runs, as the normal empty-strip path does).
+          if (tourActive) {
+            endTour();
+            setCooldownsPinned(true);
+            setAddOpen(cd.pills.length === 0);
+            return;
+          }
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
           if (cd.pills.length > 0) {
             setCooldownsPinned((p) => !p);
@@ -296,18 +344,29 @@ export default function App() {
           setAddOpen(!showing);
         }}
         onItems={() => {
+          if (tourActive) {
+            endTour("items");
+            return;
+          }
           closeCooldownStrip();
-          if (tourActive) exitTourTo("items");
-          else toggle("items");
+          toggle("items");
         }}
         onRoutine={() => {
+          if (tourActive) {
+            endTour("routine");
+            return;
+          }
           closeCooldownStrip();
-          if (tourActive) exitTourTo("routine");
-          else toggle("routine");
+          toggle("routine");
         }}
         onSettings={openSettings}
         onQuit={quitApp}
       />
+      {/* The first-run coach card (#68/#71), anchored directly under the dock — ringed glyph above,
+          the beat's live tool (pinned strip / exclusive panel) below — so all three read together.
+          Finish, Skip, and clicking ⚔/♻/✓ all mark the tour seen forever (a second character never
+          re-triggers it). It follows the blocking wizard: tourActive is false while the wizard shows. */}
+      {tourActive && <TourCard onFinish={endTour} onSkip={endTour} onStepChange={onTourStep} locale={cfg.config.locale} />}
       {cooldownStrip}
       {belowPanel}
       {/* Standing upgrade / trial-status entry to Pro (#58); renders nothing for a subscribed user. */}

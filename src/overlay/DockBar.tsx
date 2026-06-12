@@ -7,11 +7,18 @@ import type { Locale } from "../engine/localeTypes";
  *  so it can read as open alongside one of the others (ADR-0003). */
 export type DockSegment = "skills" | "cooldowns" | "items" | "routine";
 
+/** The first-run tour's spotlight target (slice 3, #71): a superset of DockSegment, because ⚙ is a
+ *  dock button the tour rings but not an openable segment. Mirrors tourSteps' `TourSegment` — the
+ *  engine must not import overlay, so App's pass-through is where a divergence fails to compile. */
+export type DockSpotlight = DockSegment | "settings" | null;
+
 type Props = {
   /** The active-character chip + switcher, pinned at the bar's left (its dropdown escapes the bar). */
   leading?: ReactNode;
   /** The set of open tool groups, so each reads as active independently. Empty when only the bar shows. */
   open: ReadonlySet<DockSegment>;
+  /** The glyph the tour's pulsing ring sits on (slice 3, #71); null/omitted = no spotlight. */
+  spotlight?: DockSpotlight;
   /** Active boss's name, shown on the ⚔ segment when a boss is selected. */
   activeBossName?: string;
   /** ♻ — the soonest expiring item's compact datum, shown inline on the bar (null = none running). */
@@ -44,10 +51,12 @@ type Props = {
  * honest. A leading ⠿ grip carries the window drag region; the clickable segments sit outside it so
  * a tap never starts a drag.
  */
-export function DockBar({ leading, open, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit, locale }: Props) {
+export function DockBar({ leading, open, spotlight = null, activeBossName, itemsDatum, routineDatum, onSkills, onCooldowns, onItems, onRoutine, onSettings, onQuit, locale }: Props) {
   // The ✓ segment is a to-do nudge: show the count of routines that need doing now, green, and fall
   // back to just the calm ✓ icon (no number) when you're all caught up — so it never sits at "n/n".
   const routineToDo = routineDatum.ready;
+  // The tour's ring class per glyph — independent of `is-open` (a beat can ring ⚙, which never opens).
+  const spot = (seg: Exclude<DockSpotlight, null>) => (spotlight === seg ? " is-spotlit" : "");
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
@@ -57,20 +66,20 @@ export function DockBar({ leading, open, activeBossName, itemsDatum, routineDatu
 
       {leading}
 
-      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}`} onClick={onSkills} title={t("dock.skills", locale)}>
+      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills} title={t("dock.skills", locale)}>
         <span className="dock-seg__icon">⚔</span>
         {activeBossName && <span className="dock-seg__val dock-seg__name">{activeBossName.toUpperCase()}</span>}
       </button>
 
       <button
-        className={`dock-seg${open.has("cooldowns") ? " is-open" : ""}`}
+        className={`dock-seg${open.has("cooldowns") ? " is-open" : ""}${spot("cooldowns")}`}
         onClick={onCooldowns}
         title={t("dock.cooldowns", locale)}
       >
         <span className="dock-seg__icon">⏱</span>
       </button>
 
-      <button className={`dock-seg${open.has("items") ? " is-open" : ""}`} onClick={onItems} title={t("dock.expiring", locale)}>
+      <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems} title={t("dock.expiring", locale)}>
         <span className="dock-seg__icon">♻</span>
         {itemsDatum ? (
           <span className={`dock-seg__val${itemsDatum.alarm ? " dock-alarm" : itemsDatum.due ? " dock-due" : ""}`}>
@@ -81,12 +90,12 @@ export function DockBar({ leading, open, activeBossName, itemsDatum, routineDatu
         )}
       </button>
 
-      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}`} onClick={onRoutine} title={t("dock.routine", locale)}>
+      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine} title={t("dock.routine", locale)}>
         <span className="dock-seg__icon">✓</span>
         {routineToDo > 0 && <span className="dock-seg__val dock-ready">{routineToDo}</span>}
       </button>
 
-      <button className="dock-seg" onClick={onSettings} title={t("dock.settings", locale)}>
+      <button className={`dock-seg${spot("settings")}`} onClick={onSettings} title={t("dock.settings", locale)}>
         <span className="dock-seg__icon">⚙</span>
       </button>
 

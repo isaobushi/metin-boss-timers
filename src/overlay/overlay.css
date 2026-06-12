@@ -889,6 +889,35 @@ body[data-window="settings"] {
   background: color-mix(in srgb, #7c6cff 22%, transparent);
   color: #fff;
 }
+/* The tour's spotlight (#71): a pulsing ring on the active beat's glyph. Drawn as an INSET
+   pseudo-element — the bar clips its segments (overflow: hidden), so an outer glow would be cut
+   off. The pulse animates opacity only (cheap; no layout/paint churn on the always-on overlay).
+   Deliberately the ONLY focus cue: no scrim ever — a dim layer would black out the game behind
+   the transparent window. */
+.dock-seg.is-spotlit {
+  position: relative;
+}
+.dock-seg.is-spotlit::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 8px;
+  border: 1px solid #b3a7ff;
+  box-shadow:
+    0 0 8px rgba(124, 108, 255, 0.8),
+    inset 0 0 6px rgba(124, 108, 255, 0.45);
+  pointer-events: none;
+  animation: dock-spotlit 1.4s ease-in-out infinite;
+}
+@keyframes dock-spotlit {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 /* ✕ quit — the lone destructive segment; reads as a tool icon at rest, tints red on hover so it
    stands apart from the others (there's no panel to open, it ends the app). */
 .dock-seg--danger:hover {
