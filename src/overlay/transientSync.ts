@@ -37,7 +37,11 @@ export function emitTransient(msg: TransientMsg): void {
       void emit(EVENT, { from: getCurrentWindow().label, payload: msg } satisfies Wire);
       return;
     }
-    new BroadcastChannel(CHANNEL).postMessage(msg);
+    // post-then-close: the message is queued before close(), and closing frees the handle
+    // immediately instead of leaving a one-shot channel open until GC.
+    const channel = new BroadcastChannel(CHANNEL);
+    channel.postMessage(msg);
+    channel.close();
   } catch {
     /* no bus available — the intent is simply lost; senders must not depend on delivery */
   }

@@ -95,18 +95,25 @@ export default function App() {
 
   // ⚙ opens the real settings window under Tauri, or the inline modal in the browser; the tour's
   // "make it yours" nudge (#72) passes a landing tab. Neither exits the tour (decided on #96's
-  // deferral): settings is its own surface, the card holds its beat. In the browser, a fresh
-  // modal mounts on `settingsTab`; one already showing re-tabs over the transient bus (the same
-  // channel the Tauri path uses for an already-open window — emitting into no listener is fine).
-  const openSettingsTo = useCallback((tab?: SettingsTab) => {
-    if (isTauri()) {
-      openSettingsWindow(tab);
-      return;
-    }
-    setSettingsTab(tab ?? null);
-    setShowSettings(true);
-    if (tab) emitTransient({ kind: "settings-navigate", tab });
-  }, []);
+  // deferral): settings is its own surface, the card holds its beat. The browser split mirrors
+  // the Tauri adapter's: a fresh modal mounts on `settingsTab` (its useState seed — prop changes
+  // after mount are ignored by design), one already showing re-tabs over the transient bus (a
+  // BroadcastChannel delivers to sibling instances in the same document).
+  const openSettingsTo = useCallback(
+    (tab?: SettingsTab) => {
+      if (isTauri()) {
+        openSettingsWindow(tab);
+        return;
+      }
+      if (showSettings) {
+        if (tab) emitTransient({ kind: "settings-navigate", tab });
+        return;
+      }
+      setSettingsTab(tab ?? null);
+      setShowSettings(true);
+    },
+    [showSettings],
+  );
   // Zero-arg wrapper for the dock's ⚙ (its onClick must not leak the MouseEvent as a tab).
   const openSettings = useCallback(() => openSettingsTo(), [openSettingsTo]);
   const closeSettings = useCallback(() => setShowSettings(false), []);

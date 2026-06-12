@@ -13,7 +13,7 @@ import { RecurringSettings } from "../overlay/RecurringSettings";
 import { activeRecurring } from "../engine/config";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
-import { closeSettingsWindow, initialSettingsTab } from "../overlay/settingsWindow";
+import { closeSettingsWindow } from "../overlay/settingsWindow";
 import { subscribeTransient } from "../overlay/transientSync";
 import type { SettingsTab } from "../engine/settingsLink";
 import { BackupSection } from "./BackupSection";
@@ -33,12 +33,13 @@ type TabId = SettingsTab;
 // `onClose` is supplied when the settings render inline in the browser (App's modal): Esc
 // and the ✕ button dismiss the modal. In the Tauri settings window it's absent, so closing
 // falls back to closing the real OS window (which also has its own titlebar close button).
-// `initialTab` is the inline modal's deep-link seed (#72); the Tauri window carries its seed
-// in the URL hash instead (initialSettingsTab) — either way, later re-tabs arrive transient.
+// `initialTab` is the deep-link seed (#72) — the SINGLE seeding seam: App's inline modal passes
+// the nudge's tab, main.tsx passes the Tauri window's URL-hash tab (initialSettingsTab). The
+// component never reads location itself; later re-tabs arrive over the transient bus.
 export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
   const cfg = useConfig();
   const close = onClose ?? closeSettingsWindow;
-  const [tab, setTab] = useState<TabId>(() => initialTab ?? initialSettingsTab() ?? "dungeons");
+  const [tab, setTab] = useState<TabId>(initialTab ?? "dungeons");
 
   // Deep links aimed at an ALREADY-open settings surface (#72) — the URL hash is long consumed,
   // so the tour's nudge re-tabs this window live over the transient bus.

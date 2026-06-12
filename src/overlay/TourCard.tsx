@@ -44,6 +44,8 @@ export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }:
   const [tour, setTour] = useState(initialTour);
   const step = TOUR_STEPS[tour.index];
   const last = tour.index === TOUR_STEPS.length - 1;
+  // Extracted so the truthiness guard narrows into the onClick closure (no non-null assertion).
+  const deepLink = step.settingsDeepLink;
 
   // Mirror the active beat up to App before paint (layout, not passive, effect): the shell must
   // re-drive panel state in the same frame, or a beat change — and especially mount over lingering
@@ -68,8 +70,8 @@ export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }:
         </span>
       </div>
       <p className="tour-card__body">{t(step.copy.body, locale)}</p>
-      {step.settingsDeepLink && (
-        <button className="tour-card__nudge" onClick={() => onDeepLink(step.settingsDeepLink!)}>
+      {deepLink && (
+        <button className="tour-card__nudge" onClick={() => onDeepLink(deepLink)}>
           {t("tour.makeItYours", locale)}
         </button>
       )}
