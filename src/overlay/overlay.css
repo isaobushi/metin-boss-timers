@@ -1651,11 +1651,18 @@ body[data-window="settings"] {
   background: color-mix(in srgb, #7c6cff 70%, transparent);
 }
 
-/* The first-run coach card (#68) — an inline panel below the dock (reuses .dock-acc's frame/width,
-   like the wizard). No scrim anywhere: the game stays visible behind the transparent overlay. */
+/* The first-run coach card (#68/#70) — an inline panel below the dock (reuses .dock-acc's
+   frame/width, like the wizard). No scrim anywhere: the game stays visible behind the transparent
+   overlay. Head row = beat title + step counter; actions row = Skip left, Back/Next right. */
 .tour-card {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+.tour-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
 }
 .tour-card__title {
@@ -1663,6 +1670,13 @@ body[data-window="settings"] {
   font: 800 11px/1 inherit;
   letter-spacing: 1.2px;
   color: #cdbcff;
+}
+.tour-card__counter {
+  font: 700 10px/1 inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  color: #cfc8e0;
+  opacity: 0.7;
 }
 .tour-card__body {
   margin: 0;
@@ -1689,7 +1703,13 @@ body[data-window="settings"] {
 .tour-card__finish:hover {
   background: #7c6cff;
 }
-.tour-card__skip {
+.tour-card__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tour-card__skip,
+.tour-card__back {
   padding: 8px 12px;
   border: 0;
   border-radius: 8px;
@@ -1698,9 +1718,14 @@ body[data-window="settings"] {
   font: 600 12px/1 inherit;
   cursor: pointer;
 }
-.tour-card__skip:hover {
+.tour-card__skip:hover,
+.tour-card__back:hover:not(:disabled) {
   background: #ffffff12;
   color: #fff;
+}
+.tour-card__back:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* ---- Pro subscribe screen + upgrade banner (#58) ---- */
