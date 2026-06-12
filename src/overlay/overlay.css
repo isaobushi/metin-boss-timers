@@ -963,6 +963,15 @@ body[data-window="settings"] {
   font-size: 15px;
   line-height: 1;
 }
+/* Bespoke SVG glyphs (icons.tsx) draw edge-to-edge of their em box while text glyphs leave
+   side bearings — shrink slightly and re-seat on the baseline so they match optically. */
+.dock-seg__icon svg,
+.settings-tab__icon svg,
+.tour-card__glyph svg {
+  width: 0.85em;
+  height: 0.85em;
+  vertical-align: -0.07em;
+}
 .dock-seg__val {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1014,6 +1023,17 @@ body[data-window="settings"] {
   color: #9b8cff;
   opacity: 0.7;
   padding: 2px 0;
+}
+/* Per-band header tint — each Routine category gets its own hue so the bands scan apart at a
+   glance. Hues lean on the brand palette (ember / blue) ahead of the full reskin. */
+.dock-acc__section--books .dock-acc__section-head {
+  color: #ffa14a; /* ember-hot — brand primary family */
+}
+.dock-acc__section--languages .dock-acc__section-head {
+  color: #3fc1ff; /* brand blue */
+}
+.dock-acc__section--chores .dock-acc__section-head {
+  color: #39ff88; /* the app's ready-green */
 }
 /* A band's header sits clear of the prior band's last row (the first band needs no extra gap). */
 .dock-acc__section + .dock-acc__section .dock-acc__section-head {
@@ -1747,6 +1767,13 @@ body[data-window="settings"] {
   font-size: 12px;
   line-height: 1.45;
   opacity: 0.85;
+}
+/* Tool glyphs embedded in the copy (wrapped by TourCard's renderBody) — bumped above the body
+   size so they read as the dock icons they reference, without pushing the line height. */
+.tour-card__glyph {
+  font-size: 24px;
+  line-height: 1;
+  vertical-align: -4px;
 }
 /* The "make it yours" nudge (#72) — a quiet inline link to the beat's settings tab; it must read
    secondary to Next (the tour's main path), so it styles as a link, not a button. */

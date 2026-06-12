@@ -98,7 +98,7 @@ describe("makeConfig", () => {
     const D = 86_400_000;
     const c = makeConfig();
     // examples-not-gospel defaults: name, duration, kind (no tag — recurring items carry none).
-    // Deadlines (♻ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
+    // Deadlines (⧗ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
     expect(rec(c).map((r) => [r.name, r.durationMs, r.kind])).toEqual([
       ["Alastor Pet", 3 * D, "deadline"],
       ["White Navy Uniform Costume", 14 * D, "deadline"],

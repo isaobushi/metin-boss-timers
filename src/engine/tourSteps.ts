@@ -44,7 +44,7 @@ export type TourStep = {
 };
 
 /**
- * The 8 beats: Welcome → the dock itself → then the tools in dock order (⚔ ⏱ ♻ ✓ ⚙) → Done.
+ * The 8 beats: Welcome → the dock itself → then the tools in dock order (⚔ ⏱ ⧗ ✓ ⚙) → Done.
  * The ⚙ beat points at settings without entering it; the Done beat tells the user the tour can
  * be replayed from settings (the replay row itself is slice 5, #73).
  */

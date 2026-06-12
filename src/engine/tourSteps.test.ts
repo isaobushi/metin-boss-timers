@@ -5,7 +5,7 @@ import { TOUR_STEPS } from "./tourSteps";
 // The tour registry (#70): order and shape are the contract — slice 3 spotlights dockSegment and
 // opens panelToOpen per beat, so a reorder or a broken copy key is a real regression, not style.
 describe("tourSteps (#70)", () => {
-  it("declares the 8 beats in dock order: welcome → dock → ⚔ ⏱ ♻ ✓ ⚙ → done", () => {
+  it("declares the 8 beats in dock order: welcome → dock → ⚔ ⏱ ⧗ ✓ ⚙ → done", () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual([
       "welcome",
       "dock",

@@ -124,7 +124,7 @@ export const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> 
 // The example recurring items a fresh install ships with. Like the cooldown seed these are
 // "examples not gospel": the user retunes durations and adds their own in settings. Two flavours
 // ship so each dock tool reads non-empty: the standing `deadline` expiring items (pet, costume,
-// mount — you lose the thing if it elapses, ♻ Items) first, then the `gate` routines (a chore that
+// mount — you lose the thing if it elapses, ⧗ Items) first, then the `gate` routines (a chore that
 // rolls back into "do it now" each cycle, ✓ Routine).
 //
 // The gate seed covers Metin2's recurring "chore" systems. Every readable shares a 24h read

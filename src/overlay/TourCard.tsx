@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from "react";
+import { CheckboxIcon, HourglassIcon } from "./icons";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 import { advanceTour, initialTour, type TourEvent } from "../engine/tourMachine";
@@ -40,6 +41,22 @@ type Props = {
  * Deliberately no scrim: the game must stay visible behind the overlay (a dim layer would black out
  * the transparent window the app floats over). Focus is the positive ring on the glyph, nothing else.
  */
+// The chrome bodies embed the dock's tool glyphs inline (⚔ ⏱ ⧗ ✓ ⚙ ↻); at the 12px body size
+// they're illegibly small, so wrap each in a span the CSS can bump without touching the copy.
+// ⧗ is the one glyph drawn bespoke (icons.tsx) — the copy keeps the char, render swaps it.
+const GLYPHS = /([⚔⏱⧗✓⚙↻])/g;
+function renderBody(text: string) {
+  return text.split(GLYPHS).map((part, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="tour-card__glyph">
+        {part === "⧗" ? <HourglassIcon /> : part === "✓" ? <CheckboxIcon /> : part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
 export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }: Props) {
   const [tour, setTour] = useState(initialTour);
   const step = TOUR_STEPS[tour.index];
@@ -69,7 +86,7 @@ export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }:
           {tour.index + 1} / {TOUR_STEPS.length}
         </span>
       </div>
-      <p className="tour-card__body">{t(step.copy.body, locale)}</p>
+      <p className="tour-card__body">{renderBody(t(step.copy.body, locale))}</p>
       {deepLink && (
         <button className="tour-card__nudge" onClick={() => onDeepLink(deepLink)}>
           {t("tour.makeItYours", locale)}

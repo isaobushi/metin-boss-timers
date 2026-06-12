@@ -159,7 +159,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
   return (
     <div className="dock-acc">
       {banded.map((band) => (
-        <div className="dock-acc__section" key={band.key}>
+        <div className={`dock-acc__section dock-acc__section--${band.key}`} key={band.key}>
           {showHeaders && <div className="dock-acc__section-head">{t(band.labelKey, locale)}</div>}
           {band.key === "books" ? renderBooks(band.rows) : band.rows.map(renderRow)}
         </div>

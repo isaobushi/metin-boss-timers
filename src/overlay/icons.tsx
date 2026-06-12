@@ -72,6 +72,37 @@ function WindIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Mid-drain hourglass — the expiring-items glyph (replaces the too-basic ⧗ char):
+ *  a little sand left up top, a falling stream, a settled mound below. */
+export function HourglassIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M6 3h12M6 21h12" />
+        <path d="M7.5 3c0 4.2 1.9 5.7 4.5 9-2.6 3.3-4.5 4.8-4.5 9" />
+        <path d="M16.5 3c0 4.2-1.9 5.7-4.5 9 2.6 3.3 4.5 4.8 4.5 9" />
+      </g>
+      {/* sand: remaining wedge above the waist, the stream, the mound below */}
+      <path d="M9.6 8.8h4.8L12 11.8 9.6 8.8z" fill="currentColor" />
+      <path d="M12 12.5v3.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M12 15.8l3.3 3.6c.4.4.1 1.1-.5 1.1H9.2c-.6 0-.9-.7-.5-1.1l3.3-3.6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Ticked checkbox — the routine glyph (replaces the bare ✓ char): a rounded box with the
+ *  tick inside, so it reads as a checklist item rather than a loose check mark. */
+export function CheckboxIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" strokeWidth="1.7" />
+        <path d="M8 12.4l2.9 2.9 5.4-6" strokeWidth="1.9" />
+      </g>
+    </svg>
+  );
+}
+
 /** Two-way swap arrows — flips between the Phase 1 / Phase 2 tools. */
 export function SwapIcon(p: SVGProps<SVGSVGElement>) {
   return (

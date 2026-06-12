@@ -5,8 +5,8 @@
 //
 // The surface grew a section per dock tool (bosses, cooldowns, items, routine); once the
 // routine seed filled out it was too tall to scan, so the four sections live behind tabs
-// keyed to the same icons the dock uses (⚔ ⏱ ♻ ✓). Reset/close stay global in the head.
-import { useCallback, useEffect, useState } from "react";
+// keyed to the same icons the dock uses (⚔ ⏱ ⧗ ✓). Reset/close stay global in the head.
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
 import { RecurringSettings } from "../overlay/RecurringSettings";
@@ -20,13 +20,14 @@ import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
 import { type PurchasePhase, SubscribeScreen } from "../overlay/SubscribeScreen";
+import { CheckboxIcon, HourglassIcon } from "../overlay/icons";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
 import type { Entitlement } from "../engine/entitlement";
 import { t } from "../engine/chrome";
 
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
-// skills tool), ⏱ the dungeon cooldowns, ♻ the expiring items, ✓ the routine gates.
+// skills tool), ⏱ the dungeon cooldowns, ⧗ the expiring items, ✓ the routine gates.
 // The union lives in the engine (settingsLink) so tour deep links (#72) stay in lock-step.
 type TabId = SettingsTab;
 
@@ -98,11 +99,11 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
   }, [close]);
 
   const locale = cfg.config.locale;
-  const TABS: ReadonlyArray<{ id: TabId; icon: string; label: string }> = [
+  const TABS: ReadonlyArray<{ id: TabId; icon: ReactNode; label: string }> = [
     { id: "dungeons", icon: "⚔", label: t("settings.tabDungeons", locale) },
     { id: "cooldowns", icon: "⏱", label: t("settings.tabCooldowns", locale) },
-    { id: "items", icon: "♻", label: t("settings.tabItems", locale) },
-    { id: "routine", icon: "✓", label: t("settings.tabRoutine", locale) },
+    { id: "items", icon: <HourglassIcon />, label: t("settings.tabItems", locale) },
+    { id: "routine", icon: <CheckboxIcon />, label: t("settings.tabRoutine", locale) },
     { id: "language", icon: "🌐", label: t("settings.tabLanguage", locale) },
   ];
 
