@@ -38,6 +38,8 @@ import {
   deleteCharacter,
   selectCharacter,
   classifyCharacter,
+  markTourSeen,
+  shouldRunTour,
   type Config,
 } from "./config";
 import { inAlarm, type RecurringProgress } from "./recurring";
@@ -961,5 +963,43 @@ describe("classifyCharacter", () => {
   it("is a no-op for an unknown id", () => {
     const c = makeConfig();
     expect(classifyCharacter(c, "character-999", { name: "X", empire: "Jinno", race: "Warrior", builds: ["Body"] })).toBe(c);
+  });
+});
+
+// The first-run tour gate (#68): one boolean, one exit transform, one predicate. The predicate is
+// deliberately independent of `characters.length` — the wizard has its own first-run gate.
+describe("first-run tour gate (#68)", () => {
+  it("defaults hasSeenTour to false on a fresh config", () => {
+    expect(makeConfig().hasSeenTour).toBe(false);
+  });
+
+  it("markTourSeen sets the flag and touches nothing else — the single exit for Finish AND Skip", () => {
+    const c = makeConfig();
+    const seen = markTourSeen(c);
+    expect(seen).toEqual({ ...c, hasSeenTour: true });
+    expect(markTourSeen(seen).hasSeenTour).toBe(true); // idempotent — never un-set
+  });
+
+  it("shouldRunTour fires only when hydrated AND unseen", () => {
+    // [hydrated, hasSeenTour] → expected
+    const cases: Array<[boolean, boolean, boolean]> = [
+      [false, false, false], // pre-hydration: the in-memory default must never race a stored `true`
+      [false, true, false],
+      [true, false, true], // the one firing state
+      [true, true, false], // finished or skipped — never again
+    ];
+    for (const [hydrated, seenFlag, expected] of cases) {
+      const c = { ...makeConfig(), hasSeenTour: seenFlag };
+      expect(shouldRunTour(hydrated, c), `hydrated=${hydrated} seen=${seenFlag}`).toBe(expected);
+    }
+  });
+
+  it("is independent of character count — creating character #2 never re-triggers it", () => {
+    const seen = addCharacter(markTourSeen(makeConfig()), { name: "Alt" });
+    expect(seen.characters).toHaveLength(2);
+    expect(shouldRunTour(true, seen)).toBe(false);
+    // and conversely: an unseen tour fires however many characters exist
+    const unseen = addCharacter(makeConfig(), { name: "Alt" });
+    expect(shouldRunTour(true, unseen)).toBe(true);
   });
 });

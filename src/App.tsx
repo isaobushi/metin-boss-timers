@@ -10,6 +10,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { DockBar, type DockSegment } from "./overlay/DockBar";
 import { CharacterSwitcher } from "./overlay/CharacterSwitcher";
 import { CharacterWizard } from "./overlay/CharacterWizard";
+import { TourCard } from "./overlay/TourCard";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
@@ -27,6 +28,7 @@ import { UpgradeBanner } from "./overlay/UpgradeBanner";
 import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
 import { allows, partition, type Entitlement } from "./engine/entitlement";
+import { shouldRunTour } from "./engine/config";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
@@ -217,6 +219,11 @@ export default function App() {
   let belowPanel = null;
   if (showWizard) {
     belowPanel = characterWizard;
+  } else if (shouldRunTour(cfg.hydrated, cfg.config)) {
+    // The first-run coach card (#68) — the tour's placeholder, in the same exclusive-panel slot
+    // (ADR-0003). It follows the blocking wizard and precedes the tool panels until the user exits;
+    // Finish and Skip both mark the tour seen forever (a second character never re-triggers it).
+    belowPanel = <TourCard onFinish={cfg.completeTour} onSkip={cfg.completeTour} locale={cfg.config.locale} />;
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.

@@ -4,6 +4,7 @@ import {
   addSkill,
   makeConfig,
   markRecurring,
+  markTourSeen,
   setSkillHotkey,
   setSkillSound,
   activeRecurring,
@@ -706,5 +707,31 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
     expect(wolf.name).toBe("Snow Wolf"); // frozen name verbatim
     const oldBoss = restored.cooldowns.find((d) => d.name === "Old Boss")!;
     expect(oldBoss.catalogKey).toBeUndefined(); // same guard on the cooldown side
+  });
+});
+
+describe("hasSeenTour persistence (#68 — additive, no version bump)", () => {
+  it("round-trips a seen tour through the disk hop", () => {
+    const restored = deserialize(throughDisk(markTourSeen(makeConfig())));
+    expect(restored.hasSeenTour).toBe(true);
+  });
+
+  it("round-trips an unseen tour (a fresh install that hasn't exited the tour yet)", () => {
+    expect(deserialize(throughDisk(makeConfig())).hasSeenTour).toBe(false);
+  });
+
+  it("hydrates a pre-field payload to false, so existing users are shown the tour once", () => {
+    // The crux: a blob written before slice #68 has no `hasSeenTour` at all — it must
+    // migrate to `false` (teach the cockpit to existing users too), never wipe the config.
+    const payload = throughDisk(makeConfig());
+    delete payload.hasSeenTour;
+    const restored = deserialize(payload);
+    expect(restored.hasSeenTour).toBe(false);
+    expect(restored.bosses).toHaveLength(1); // the rest of the config survives intact
+  });
+
+  it("falls back to false on a corrupt (non-boolean) entry", () => {
+    const payload = { ...throughDisk(makeConfig()), hasSeenTour: "yes" };
+    expect(deserialize(payload).hasSeenTour).toBe(false);
   });
 });

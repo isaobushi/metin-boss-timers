@@ -1651,6 +1651,58 @@ body[data-window="settings"] {
   background: color-mix(in srgb, #7c6cff 70%, transparent);
 }
 
+/* The first-run coach card (#68) — an inline panel below the dock (reuses .dock-acc's frame/width,
+   like the wizard). No scrim anywhere: the game stays visible behind the transparent overlay. */
+.tour-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tour-card__title {
+  margin: 0;
+  font: 800 11px/1 inherit;
+  letter-spacing: 1.2px;
+  color: #cdbcff;
+}
+.tour-card__body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+.tour-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tour-card__finish {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, #7c6cff 70%, transparent);
+  color: #fff;
+  font: 700 12px/1 inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.tour-card__finish:hover {
+  background: #7c6cff;
+}
+.tour-card__skip {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #cfc8e0;
+  font: 600 12px/1 inherit;
+  cursor: pointer;
+}
+.tour-card__skip:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+
 /* ---- Pro subscribe screen + upgrade banner (#58) ---- */
 /* The subscribe screen reuses .panel; a violet/gold accent marks it as the "Pro" surface. */
 .subscribe {

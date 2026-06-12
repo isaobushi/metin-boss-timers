@@ -165,6 +165,12 @@ const EN = {
   "wizard.save":            "Save",
   "wizard.create":          "Create",
 
+  // ---- TourCard (slice #68 placeholder — the real per-section copy lands with tourSteps) ----
+  "tour.welcomeTitle": "WELCOME",
+  "tour.welcomeBody":  "This dock floats on top of your game — each glyph is a tool. A guided tour of every section is on its way; until then, click around and explore.",
+  "tour.finish":       "Got it",
+  "tour.skip":         "Skip tour →",
+
   // ---- SubscribeScreen ----
   "subscribe.title":                "DRAGONSAID PRO",
   "subscribe.planAriaLabel":        "Subscription plan",
@@ -373,6 +379,12 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "wizard.next":            "Weiter →",
   "wizard.save":            "Speichern",
   "wizard.create":          "Erstellen",
+
+  // ---- TourCard ----
+  "tour.welcomeTitle": "WILLKOMMEN",
+  "tour.welcomeBody":  "Diese Leiste schwebt über deinem Spiel — jedes Symbol ist ein Werkzeug. Eine geführte Tour durch alle Bereiche folgt bald; bis dahin: klick dich einfach durch.",
+  "tour.finish":       "Verstanden",
+  "tour.skip":         "Tour überspringen →",
 
   // ---- SubscribeScreen ----
   // Short UI labels translated; long prose lede strings omitted (English fallback).
