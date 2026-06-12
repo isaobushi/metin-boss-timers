@@ -1,0 +1,55 @@
+// The declarative registry for the first-run tour (PRD #63, slice #70): one entry per beat,
+// ordered left-to-right across the dock so the slice-3 spotlight travels predictably. This module
+// owns WHAT the tour shows (which glyph, which panel, which copy); tourMachine.ts owns WHERE the
+// user stands in it, and config.ts's gate owns WHETHER it fires at all. Copy lives in chrome.ts
+// (per-locale) — a step carries only the keys, so the card resolves them like any other chrome.
+
+import type { ChromeKey } from "./chrome";
+
+/**
+ * The dock glyph a beat talks about — the slice-3 (#71) spotlight target. A superset of the
+ * overlay's `DockSegment` (⚙ settings is a dock button but not an openable segment); null = the
+ * beat addresses the dock as a whole (welcome / dock-framing / done).
+ */
+export type TourSegment = "skills" | "cooldowns" | "items" | "routine" | "settings" | null;
+
+export type TourStepId =
+  | "welcome"
+  | "dock"
+  | "skills"
+  | "cooldowns"
+  | "items"
+  | "routine"
+  | "settings"
+  | "done";
+
+export type TourStep = {
+  id: TourStepId;
+  /** Spotlight target for slice 3 (#71); null = no single glyph to point at. */
+  dockSegment: TourSegment;
+  /**
+   * The exclusive panel slice 3 opens while the beat shows (mirrors App's `Panel` ids); null =
+   * leave the slot to the card alone. Cooldowns is null on purpose — its tool is the *pinned
+   * strip*, a sibling of the slot, so slice 3 pins that instead of opening a panel.
+   */
+  panelToOpen: "skills" | "items" | "routine" | null;
+  copy: { title: ChromeKey; body: ChromeKey };
+  /** The settings section the beat points at — slice 4 (#72) wires the real deep link. */
+  settingsDeepLink: string | null;
+};
+
+/**
+ * The 8 beats: Welcome → the dock itself → then the tools in dock order (⚔ ⏱ ♻ ✓ ⚙) → Done.
+ * The ⚙ beat points at settings without entering it; the Done beat tells the user the tour can
+ * be replayed from settings (the replay row itself is slice 5, #73).
+ */
+export const TOUR_STEPS: readonly TourStep[] = [
+  { id: "welcome",   dockSegment: null,        panelToOpen: null,      copy: { title: "tour.welcomeTitle",   body: "tour.welcomeBody" },   settingsDeepLink: null },
+  { id: "dock",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.dockTitle",      body: "tour.dockBody" },      settingsDeepLink: null },
+  { id: "skills",    dockSegment: "skills",    panelToOpen: "skills",  copy: { title: "tour.skillsTitle",    body: "tour.skillsBody" },    settingsDeepLink: null },
+  { id: "cooldowns", dockSegment: "cooldowns", panelToOpen: null,      copy: { title: "tour.cooldownsTitle", body: "tour.cooldownsBody" }, settingsDeepLink: null },
+  { id: "items",     dockSegment: "items",     panelToOpen: "items",   copy: { title: "tour.itemsTitle",     body: "tour.itemsBody" },     settingsDeepLink: null },
+  { id: "routine",   dockSegment: "routine",   panelToOpen: "routine", copy: { title: "tour.routineTitle",   body: "tour.routineBody" },   settingsDeepLink: null },
+  { id: "settings",  dockSegment: "settings",  panelToOpen: null,      copy: { title: "tour.settingsTitle",  body: "tour.settingsBody" },  settingsDeepLink: null },
+  { id: "done",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.doneTitle",      body: "tour.doneBody" },      settingsDeepLink: null },
+];

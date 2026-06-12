@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+import { t } from "./chrome";
+import { TOUR_STEPS } from "./tourSteps";
+
+// The tour registry (#70): order and shape are the contract — slice 3 spotlights dockSegment and
+// opens panelToOpen per beat, so a reorder or a broken copy key is a real regression, not style.
+describe("tourSteps (#70)", () => {
+  it("declares the 8 beats in dock order: welcome → dock → ⚔ ⏱ ♻ ✓ ⚙ → done", () => {
+    expect(TOUR_STEPS.map((s) => s.id)).toEqual([
+      "welcome",
+      "dock",
+      "skills",
+      "cooldowns",
+      "items",
+      "routine",
+      "settings",
+      "done",
+    ]);
+  });
+
+  it("tool beats point at their dock glyph; framing beats (welcome/dock/done) point at none", () => {
+    const segs = Object.fromEntries(TOUR_STEPS.map((s) => [s.id, s.dockSegment]));
+    expect(segs).toEqual({
+      welcome: null,
+      dock: null,
+      skills: "skills",
+      cooldowns: "cooldowns",
+      items: "items",
+      routine: "routine",
+      settings: "settings",
+      done: null,
+    });
+  });
+
+  it("panelToOpen names only exclusive panels — cooldowns stays null (its tool is the pinned strip)", () => {
+    const panels = Object.fromEntries(TOUR_STEPS.map((s) => [s.id, s.panelToOpen]));
+    expect(panels).toEqual({
+      welcome: null,
+      dock: null,
+      skills: "skills",
+      cooldowns: null,
+      items: "items",
+      routine: "routine",
+      settings: null,
+      done: null,
+    });
+  });
+
+  it("every beat's copy resolves to non-empty strings in both shipped locales", () => {
+    for (const step of TOUR_STEPS) {
+      for (const locale of ["en", "de"] as const) {
+        expect(t(step.copy.title, locale), `${step.id} title (${locale})`).not.toBe("");
+        expect(t(step.copy.body, locale), `${step.id} body (${locale})`).not.toBe("");
+      }
+    }
+  });
+
+  it("copy respects the glossary avoid-words (no reminder/daily/quest/alarm)", () => {
+    for (const step of TOUR_STEPS) {
+      for (const locale of ["en", "de"] as const) {
+        const text = `${t(step.copy.title, locale)} ${t(step.copy.body, locale)}`;
+        expect(text, `${step.id} (${locale})`).not.toMatch(/\b(reminder|daily|quest|alarm)/i);
+      }
+    }
+  });
+
+  it("frames the Routine beat as a menu, not a checklist", () => {
+    const routine = TOUR_STEPS.find((s) => s.id === "routine")!;
+    expect(t(routine.copy.body, "en")).toMatch(/menu/i);
+    expect(t(routine.copy.body, "en")).toMatch(/not behind/i);
+  });
+
+  it("settings deep links are unwired until slice 4 (#72)", () => {
+    for (const step of TOUR_STEPS) expect(step.settingsDeepLink).toBeNull();
+  });
+});

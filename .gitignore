@@ -29,3 +29,6 @@ dist-ssr
 
 # Business/outreach data lives outside the repo (kept in ~/dev), never committed
 metin2-influencer-contacts.csv
+
+# Scraped/3rd-party reference data (metin2alerts locale dumps, skill x-refs) — never committed
+reference/

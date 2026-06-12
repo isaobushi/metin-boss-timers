@@ -165,11 +165,30 @@ const EN = {
   "wizard.save":            "Save",
   "wizard.create":          "Create",
 
-  // ---- TourCard (slice #68 placeholder — the real per-section copy lands with tourSteps) ----
-  "tour.welcomeTitle": "WELCOME",
-  "tour.welcomeBody":  "This dock floats on top of your game — each glyph is a tool. A guided tour of every section is on its way; until then, click around and explore.",
-  "tour.finish":       "Got it",
-  "tour.skip":         "Skip tour →",
+  // ---- TourCard (#70 — the 8-beat first-run tour; keys are referenced from tourSteps.ts) ----
+  // Glossary note: the domain term is "Elapsable item" (CONTEXT.md), whose established user-facing
+  // surface form is "expiring items" (dock.expiring, recurring.titleItems) — the tour matches the
+  // labels the user actually sees. Avoid-words hold everywhere: no reminder/daily/quest/alarm.
+  "tour.welcomeTitle":   "WELCOME",
+  "tour.welcomeBody":    "This dock floats on top of your game — each glyph below is a tool. A quick tour of every section follows; skip any time.",
+  "tour.dockTitle":      "THE DOCK",
+  "tour.dockBody":       "The bar stays on top of the game window. Drag the grip to park it anywhere; every tool opens right below it.",
+  "tour.skillsTitle":    "BOSS TIMERS",
+  "tour.skillsBody":     "⚔ opens your Bosses: each Skill is a draining chip with sound cues in its final seconds, reset by global hotkeys mid-fight.",
+  "tour.cooldownsTitle": "COOLDOWNS",
+  "tour.cooldownsBody":  "⏱ starts one-shot countdowns to a fixed moment — dungeon re-entry, a spawn you're waiting out. They follow the clock and survive restarts.",
+  "tour.itemsTitle":     "EXPIRING ITEMS",
+  "tour.itemsBody":      "♻ watches what runs out — pet, costume, mount. Each shows the days left; ↻ restamps a fresh cycle when you feed or renew.",
+  "tour.routineTitle":   "ROUTINE",
+  "tour.routineBody":    "✓ is a menu of rolling chores — skill-book reads, Biologist hand-ins. You're not behind: pick what fits your character, and ✓ restamps it to its next window.",
+  "tour.settingsTitle":  "SETTINGS",
+  "tour.settingsBody":   "⚙ opens the settings window — bosses, hotkeys, sounds, language and backups live there. No need to go in now.",
+  "tour.doneTitle":      "ALL SET",
+  "tour.doneBody":       "That's the dock. Replay this tour any time from Settings. Good hunting!",
+  "tour.next":           "Next →",
+  "tour.back":           "← Back",
+  "tour.finish":         "Got it",
+  "tour.skip":           "Skip tour →",
 
   // ---- SubscribeScreen ----
   "subscribe.title":                "DRAGONSAID PRO",
@@ -381,10 +400,26 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "wizard.create":          "Erstellen",
 
   // ---- TourCard ----
-  "tour.welcomeTitle": "WILLKOMMEN",
-  "tour.welcomeBody":  "Diese Leiste schwebt über deinem Spiel — jedes Symbol ist ein Werkzeug. Eine geführte Tour durch alle Bereiche folgt bald; bis dahin: klick dich einfach durch.",
-  "tour.finish":       "Verstanden",
-  "tour.skip":         "Tour überspringen →",
+  "tour.welcomeTitle":   "WILLKOMMEN",
+  "tour.welcomeBody":    "Diese Leiste schwebt über deinem Spiel — jedes Symbol darunter ist ein Werkzeug. Eine kurze Tour durch alle Bereiche folgt; überspringen geht jederzeit.",
+  "tour.dockTitle":      "DIE LEISTE",
+  "tour.dockBody":       "Die Leiste bleibt über dem Spielfenster. Zieh sie am Griff, wohin du willst; jedes Werkzeug öffnet sich direkt darunter.",
+  "tour.skillsTitle":    "BOSS-TIMER",
+  "tour.skillsBody":     "⚔ öffnet deine Bosse: jeder Skill ist ein ablaufender Chip mit Tonsignalen in den letzten Sekunden — mitten im Kampf per globalem Hotkey zurücksetzbar.",
+  "tour.cooldownsTitle": "COOLDOWNS",
+  "tour.cooldownsBody":  "⏱ startet einmalige Countdowns auf einen festen Zeitpunkt — Dungeon-Wiedereintritt oder ein Spawn, auf den du wartest. Sie folgen der Uhr und überleben Neustarts.",
+  "tour.itemsTitle":     "ABLAUFENDE ITEMS",
+  "tour.itemsBody":      "♻ behält im Blick, was abläuft — Pet, Kostüm, Mount. Jedes zeigt die Resttage; ↻ stempelt einen frischen Zyklus, wenn du fütterst oder erneuerst.",
+  "tour.routineTitle":   "ROUTINE",
+  "tour.routineBody":    "✓ ist ein Menü wiederkehrender Aufgaben — Skillbuch-Lesen, Biologen-Abgaben. Du bist nicht im Rückstand: wähl, was zu deinem Charakter passt, und ✓ stempelt es aufs nächste Fenster.",
+  "tour.settingsTitle":  "EINSTELLUNGEN",
+  "tour.settingsBody":   "⚙ öffnet das Einstellungsfenster — Bosse, Hotkeys, Sounds, Sprache und Backups wohnen dort. Da müssen wir jetzt nicht rein.",
+  "tour.doneTitle":      "FERTIG",
+  "tour.doneBody":       "Das ist die Leiste. Du kannst diese Tour jederzeit in den Einstellungen neu starten. Gute Jagd!",
+  "tour.next":           "Weiter →",
+  "tour.back":           "← Zurück",
+  "tour.finish":         "Verstanden",
+  "tour.skip":           "Tour überspringen →",
 
   // ---- SubscribeScreen ----
   // Short UI labels translated; long prose lede strings omitted (English fallback).
