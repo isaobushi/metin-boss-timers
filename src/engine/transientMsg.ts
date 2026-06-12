@@ -4,13 +4,20 @@
 // testable without a bus and every window agrees on what may ride it.
 
 import { isSettingsTab, type SettingsTab } from "./settingsLink";
+import { isEntitlement, type Entitlement } from "./entitlement";
 
 /**
  * The one-shot intents windows send each other. `settings-navigate` re-tabs an already-open
  * settings surface (#72); `tour-replay` asks the overlay to re-enter the tour (#73, the
- * "Show me around" row). Adding a member here without a validator below is a compile error.
+ * "Show me around" row); `entitlement-changed` propagates a successful purchase to the OTHER
+ * window's gates (#58 — overlay and settings each hold their own entitlement state, and a real
+ * Store purchase can happen in either). Adding a member here without a validator below is a
+ * compile error.
  */
-export type TransientMsg = { kind: "settings-navigate"; tab: SettingsTab } | { kind: "tour-replay" };
+export type TransientMsg =
+  | { kind: "settings-navigate"; tab: SettingsTab }
+  | { kind: "tour-replay" }
+  | { kind: "entitlement-changed"; entitlement: Entitlement };
 
 /**
  * Per-kind payload validators, keyed by the union's `kind`s — the mapped type makes a missed
@@ -21,6 +28,7 @@ export type TransientMsg = { kind: "settings-navigate"; tab: SettingsTab } | { k
 const VALIDATORS: { [K in TransientMsg["kind"]]: (msg: { kind: K } & Record<string, unknown>) => boolean } = {
   "settings-navigate": (msg) => isSettingsTab(msg.tab),
   "tour-replay": () => true,
+  "entitlement-changed": (msg) => isEntitlement(msg.entitlement),
 };
 
 /** Runtime guard for wire payloads — a malformed message is dropped, never dispatched. */

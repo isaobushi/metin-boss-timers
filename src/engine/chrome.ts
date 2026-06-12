@@ -214,6 +214,7 @@ const EN = {
   "subscribe.resubscribe":          "Resubscribe",
   "subscribe.subscribe":            "Subscribe",
   "subscribe.orSubscribeNow":       "or subscribe now",
+  "subscribe.error":                "The Store couldn't complete the purchase — nothing was changed. Try again in a moment.",
 
   // ---- UpgradeBanner ----
   "banner.trialLabel":          "✦ Pro trial active",
@@ -449,6 +450,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "subscribe.resubscribe":   "Erneut abonnieren",
   "subscribe.subscribe":     "Abonnieren",
   "subscribe.orSubscribeNow": "oder jetzt abonnieren",
+  "subscribe.error":         "Der Store konnte den Kauf nicht abschließen – es wurde nichts geändert. Versuch es gleich noch einmal.",
 
   // ---- UpgradeBanner ----
   "banner.trialLabel":   "✦ Pro-Testversion aktiv",

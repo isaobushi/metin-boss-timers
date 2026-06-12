@@ -19,6 +19,10 @@ export type Entitlement = "subscribed" | "trial" | "lapsed" | "never";
 /** Pro = a paying or trialling user: everything uncapped. Lite = `lapsed`/`never`: the caps below apply. */
 export const isPro = (e: Entitlement): boolean => e === "subscribed" || e === "trial";
 
+/** Wire guard for entitlement values arriving over a boundary (the transient bus, #58). */
+export const isEntitlement = (v: unknown): v is Entitlement =>
+  v === "subscribed" || v === "trial" || v === "lapsed" || v === "never";
+
 /**
  * The entitlement the app runs as until a real `storeLicense` adapter (a later slice) supplies one from
  * the OS-cached Store license. `subscribed` so every cap is lifted and current behaviour is unchanged —

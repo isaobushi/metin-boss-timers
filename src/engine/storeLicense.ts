@@ -35,6 +35,22 @@ export type GraceState = { lastProAt: number; pro: "subscribed" | "trial" } | nu
  */
 export const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
 
+/**
+ * The Store's free-trial length (#58) — the local trial-window stamp the adapter persists on
+ * trial-purchase success, because the OS-cached ADD-ON license can't say "trial" (only the app
+ * license carries IsTrial, and Pro rides on add-ons).
+ */
+export const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Is a locally stamped trial window still open at `now`? `until` is the stamp (ms epoch) or null
+ * when none was ever written; a malformed stamp reads closed — i.e. paid, the harmless direction
+ * (the flag only flavors nudge copy; an active license is Pro either way).
+ */
+export function isTrialActive(until: number | null, now: number): boolean {
+  return until != null && Number.isFinite(until) && now < until;
+}
+
 /** Maps a license read to an entitlement plus the grace memory to persist for next launch. */
 export function resolveEntitlement(
   read: LicenseRead,

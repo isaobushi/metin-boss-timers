@@ -1912,6 +1912,21 @@ body[data-window="settings"] {
 .subscribe__close:hover {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
+/* The purchase-in-flight lock (#58 review): actions dim while the Store dialog is up. */
+.subscribe__primary:disabled,
+.subscribe__secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+/* A failed Store purchase (#58 review) — quiet inline line, the screen stays usable for a retry. */
+.subscribe__error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  color: #f0a8a8;
+}
 
 /* Slim standing entry to Pro below the dock. Subdued so it never nags. */
 .upgrade-banner {

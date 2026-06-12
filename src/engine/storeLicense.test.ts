@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRACE_MS, resolveEntitlement, type GraceState } from "./storeLicense";
+import { GRACE_MS, TRIAL_MS, isTrialActive, resolveEntitlement, type GraceState } from "./storeLicense";
 
 const T0 = 1_000_000_000_000; // a fixed fake "now"
 
@@ -47,5 +47,24 @@ describe("resolveEntitlement", () => {
   it("maps an unverifiable read with no Pro history to never (clean Lite, nothing frozen)", () => {
     const { entitlement } = resolveEntitlement({ kind: "unverifiable" }, null, T0);
     expect(entitlement).toBe("never");
+  });
+});
+
+describe("isTrialActive (#58)", () => {
+  const T0 = 1_000_000_000_000;
+
+  it("is false when no trial was ever stamped", () => {
+    expect(isTrialActive(null, T0)).toBe(false);
+  });
+
+  it("is true strictly inside the window, false at and past its end", () => {
+    expect(isTrialActive(T0 + TRIAL_MS, T0)).toBe(true);
+    expect(isTrialActive(T0 + TRIAL_MS, T0 + TRIAL_MS - 1)).toBe(true);
+    expect(isTrialActive(T0 + TRIAL_MS, T0 + TRIAL_MS)).toBe(false);
+    expect(isTrialActive(T0, T0 + 1)).toBe(false);
+  });
+
+  it("reads a malformed stamp as closed — the paid (harmless) direction", () => {
+    expect(isTrialActive(Number.NaN, T0)).toBe(false);
   });
 });
