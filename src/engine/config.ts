@@ -12,13 +12,15 @@ import {
   type RecurringKind,
   type RecurringProgress,
   type RunningRecurring,
+  gateDurationMs,
+  ladderCap,
   markDone,
   positionOf,
   rungEntry,
   setPosition,
 } from "./recurring";
 import { type Character, DEFAULT_CHARACTER_NAME, activeCharacter, makeCharacter } from "./character";
-import { type Build, type Empire, type Race, subsetFor } from "./skillCatalog";
+import { type Build, type ChorePreform, type Empire, type Race, subsetFor } from "./skillCatalog";
 import { clampDuration } from "./cooldownTuning";
 import { cooldownKey, recurringKey } from "./contentKeys";
 import { DEFAULT_LOCALE, type Locale } from "./localeTypes";
@@ -140,7 +142,7 @@ export const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; k
   { name: "Alastor Pet", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
   { name: "White Navy Uniform Costume", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
-  { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "class-skill" }, // 55 reads M1→G1; 20k EXP/read
+  { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "class-skill" }, // 55 books M1→G1 + 10 stones to P (12h late tier)
   { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // 0→P = 40 (20 to M1)
   { name: "Inspiration", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // transformation pattern
   { name: "Charisma", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // transformation pattern
@@ -624,8 +626,22 @@ const clampRecurringDuration = (ms: number): number =>
 export function markRecurring(c: Config, defId: string, now: number): Config {
   const def = recurringById(c, defId);
   if (!def) return c;
-  return editActiveCharacter(c, (ch) => ({ ...ch, recurringRunning: markDone(ch.recurringRunning, def, now) }));
+  return editActiveCharacter(c, (ch) => ({
+    ...ch,
+    recurringRunning: markDone(ch.recurringRunning, withGateDuration(def, ch.recurringProgress), now),
+  }));
 }
+
+/**
+ * The def with its ladder's late-tier duration in force (design walk): past the late tier's entry
+ * the gate restamps shorter — a G-tier Skill Book read is a 12h Soul Stone, not a 24h book. The
+ * position is read BEFORE any advance, so the restamp reflects the item just consumed. A plain
+ * gate (or a ladder without a late tier) comes back unchanged.
+ */
+const withGateDuration = (def: RecurringDef, progress: RecurringProgress[]): RecurringDef => ({
+  ...def,
+  durationMs: gateDurationMs(def.ladderId, positionOf(progress, def.id), def.durationMs),
+});
 
 /**
  * Log the outcome of a ladder read for `defId` (issue #45) — the two-outcome gesture a ladder row
@@ -644,7 +660,7 @@ export function markRead(c: Config, defId: string, now: number, success: boolean
   const def = recurringById(c, defId);
   if (!def) return c;
   return editActiveCharacter(c, (ch) => {
-    const recurringRunning = markDone(ch.recurringRunning, def, now);
+    const recurringRunning = markDone(ch.recurringRunning, withGateDuration(def, ch.recurringProgress), now);
     if (!success) return { ...ch, recurringRunning }; // failed read — gate restamped, rank untouched
     const next = positionOf(ch.recurringProgress, defId) + 1;
     return { ...ch, recurringRunning, recurringProgress: setPosition(ch.recurringProgress, defId, next, def.ladderId) };
@@ -699,6 +715,18 @@ export function addRecurring(c: Config, kind: RecurringKind = "deadline"): Confi
   return editActiveCharacter({ ...c, recurringSeq }, (ch) => ({ ...ch, recurring: [...ch.recurring, def] }));
 }
 
+/**
+ * Append one CATALOG chore to the active character (the curated + ADD TRAINING picker) — the
+ * single-preform sibling of the create/classify seeding paths, minted through the same
+ * `mintRecurring`, so a re-added chore carries the same catalogKey/ladderId/school as a seeded one
+ * and bands, localizes, and climbs its ladder exactly like the original. Progress starts fresh
+ * (rank 0) — the per-row rung curtain (#46) is the correction path if the player still holds rank.
+ */
+export function addCatalogRoutine(c: Config, preform: ChorePreform): Config {
+  const { defs, seq: recurringSeq } = mintRecurring([preform], c.recurringSeq);
+  return editActiveCharacter({ ...c, recurringSeq }, (ch) => ({ ...ch, recurring: [...ch.recurring, ...defs] }));
+}
+
 /** Rename a definition (like `renameCooldown`, minus the tag re-derive). An unknown `defId` is a no-op. */
 export function renameRecurring(c: Config, defId: string, name: string): Config {
   if (!recurringById(c, defId)) return c;
@@ -713,21 +741,29 @@ export function setRecurringDuration(c: Config, defId: string, durationMs: numbe
 
 /**
  * Mark a definition done-forever / restore it to active (#69) — the reversible retire gesture,
- * distinct from `removeRecurring` (which discards the record). Only the `maxed` flag moves:
- * duration, ladder rank, and any running instance are kept untouched, so a restore picks the
- * routine back up exactly where it was. Restoring DELETES the key (rather than writing `false`)
- * so an un-maxed def round-trips byte-identical to a pre-#69 one. An unknown `defId` is a no-op —
- * and so is a `deadline` one: maxed is a Routine (gate) state, and only the gate settings section
- * carries the restore affordance, so a maxed deadline would be a dimmed row with no way back.
+ * distinct from `removeRecurring` (which discards the record). Maxing a ladder def also GRANTS the
+ * rank (design walk): the toggle says "this skill is P now" (languages: M1), so the position snaps
+ * to the ladder's cap — duration and any running instance stay untouched. Restoring only drops the
+ * flag (the rank stays granted; the rung curtain is the correction path) and DELETES the key
+ * (rather than writing `false`) so an un-maxed def round-trips byte-identical to a pre-#69 one. An
+ * unknown `defId` is a no-op — and so is a `deadline` one: maxed is a Routine (gate) state, and
+ * only the gate settings section carries the restore affordance, so a maxed deadline would be a
+ * dimmed row with no way back.
  */
 export function setRecurringMaxed(c: Config, defId: string, maxed: boolean): Config {
-  if (recurringById(c, defId)?.kind !== "gate") return c;
-  return editRecurring(c, defId, (d) => {
+  const def = recurringById(c, defId);
+  if (def?.kind !== "gate") return c;
+  const flagged = editRecurring(c, defId, (d) => {
     if (maxed) return { ...d, maxed: true };
     const next = { ...d };
     delete next.maxed; // restore → drop the field entirely (not `maxed: false`)
     return next;
   });
+  if (!maxed || !def.ladderId) return flagged;
+  return editActiveCharacter(flagged, (ch) => ({
+    ...ch,
+    recurringProgress: setPosition(ch.recurringProgress, defId, ladderCap(def.ladderId), def.ladderId),
+  }));
 }
 
 /**

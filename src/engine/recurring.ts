@@ -220,8 +220,12 @@ export type LadderStructure = {
   hintKeys?: string[];
   /** `stage`-style per-stage required item count — the `x/qty` denominator; the cap is their sum. */
   quantities?: number[];
-  /** Suffix on the trophy readout, e.g. " (books)" — Skill Books cap at G1 because G→P is Soul Stones. */
-  capNote?: string;
+  /**
+   * Optional late tier: from this entry `position` onward the gate restamps with this duration
+   * instead of the def's own — Skill Books' G-tier climbs on Soul Stones, read every 12h vs the
+   * books' 24h. Read via `gateDurationMs`; the def's `durationMs` stays the early-tier truth.
+   */
+  lateTier?: { fromEntry: number; durationMs: number };
 };
 
 /** A def's lifetime rank: `position` = its count of successful reads. Parallel to `recurringRunning`. */
@@ -276,24 +280,29 @@ export const BIOLOGIST_HINTS = [
 ];
 const BIOLOGIST_QTYS = [10, 15, 15, 20, 25, 30, 40, 50, 10, 20]; // per-stage required count; cap = sum = 235
 
+// The G-tier soul-stone read cooldown (12h vs the books' 24h) and where it starts: G1's entry on
+// the skill-book ladders (after the 55 triangular book reads).
+const SOUL_STONE_MS = 12 * 3_600_000;
+const G1_ENTRY = 55;
+
 /** The five fixed seeded ladder structures, keyed by `ladderId` (see module note for sourcing). */
 export const LADDERS: Record<string, LadderStructure> = {
-  // Skill Books: M1→G1 = 55 reads (triangular). G→P is Soul Stones, not books → cap at G1. (The
-  // G1→P tier reads every 12h vs 24h in-game, but since we cap at G1 that never enters the range.)
+  // Skill Books: M1→G1 = 55 reads (triangular), then G1→P on Soul Stones — 1 successful read per G
+  // level (design walk; cap 65). The stone tier reads every 12h vs the books' 24h (`lateTier`).
   "class-skill": {
     id: "class-skill",
     style: "rung",
-    rungs: buildRungs([...mTier, "G1"], triangular10),
-    capNote: " (books)",
+    rungs: buildRungs([...mTier, ...gTier, "P"], [...triangular10, ...Array(10).fill(1)]),
+    lateTier: { fromEntry: G1_ENTRY, durationMs: SOUL_STONE_MS },
   },
-  // Ward skill (#57): the 7th skill reads exactly like a class skill book (M1→G1 = 55) — a clone of
-  // the ability ladder under its own id, so the school-independent Ward keeps the book progression
-  // while banding under Utilities (it is neither the `class-skill` nor `language` ladder).
+  // Ward skill (#57): the 7th skill reads exactly like a class skill book (books to G1, stones to
+  // P) — a clone of the ability ladder under its own id, so the school-independent Ward keeps the
+  // book progression while banding under Utilities (it is neither `class-skill` nor `language`).
   ward: {
     id: "ward",
     style: "rung",
-    rungs: buildRungs([...mTier, "G1"], triangular10),
-    capNote: " (books)",
+    rungs: buildRungs([...mTier, ...gTier, "P"], [...triangular10, ...Array(10).fill(1)]),
+    lateTier: { fromEntry: G1_ENTRY, durationMs: SOUL_STONE_MS },
   },
   // Transformation pattern (shared by Transformation/Inspiration/Charisma/Mining): 0→M1 = 20, then
   // 1 read per step to P (G11). Total 40 — only the climb to M1 is heavy.
@@ -354,6 +363,27 @@ export const ladderCap = (ladderId: string | undefined): number => {
 export const ladderRungs = (ladderId: string | undefined): LadderRung[] => ladderById(ladderId)?.rungs ?? [];
 
 /**
+ * The cap rung's display label for a rung-style ladder — what the settings maxed toggle shows, so
+ * the button names the rank it grants: "P" on most ladders, "M1" on languages (their in-game
+ * ceiling). Null for a stage ladder (Biologist) or a plain gate, where the generic "P" glyph rules.
+ */
+export const ladderCapLabel = (ladderId: string | undefined): string | null => {
+  const l = ladderById(ladderId);
+  return l && l.style === "rung" ? l.rungs[l.rungs.length - 1].label : null;
+};
+
+/**
+ * The effective gate duration at a ladder `position` — the ladder's late tier overrides `defaultMs`
+ * (the def's own duration) once the position enters it: a G-tier Skill Book read is a 12h Soul
+ * Stone, not a 24h book. Callers pass the position BEFORE any advance, so the restamp reflects the
+ * item just read/consumed. Plain gates and ladders without a late tier keep `defaultMs`.
+ */
+export const gateDurationMs = (ladderId: string | undefined, position: number, defaultMs: number): number => {
+  const late = ladderById(ladderId)?.lateTier;
+  return late && position >= late.fromEntry ? late.durationMs : defaultMs;
+};
+
+/**
  * The entry-threshold `position` for a rung label on a ladder (the set-rung curtain's snap target,
  * #46 — picking a rung snaps to its *entry*, the first reads true it up). Null if the label isn't
  * on the ladder (or the ladder is unknown).
@@ -389,7 +419,7 @@ export function ladderProgress(ladderId: string | undefined, position: number): 
 
 /**
  * The formatted ladder readout for a `position` (what the Routine row shows beside the gate state).
- * `rung` style reads "M3 · 2→M4", capping to a quiet trophy "G1 ✓ max (books)"; `stage` style
+ * `rung` style reads "M3 · 2→M4", capping to a quiet trophy "P ✓ max"; `stage` style
  * (Biologist) reads "Stage 5/10 · Zelkova Branch 3/25" — the current stage plus how many of its
  * required items are in — capping to "Stage 10/10 ✓". Null for an unknown ladder.
  */
@@ -415,7 +445,7 @@ export function ladderText(
     const item = resolveHint && key ? resolveHint(key) : l.hints?.[i];
     return item ? `Stage ${i + 1}/${total} · ${item} ${inStage}/${qty}` : `Stage ${i + 1}/${total}`;
   }
-  if (p.capped) return `${p.rungLabel} ✓ max${l.capNote ?? ""}`;
+  if (p.capped) return `${p.rungLabel} ✓ max`;
   return `${p.rungLabel} · ${p.readsToNextRung}→${p.nextRungLabel}`;
 }
 

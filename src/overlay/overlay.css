@@ -802,6 +802,23 @@ body[data-window="settings"] {
 .cooldown-settings--dhm .cd-dur {
   width: 184px;
 }
+/* The TRAINING rows' RANK column (design walk) — the set-rung curtain in place of the duration
+   editor, sized to the same slot so the name/🏆/✕ columns stay aligned across both sections. The
+   trigger reuses the dock-acc__ladder skin (small muted readout); a ladder-less custom row shows
+   a quiet dash (its cadence is fixed daily, nothing to edit). */
+.cd-rank {
+  width: 184px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #b9aee6;
+}
+.cd-rank--none {
+  opacity: 0.35;
+  text-align: left;
+}
+.cd-rank .dock-acc__ladder {
+  font-size: 11px;
+}
 /* a maxed (done-forever, #69) routine reads as retired-but-kept: dimmed, struck, restorable */
 .cd-row--maxed .cd-name,
 .cd-row--maxed .cd-dur {
@@ -1397,6 +1414,71 @@ body[data-window="settings"] {
   width: 100%;
   text-align: left;
   padding: 6px 8px;
+}
+
+/* ---- training curtain (design walk) — the curated + ADD TRAINING picker, LocaleSettings'
+   curtain sibling on the routine tab. The trigger is the section's dashed add button; the menu
+   opens UPWARD (the trigger sits at the tab's bottom, so downward would land out of view) and
+   lists the active character's catalog subset banded like the ✓ accordion (#57). Already-added
+   rows stay listed but dim behind a ✓ — the list doubles as "what exists for my class". ---- */
+.training-curtain {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.training-curtain__menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-width: none;
+}
+.training-curtain__menu .rung-menu__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: 280px;
+}
+.training-curtain__school {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.training-curtain__menu .rung-menu__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 8px;
+}
+.training-curtain__band-head {
+  padding: 6px 4px 2px;
+  font: 700 9px/1 inherit;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #b9aee6;
+  opacity: 0.7;
+}
+.training-curtain__school-head {
+  padding: 4px 4px 1px;
+  font: 600 9px/1 inherit;
+  letter-spacing: 0.6px;
+  color: #b9aee6;
+  opacity: 0.55;
+}
+.training-curtain__menu .rung-menu__item.is-added {
+  opacity: 0.4;
+  cursor: default;
+}
+.training-curtain__menu .rung-menu__item.is-added:hover {
+  background: #ffffff10;
+  color: #e9e5f5;
+}
+/* The escape hatch sits below the scroll list, set apart by a dashed rule (the old blank-add). */
+.training-curtain__custom {
+  border-top: 1px dashed #ffffff22;
+  border-radius: 0 0 6px 6px;
+  padding-top: 8px;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */

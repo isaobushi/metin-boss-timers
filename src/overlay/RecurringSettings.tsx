@@ -1,7 +1,11 @@
-import type { RecurringDef, RecurringKind } from "../engine/recurring";
+import { type RecurringDef, type RecurringKind, ladderCapLabel, ladderProgress, ladderText } from "../engine/recurring";
+import type { ChorePreform } from "../engine/skillCatalog";
+import { displayName } from "../engine/contentCatalog";
 import { readNum } from "./numberInput";
 import { t } from "../engine/chrome";
 import { tip, tipHint } from "./Tooltip";
+import { RungCurtain } from "./RungCurtain";
+import { TrainingPicker } from "./TrainingPicker";
 import type { Locale } from "../engine/localeTypes";
 
 type Props = {
@@ -17,6 +21,19 @@ type Props = {
    * is retired reversibly, not deleted. Absent on the EXPIRING ITEMS section: no trophy column there.
    */
   onSetMaxed?: (defId: string, maxed: boolean) => void;
+  /**
+   * The curated picker (TRAINING call site only, design walk): when present, the footer + ADD drops
+   * the active character's catalog curtain instead of blank-adding — `onAdd` becomes the curtain's
+   * "+ custom training" escape hatch. Absent on EXPIRING ITEMS, which keeps the plain blank-add.
+   */
+  picker?: { entries: ChorePreform[]; present: ReadonlySet<string>; onPick: (p: ChorePreform) => void };
+  /**
+   * The rank column (TRAINING call site only, design walk): replaces the duration editor — every
+   * in-game readable has a FIXED cadence (24h, or the ladder's late tier), so a d/h/m control was
+   * a lie waiting to happen. Ladder rows show the set-rung curtain (#46, same gesture as the dock
+   * accordion); ladder-less custom rows show a quiet dash (fixed daily cadence).
+   */
+  rank?: { position: (defId: string) => number; onSetRung: (defId: string, rungLabel: string) => void };
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
@@ -38,7 +55,8 @@ const MS_PER_DAY = 86_400_000;
  * extended with a days field, because these chores run hours to weeks. The three number inputs
  * are split out of the stored ms and recombined on edit; the engine clamps the result to the
  * day-scale [1m, 365d] band (overlay/useConfig → setRecurringDuration), so an empty/zero entry
- * snaps back to 1 minute.
+ * snaps back to 1 minute. The TRAINING call site swaps this column for a RANK one (`rank` prop,
+ * design walk) — readables have fixed cadences, so there the rung is what's worth editing.
  *
  * The ROUTINE call site also passes `onSetMaxed` (#69): a "P" (Perfect-Master) toggle per row retires a perfected
  * task done-forever — the row stays listed here (dimmed, struck) so it can be restored, while the
@@ -52,6 +70,8 @@ export function RecurringSettings({
   onSetDuration,
   onRemove,
   onSetMaxed,
+  picker,
+  rank,
   locale,
 }: Props) {
   const items = recurring.filter((d) => d.kind === kind);
@@ -66,7 +86,7 @@ export function RecurringSettings({
 
       <div className="cd-head">
         <span className="cd-head__name">{t("recurring.colName", locale)}</span>
-        <span className="cd-head__dur">{t("recurring.colDuration", locale)}</span>
+        <span className="cd-head__dur">{t(rank ? "recurring.colRank" : "recurring.colDuration", locale)}</span>
         {onSetMaxed && <span className="cd-head__x" />}
         <span className="cd-head__x" />
       </div>
@@ -85,42 +105,59 @@ export function RecurringSettings({
               onChange={(e) => onRename(d.id, e.target.value)}
               placeholder={t("recurring.namePlaceholder", locale)}
             />
-            <div className="cd-dur" {...tipHint(t("recurring.durationTitle", locale))}>
-              <input
-                className="cd-dur__n"
-                type="number"
-                min={0}
-                max={365}
-                value={days}
-                onChange={(e) => setDHM(readNum(e.target), h, m)}
-              />
-              <span className="cd-dur__u">d</span>
-              <input
-                className="cd-dur__n"
-                type="number"
-                min={0}
-                max={23}
-                value={h}
-                onChange={(e) => setDHM(days, readNum(e.target), m)}
-              />
-              <span className="cd-dur__u">h</span>
-              <input
-                className="cd-dur__n"
-                type="number"
-                min={0}
-                max={59}
-                value={m}
-                onChange={(e) => setDHM(days, h, readNum(e.target))}
-              />
-              <span className="cd-dur__u">m</span>
-            </div>
+            {rank ? (
+              d.ladderId ? (
+                <div className="cd-rank">
+                  <RungCurtain
+                    text={ladderText(d.ladderId, rank.position(d.id), (k) => displayName(k, locale))!}
+                    ladderId={d.ladderId}
+                    currentRung={ladderProgress(d.ladderId, rank.position(d.id))!.rungLabel}
+                    onPick={(label) => rank.onSetRung(d.id, label)}
+                    locale={locale}
+                  />
+                </div>
+              ) : (
+                <div className="cd-rank cd-rank--none">—</div> // custom chore: fixed daily cadence, no rank
+              )
+            ) : (
+              <div className="cd-dur" {...tipHint(t("recurring.durationTitle", locale))}>
+                <input
+                  className="cd-dur__n"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={days}
+                  onChange={(e) => setDHM(readNum(e.target), h, m)}
+                />
+                <span className="cd-dur__u">d</span>
+                <input
+                  className="cd-dur__n"
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={h}
+                  onChange={(e) => setDHM(days, readNum(e.target), m)}
+                />
+                <span className="cd-dur__u">h</span>
+                <input
+                  className="cd-dur__n"
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={m}
+                  onChange={(e) => setDHM(days, h, readNum(e.target))}
+                />
+                <span className="cd-dur__u">m</span>
+              </div>
+            )}
             {onSetMaxed && (
               <button
                 className={`icon-btn icon-btn--maxed${d.maxed ? " icon-btn--maxed-on" : ""}`}
                 onClick={() => onSetMaxed(d.id, !d.maxed)}
                 {...tip(t(d.maxed ? "recurring.restoreMaxed" : "recurring.markMaxed", locale))}
               >
-                P
+                {/* the button names the rank it grants — "P" mostly, "M1" on languages (their ceiling) */}
+                {ladderCapLabel(d.ladderId) ?? "P"}
               </button>
             )}
             <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} {...tip(t("recurring.removeItem", locale))}>
@@ -131,9 +168,20 @@ export function RecurringSettings({
       })}
       {items.length === 0 && <div className="empty">{emptyLabel}</div>}
 
-      <button className="btn-dashed" onClick={onAdd}>
-        {addLabel}
-      </button>
+      {picker ? (
+        <TrainingPicker
+          entries={picker.entries}
+          present={picker.present}
+          onPick={picker.onPick}
+          onCustom={onAdd}
+          addLabel={addLabel}
+          locale={locale}
+        />
+      ) : (
+        <button className="btn-dashed" onClick={onAdd}>
+          {addLabel}
+        </button>
+      )}
     </div>
   );
 }

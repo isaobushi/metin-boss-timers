@@ -70,13 +70,14 @@ const GATE_MS = 24 * MS_PER_HOUR;
 const BIOLOGIST_MS = 22 * MS_PER_HOUR;
 
 // Ladder ids reused verbatim from `recurring.ts`'s `LADDERS` (the same seam `config.ts` uses): the
-// 55-rung M1→G1 ability ladder, the 20-rung M1-cap language ladder, and the three universal ladders.
+// 65-read M1→P ability ladder (55 books + 10 stones), the 20-rung M1-cap language ladder, and the
+// three universal ladders.
 const LADDER_ABILITY = "class-skill";
 const LADDER_LANGUAGE = "language";
 const LADDER_LEADERSHIP = "leadership";
 const LADDER_TRANSFORMATION = "transformation";
 const LADDER_BIOLOGIST = "biologist";
-// The Ward (7th) reads like a class skill book (M1→G1, 55) but is school-INDEPENDENT, so it climbs
+// The Ward (7th) reads like a class skill book (M1→P, books then stones) but is school-INDEPENDENT, so it climbs
 // its own ladder (a clone of the ability ladder in `recurring.ts`) — keeping it out of the per-school
 // Skill Books band: as a non-`class-skill`/`language` ladder it bands under Utilities like the universals.
 const LADDER_WARD = "ward";
@@ -96,7 +97,8 @@ const BUILDS_BY_RACE: Record<Race, Build[]> = {
 // The Abilities each Build (the in-game "school") levels, sourced from the official Gameforge wiki's
 // per-class skill pages plus the Boost- and 9th-skill catalogues. Each school carries 8 entries: the
 // 6 main actives, then the **Boost** (8th, named after the school's signature skill), then the **9th
-// skill** (Conquerors of Yohara). All read identically — books to lvl 17, then M1→G1 = 55 books — so
+// skill** (Conquerors of Yohara). All read identically — books to lvl 17, then M1→G1 = 55 books and
+// G1→P = 10 Soul Stones — so
 // they share the one `class-skill` ladder; the Ward (7th) is school-INDEPENDENT and lives in
 // `UNIVERSAL` instead. Warrior's two schools share the same 9th skill ("Earthquake"); `subsetFor`
 // de-dupes abilities by name so a (rare) both-schools Warrior never lists it twice. Names still vary
@@ -156,12 +158,12 @@ const UNIVERSAL: ChorePreform[] = [
   { name: "Mining", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_TRANSFORMATION, category: "transformation" },
   { name: "Biologist", durationMs: BIOLOGIST_MS, kind: "gate", ladderId: LADDER_BIOLOGIST, category: "biologist" },
   // The Ward skill (7th): one per character, freely chosen from a cross-class pool — so it's universal
-  // (school-independent), not a per-school book. A single generic entry; reads like a 55-book skill (its
+  // (school-independent), not a per-school book. A single generic entry; reads like a skill book (its
   // own `ward` ladder), banding under Utilities rather than the per-school Skill Books.
   { name: "Ward Skill", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_WARD, category: "ward" },
 ];
 
-/** Build one `class-ability` preform from its Race + Build + Ability name (55-rung M1→G1 ladder). */
+/** Build one `class-ability` preform from its Race + Build + Ability name (65-read M1→P ladder). */
 const abilityPreform = (race: Race, build: Build, name: string): ChorePreform => ({
   name,
   durationMs: GATE_MS,

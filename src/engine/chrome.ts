@@ -100,6 +100,7 @@ const EN = {
   // ---- RecurringSettings ----
   "recurring.colName":        "NAME",
   "recurring.colDuration":    "DURATION",
+  "recurring.colRank":        "RANK",
   "recurring.namePlaceholder": "name",
   "recurring.durationTitle":  "duration (days / hours / minutes)",
   "recurring.removeItem":     "remove item",
@@ -111,6 +112,9 @@ const EN = {
   "recurring.noRoutine":      "no training items yet",
   "recurring.markMaxed":      "maxed — retire from training (reversible)",
   "recurring.restoreMaxed":   "maxed — click to restore to training",
+  "recurring.customTraining": "+ CUSTOM TRAINING",
+  "recurring.pickerFilter":   "filter training…",
+  "recurring.alreadyAdded":   "already added",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "start a cooldown",
@@ -353,6 +357,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   // ---- RecurringSettings ----
   "recurring.colName":        "NAME",
   "recurring.colDuration":    "DAUER",
+  "recurring.colRank":        "RANG",
   "recurring.namePlaceholder": "Name",
   "recurring.durationTitle":  "Dauer (Tage / Stunden / Minuten)",
   "recurring.removeItem":     "Item entfernen",
@@ -364,6 +369,9 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "recurring.noRoutine":      "noch keine Trainings-Items",
   "recurring.markMaxed":      "gemaxt — aus dem Training zurückziehen (umkehrbar)",
   "recurring.restoreMaxed":   "gemaxt — klicken, um ins Training zurückzuholen",
+  "recurring.customTraining": "+ EIGENES TRAINING",
+  "recurring.pickerFilter":   "Training filtern…",
+  "recurring.alreadyAdded":   "bereits hinzugefügt",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "Cooldown starten",

@@ -11,6 +11,10 @@ import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
 import { RecurringSettings } from "../overlay/RecurringSettings";
 import { activeRecurring } from "../engine/config";
+import { activeCharacter } from "../engine/character";
+import { recurringKey } from "../engine/contentKeys";
+import { positionOf } from "../engine/recurring";
+import { subsetFor } from "../engine/skillCatalog";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
@@ -233,6 +237,29 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           kind="gate"
           locale={cfg.config.locale}
           onAdd={() => cfg.createRoutine()}
+          // The curated picker (design walk): + ADD TRAINING drops the active character's catalog
+          // subset; already-present chores (matched by catalogKey — a hand-added namesake counts,
+          // and a renamed catalog def still does) dim behind a ✓ rather than vanish.
+          picker={{
+            entries: subsetFor(
+              activeCharacter(cfg.config)?.empire,
+              activeCharacter(cfg.config)?.race,
+              activeCharacter(cfg.config)?.builds ?? [],
+            ),
+            present: new Set(
+              activeRecurring(cfg.config)
+                .filter((d) => d.kind === "gate")
+                .map((d) => d.catalogKey ?? recurringKey(d.name)),
+            ),
+            onPick: cfg.createRoutineFromCatalog,
+          }}
+          // The RANK column (design walk): readables have fixed cadences, so instead of a duration
+          // editor each ladder row carries the set-rung curtain (#46) — settable here too, not just
+          // on the dock accordion.
+          rank={{
+            position: (defId) => positionOf(activeCharacter(cfg.config)?.recurringProgress ?? [], defId),
+            onSetRung: cfg.setLadderRung,
+          }}
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
           onRemove={(defId) => cfg.deleteRecurring(defId)}
