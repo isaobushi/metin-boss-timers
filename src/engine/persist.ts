@@ -98,6 +98,11 @@ export type PersistedConfig = {
   activeCharacterId: string | null;
   /** The persisted content locale (slice #83); optional so old payloads round-trip cleanly. */
   locale?: Locale;
+  /**
+   * Whether the first-run tour was seen (slice #68); optional so old payloads round-trip cleanly.
+   * A pre-field payload hydrates to `false` — existing users are shown the tour once on next launch.
+   */
+  hasSeenTour?: boolean;
 };
 
 /**
@@ -116,6 +121,7 @@ export function serialize(c: Config): PersistedConfig {
     characters: c.characters,
     activeCharacterId: c.activeCharacterId,
     locale: c.locale,
+    hasSeenTour: c.hasSeenTour,
   };
 }
 
@@ -165,6 +171,7 @@ export function deserialize(raw: unknown): Config {
     recurringSeq: maxIdSeq(recurringIds, "recurring"),
     characterSeq: maxIdSeq(characters.map((ch) => ch.id), "character"),
     locale: readLocale(raw),
+    hasSeenTour: readHasSeenTour(raw),
   };
 }
 
@@ -370,4 +377,13 @@ function readLocale(raw: unknown): Locale {
     return raw.locale as Locale;
   }
   return DEFAULT_LOCALE;
+}
+
+/**
+ * Whether the first-run tour was seen (slice #68): lenient + optional. Only a literal `true` counts —
+ * a pre-field payload (or a corrupt entry) falls back to `false`, so existing users are shown the
+ * tour once on their next launch (decision: maximize teaching reach). Additive, never wipes.
+ */
+function readHasSeenTour(raw: unknown): boolean {
+  return isObj(raw) && raw.hasSeenTour === true;
 }

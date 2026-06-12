@@ -10,6 +10,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { DockBar, type DockSegment } from "./overlay/DockBar";
 import { CharacterSwitcher } from "./overlay/CharacterSwitcher";
 import { CharacterWizard } from "./overlay/CharacterWizard";
+import { TourCard } from "./overlay/TourCard";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
@@ -27,6 +28,7 @@ import { UpgradeBanner } from "./overlay/UpgradeBanner";
 import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
 import { allows, partition, type Entitlement } from "./engine/entitlement";
+import { shouldRunTour } from "./engine/config";
 import { useOverlayPosition } from "./overlay/useOverlayPosition";
 import { useOverlayAutosize } from "./overlay/useOverlayAutosize";
 import { openSettingsWindow } from "./overlay/settingsWindow";
@@ -104,16 +106,35 @@ export default function App() {
   const onStartTrial = useCallback(() => void applyPurchase(startTrial()), [applyPurchase]);
   const onSubscribe = useCallback((plan: Plan) => void applyPurchase(subscribe(plan)), [applyPurchase]);
 
+  // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
+  // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
+  const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
+  const showWizard = firstRun || charEdit != null;
+  // The first-run tour (#68) holds the same exclusive slot right after the wizard. While either gate
+  // holds it, the tool panels are shadowed — so their glyphs must not read open, and a tool click
+  // during the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
+  const tourActive = !showWizard && shouldRunTour(cfg.hydrated, cfg.config);
+
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
-  // pinned independently, so it can be open alongside one of the panels.
+  // pinned independently, so it can be open alongside one of the panels. While a first-run gate
+  // shadows the exclusive slot, lingering `panel` state must not light a glyph whose panel isn't
+  // actually rendered (the strip is a sibling of the slot, so ⏱ stays honest either way).
   const skillsOpen = panel === "skills" || panel === "timers" || panel === "sequence";
   const openSegs = new Set<DockSegment>();
-  if (skillsOpen) openSegs.add("skills");
+  if (!showWizard && !tourActive) {
+    if (skillsOpen) openSegs.add("skills");
+    if (panel === "items") openSegs.add("items");
+    if (panel === "routine") openSegs.add("routine");
+  }
   if (cooldownsPinned) openSegs.add("cooldowns");
-  if (panel === "items") openSegs.add("items");
-  if (panel === "routine") openSegs.add("routine");
   // items/routine share the single exclusive panel, so they toggle it; cooldowns toggles its pin.
   const toggle = (seg: Panel) => setPanel((p) => (p === seg ? null : seg));
+  // Exiting the tour by clicking a tool: mark it seen and force-OPEN the tool — no toggle, since any
+  // lingering `panel` state was shadowed by the tour and so was never visible to toggle off.
+  const exitTourTo = (seg: Panel) => {
+    cfg.completeTour();
+    setPanel(seg);
+  };
   // The cooldown strip + its add-picker float above the panel; opening another tool should dismiss
   // them so they don't sit over (and block) the panel being opened.
   const closeCooldownStrip = () => {
@@ -158,10 +179,6 @@ export default function App() {
     )
   ) : null;
 
-  // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
-  // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
-  const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
-
   // The tier view over characters (#56): which are frozen (over the 1-character Lite cap) and whether a
   // new one may be added. Under a Pro state nothing freezes and adds are always allowed.
   const charFrozenIds = new Set(partition(cfg.entitlement, cfg.config).characters.frozen);
@@ -194,7 +211,6 @@ export default function App() {
   // The character wizard, shared by three entry points: "+ New" (create, cancellable), ✎ (edit/classify
   // an existing character, pre-filled), and first-run (create, no cancel — nothing to fall back to).
   const editingChar = charEdit?.id != null ? cfg.config.characters.find((c) => c.id === charEdit.id) : undefined;
-  const showWizard = firstRun || charEdit != null;
   const characterWizard = (
     <CharacterWizard
       mode={editingChar ? "edit" : "new"}
@@ -217,6 +233,12 @@ export default function App() {
   let belowPanel = null;
   if (showWizard) {
     belowPanel = characterWizard;
+  } else if (tourActive) {
+    // The first-run coach card (#68) — the tour's placeholder, in the same exclusive-panel slot
+    // (ADR-0003). It follows the blocking wizard and precedes the tool panels until the user exits;
+    // Finish, Skip, and clicking any tool glyph all mark the tour seen forever (a second character
+    // never re-triggers it).
+    belowPanel = <TourCard onFinish={cfg.completeTour} onSkip={cfg.completeTour} locale={cfg.config.locale} />;
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
@@ -256,7 +278,11 @@ export default function App() {
         itemsDatum={rec.datum}
         routineDatum={rec.routineDatum}
         locale={cfg.config.locale}
-        onSkills={() => setPanel(skillsOpen ? null : cfg.activeBoss ? "timers" : "skills")}
+        onSkills={() => {
+          const target = cfg.activeBoss ? "timers" : "skills";
+          if (tourActive) exitTourTo(target);
+          else setPanel(skillsOpen ? null : target);
+        }}
         onCooldowns={() => {
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
           if (cd.pills.length > 0) {
@@ -271,11 +297,13 @@ export default function App() {
         }}
         onItems={() => {
           closeCooldownStrip();
-          toggle("items");
+          if (tourActive) exitTourTo("items");
+          else toggle("items");
         }}
         onRoutine={() => {
           closeCooldownStrip();
-          toggle("routine");
+          if (tourActive) exitTourTo("routine");
+          else toggle("routine");
         }}
         onSettings={openSettings}
         onQuit={quitApp}

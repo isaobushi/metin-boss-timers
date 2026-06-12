@@ -69,6 +69,13 @@ export type Config = {
    * `overlay/osLocale.ts` with a clean English fallback.
    */
   locale: Locale;
+  /**
+   * Whether the first-run section tour has been seen (PRD #63, slice #68). Set `true` on either tour
+   * finish OR skip, and never cleared (the settings "Show me around" replay re-activates the tour
+   * without touching this), so the tour fires once ever. Deliberately decoupled from
+   * `characters.length` — creating a second character must never re-trigger onboarding.
+   */
+  hasSeenTour: boolean;
 };
 
 // Accent pairs cycled as bosses are added, so each boss reads distinctly. The first is the
@@ -235,6 +242,7 @@ export function makeConfig(): Config {
     recurringSeq: 0,
     characterSeq: 0,
     locale: DEFAULT_LOCALE,
+    hasSeenTour: false,
   };
   c = addBoss(c);
   c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
@@ -714,4 +722,23 @@ export function removeRecurring(c: Config, defId: string): Config {
     recurring: ch.recurring.filter((d) => d.id !== defId),
     recurringRunning: ch.recurringRunning.filter((r) => r.defId !== defId),
   }));
+}
+
+// ---- first-run tour gate (PRD #63, slice #68) ----
+// The trigger spine for onboarding: one boolean, one exit transform, one predicate. Later slices
+// (tourMachine/tourSteps) own WHAT the tour shows; this owns only WHETHER it fires.
+
+/** Mark the tour seen — the single exit transform for BOTH finish and skip. Never un-set. */
+export function markTourSeen(c: Config): Config {
+  return { ...c, hasSeenTour: true };
+}
+
+/**
+ * Whether the first-run tour should fire: only once the on-disk config has hydrated (so a stored
+ * `hasSeenTour: true` can never be raced by the in-memory default), and only while unseen.
+ * Deliberately independent of `characters.length` — the blocking CharacterWizard has its own
+ * first-run gate, and creating character #2 must never re-run onboarding.
+ */
+export function shouldRunTour(hydrated: boolean, c: Config): boolean {
+  return hydrated && !c.hasSeenTour;
 }

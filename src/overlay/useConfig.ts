@@ -32,6 +32,7 @@ import {
   deleteCharacter,
   selectCharacter,
   classifyCharacter,
+  markTourSeen,
   type Boss,
   type CharacterDraft,
   type Config,
@@ -315,6 +316,10 @@ export function useConfig() {
   // Switch the active locale — persisted + cross-window synced like any other config edit.
   const changeLocale = useCallback((locale: Locale) => setConfig((c) => ({ ...c, locale })), []);
 
+  // Mark the first-run tour seen (#68) — the single exit for BOTH Finish and Skip. Persists (and
+  // cross-window syncs) like any other edit, so the tour never re-fires on a later launch.
+  const completeTour = useCallback(() => setConfig((c) => markTourSeen(c)), []);
+
   // Dismiss the cap-hit nudge (#56) — the user closed it or opened the subscribe screen.
   const dismissNudge = useCallback(() => setCapNudge(null), []);
 
@@ -381,5 +386,6 @@ export function useConfig() {
     selectBoss,
     resetConfig,
     changeLocale,
+    completeTour,
   };
 }
