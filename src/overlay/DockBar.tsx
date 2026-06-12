@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CheckboxIcon, HourglassIcon } from "./icons";
+import { tip, tipHint } from "./Tooltip";
 import type { RecurringDatum, RoutineDatum } from "./useRecurring";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
@@ -61,13 +62,13 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
-      <span className="dock-grip" data-tauri-drag-region title={t("dock.drag", locale)}>
+      <span className="dock-grip" data-tauri-drag-region {...tipHint(t("dock.drag", locale))}>
         ⠿
       </span>
 
       {leading}
 
-      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills} title={t("dock.skills", locale)}>
+      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills} {...tipHint(t("dock.skills", locale))}>
         <span className="dock-seg__icon">⚔</span>
         <span className="dock-seg__label">{t("settings.tabDungeons", locale)}</span>
         {activeBossName && <span className="dock-seg__val dock-seg__name">{activeBossName.toUpperCase()}</span>}
@@ -76,13 +77,13 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
       <button
         className={`dock-seg${open.has("cooldowns") ? " is-open" : ""}${spot("cooldowns")}`}
         onClick={onCooldowns}
-        title={t("dock.cooldowns", locale)}
+        {...tipHint(t("dock.cooldowns", locale))}
       >
         <span className="dock-seg__icon">⏱</span>
         <span className="dock-seg__label">{t("settings.tabCooldowns", locale)}</span>
       </button>
 
-      <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems} title={t("dock.expiring", locale)}>
+      <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems} {...tipHint(t("dock.expiring", locale))}>
         <span className="dock-seg__icon"><HourglassIcon /></span>
         <span className="dock-seg__label">{t("settings.tabItems", locale)}</span>
         {itemsDatum ? (
@@ -94,17 +95,17 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
         )}
       </button>
 
-      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine} title={t("dock.routine", locale)}>
+      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine} {...tipHint(t("dock.routine", locale))}>
         <span className="dock-seg__icon"><CheckboxIcon /></span>
         <span className="dock-seg__label">{t("settings.tabRoutine", locale)}</span>
         {routineToDo > 0 && <span className="dock-seg__val dock-ready">{routineToDo}</span>}
       </button>
 
-      <button className={`dock-seg${spot("settings")}`} onClick={onSettings} title={t("dock.settings", locale)}>
+      <button className={`dock-seg${spot("settings")}`} onClick={onSettings} {...tip(t("dock.settings", locale))}>
         <span className="dock-seg__icon">⚙</span>
       </button>
 
-      <button className="dock-seg dock-seg--danger" onClick={onQuit} title={t("dock.quit", locale)}>
+      <button className="dock-seg dock-seg--danger" onClick={onQuit} {...tip(t("dock.quit", locale))}>
         <span className="dock-seg__icon">✕</span>
       </button>
     </div>

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Boss } from "../engine/config";
 import { Chip } from "./Chip";
 import { BackIcon } from "./icons";
+import { tip } from "./Tooltip";
 import { useHotkeys } from "./hotkeys";
 import { useTimers } from "./useTimers";
 import { t } from "../engine/chrome";
@@ -51,7 +52,7 @@ export function TimerScreen({ boss, onChangeBoss, locale }: Props) {
       ))}
       {views.length === 0 && <div className="empty">{t("timer.noSkills", locale)}</div>}
       <div className="timer-foot">
-        <button className="icon-btn" onClick={onChangeBoss} title={t("timer.back", locale)}>
+        <button className="icon-btn" onClick={onChangeBoss} {...tip(t("timer.back", locale))}>
           <BackIcon />
         </button>
         {views.length > 0 && (

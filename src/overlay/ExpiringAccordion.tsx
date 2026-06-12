@@ -1,6 +1,7 @@
 import type { RecurringRow } from "./useRecurring";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip } from "./Tooltip";
 
 type Props = {
   /** The deadline expiring items, projected with their live state (see `useRecurring`). */
@@ -26,7 +27,7 @@ export function ExpiringAccordion({ rows, onRefresh, onOpenSettings, locale }: P
     <div className="dock-acc__head">
       <span className="dock-acc__head-title">{t("recurring.titleItems", locale)}</span>
       {onOpenSettings && (
-        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+        <button className="card-gear" onClick={onOpenSettings} {...tip(t("dock.settings", locale))}>
           ⚙
         </button>
       )}
@@ -55,7 +56,7 @@ export function ExpiringAccordion({ rows, onRefresh, onOpenSettings, locale }: P
           <button
             className="dock-acc__refresh"
             onClick={() => onRefresh(row.defId)}
-            title={row.running ? t("expiring.refresh", locale) : t("expiring.start", locale)}
+            {...tip(row.running ? t("expiring.refresh", locale) : t("expiring.start", locale))}
           >
             ↻
           </button>

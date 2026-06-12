@@ -1,6 +1,7 @@
 import type { RecurringDef, RecurringKind } from "../engine/recurring";
 import { readNum } from "./numberInput";
 import { t } from "../engine/chrome";
+import { tip, tipHint } from "./Tooltip";
 import type { Locale } from "../engine/localeTypes";
 
 type Props = {
@@ -84,7 +85,7 @@ export function RecurringSettings({
               onChange={(e) => onRename(d.id, e.target.value)}
               placeholder={t("recurring.namePlaceholder", locale)}
             />
-            <div className="cd-dur" title={t("recurring.durationTitle", locale)}>
+            <div className="cd-dur" {...tipHint(t("recurring.durationTitle", locale))}>
               <input
                 className="cd-dur__n"
                 type="number"
@@ -117,12 +118,12 @@ export function RecurringSettings({
               <button
                 className={`icon-btn icon-btn--maxed${d.maxed ? " icon-btn--maxed-on" : ""}`}
                 onClick={() => onSetMaxed(d.id, !d.maxed)}
-                title={t(d.maxed ? "recurring.restoreMaxed" : "recurring.markMaxed", locale)}
+                {...tip(t(d.maxed ? "recurring.restoreMaxed" : "recurring.markMaxed", locale))}
               >
                 P
               </button>
             )}
-            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("recurring.removeItem", locale)}>
+            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} {...tip(t("recurring.removeItem", locale))}>
               ✕
             </button>
           </div>

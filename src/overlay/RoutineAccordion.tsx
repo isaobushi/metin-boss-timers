@@ -4,6 +4,7 @@ import { raceKey } from "../engine/contentKeys";
 import { RungCurtain } from "./RungCurtain";
 import type { RoutineRow } from "./useRecurring";
 import { t, type ChromeKey } from "../engine/chrome";
+import { tip } from "./Tooltip";
 
 /** The Routine bands in display order (#57): race Abilities first, then Languages, then the universals. */
 const SECTIONS: { key: RoutineSection; labelKey: ChromeKey }[] = [
@@ -61,7 +62,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
     <div className="dock-acc__head">
       <span className="dock-acc__head-title">{t("recurring.titleRoutine", locale)}</span>
       {onOpenSettings && (
-        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+        <button className="card-gear" onClick={onOpenSettings} {...tip(t("dock.settings", locale))}>
           ⚙
         </button>
       )}
@@ -105,22 +106,14 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
               <button
                 className="dock-acc__done"
                 onClick={() => onRead(row.defId, true)}
-                title={
-                  row.ready
-                    ? t("routine.readSuccessReady", locale)
-                    : t("routine.readSuccessEarly", locale)
-                }
+                {...tip(row.ready ? t("routine.readSuccessReady", locale) : t("routine.readSuccessEarly", locale))}
               >
                 ✓
               </button>
               <button
                 className="dock-acc__fail"
                 onClick={() => onRead(row.defId, false)}
-                title={
-                  row.ready
-                    ? t("routine.readFailReady", locale)
-                    : t("routine.readFailEarly", locale)
-                }
+                {...tip(row.ready ? t("routine.readFailReady", locale) : t("routine.readFailEarly", locale))}
               >
                 ✗
               </button>
@@ -131,7 +124,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
           <button
             className="dock-acc__done"
             onClick={() => onDone(row.defId)}
-            title={row.ready ? t("routine.markDoneReady", locale) : t("routine.markDoneEarly", locale)}
+            {...tip(row.ready ? t("routine.markDoneReady", locale) : t("routine.markDoneEarly", locale))}
           >
             ✓
           </button>

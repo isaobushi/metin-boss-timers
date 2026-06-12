@@ -16,6 +16,7 @@ import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip, tipHint } from "./Tooltip";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 const GAP = 4; // px between the chip and the menu
@@ -126,7 +127,7 @@ export function CharacterSwitcher({
         ref={chipRef}
         className={`dock-seg dock-char${open ? " is-open" : ""}`}
         onClick={() => setOpen((o) => !o)}
-        title={t("char.activeCharacterTitle", locale)}
+        {...tipHint(t("char.activeCharacterTitle", locale))}
       >
         <span className="dock-seg__icon">👤</span>
         <span className="dock-seg__val dock-seg__name">{active ? active.name.toUpperCase() : "—"}</span>
@@ -147,7 +148,7 @@ export function CharacterSwitcher({
                     <button
                       className="char-menu__pick"
                       onClick={() => (frozen ? upgrade() : pick(c.id))}
-                      title={frozen ? t("char.frozenTitle", locale) : undefined}
+                      data-tip={frozen ? t("char.frozenTitle", locale) : undefined}
                     >
                       <span className="char-menu__check">{frozen ? "✦" : c.id === activeId ? "✓" : ""}</span>
                       <span className="char-menu__name">{c.name}</span>
@@ -157,7 +158,7 @@ export function CharacterSwitcher({
                       className="char-menu__act"
                       onClick={() => edit(c.id)}
                       disabled={frozen}
-                      title={frozen ? t("char.editFrozenTitle", locale) : t("char.editTitle", locale)}
+                      {...tip(frozen ? t("char.editFrozenTitle", locale) : t("char.editTitle", locale))}
                     >
                       ✎
                     </button>
@@ -165,13 +166,13 @@ export function CharacterSwitcher({
                       className="char-menu__act char-menu__del"
                       onClick={() => onDelete(c.id)}
                       disabled={frozen || characters.length <= 1}
-                      title={
+                      {...tip(
                         frozen
                           ? t("char.deleteFrozenTitle", locale)
                           : characters.length <= 1
                             ? t("char.deleteOnlyTitle", locale)
-                            : t("char.deleteTitle", locale)
-                      }
+                            : t("char.deleteTitle", locale),
+                      )}
                     >
                       🗑
                     </button>

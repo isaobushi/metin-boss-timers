@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { prettyCombo } from "../engine/hotkey";
 import type { ChipEls } from "./useTimers";
+import { tipHint } from "./Tooltip";
 
 type ChipProps = {
   id: string;
@@ -42,7 +43,7 @@ export function Chip({ id, label, running, hotkey, onToggle, onReset, register }
       <div className="chip__head">
         <span className="chip__label">{label}</span>
         {hotkey && (
-          <span className="chip__key" title={`press ${prettyCombo(hotkey)} to reset this timer`}>
+          <span className="chip__key" {...tipHint(`press ${prettyCombo(hotkey)} to reset this timer`)}>
             {prettyCombo(hotkey)}
           </span>
         )}

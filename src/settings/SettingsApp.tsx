@@ -22,6 +22,7 @@ import { CapNudge } from "../overlay/CapNudge";
 import { type PurchasePhase, SubscribeScreen } from "../overlay/SubscribeScreen";
 import { CheckboxIcon, CloseIcon, HourglassIcon, ResetIcon, TourIcon } from "../overlay/icons";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
+import { tip, tipHint } from "../overlay/Tooltip";
 import type { Entitlement } from "../engine/entitlement";
 import { t } from "../engine/chrome";
 
@@ -132,7 +133,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
               emitTransient({ kind: "tour-replay" });
               close();
             }}
-            title={`${t("settings.showAround", locale)} — ${t("settings.showAroundHint", locale)}`}
+            {...tipHint(`${t("settings.showAround", locale)} — ${t("settings.showAroundHint", locale)}`)}
             aria-label={t("settings.showAround", locale)}
           >
             <TourIcon />
@@ -143,8 +144,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
             onClick={() => {
               if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetConfig();
             }}
-            title={t("settings.resetToDefaults", locale)}
-            aria-label={t("settings.resetToDefaults", locale)}
+            {...tip(t("settings.resetToDefaults", locale))}
           >
             <ResetIcon />
           </button>
@@ -152,8 +152,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
             <button
               className="settings-icon-btn settings-icon-btn--close"
               onClick={onClose}
-              title={t("settings.closeTitle", locale)}
-              aria-label={t("settings.closeTitle", locale)}
+              {...tip(t("settings.closeTitle", locale))}
             >
               <CloseIcon />
             </button>

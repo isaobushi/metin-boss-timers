@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 import { DownloadIcon, UploadIcon } from "../overlay/icons";
+import { tipHint } from "../overlay/Tooltip";
 
 type Props = {
   /** Serialize the live config to a portable backup string. */
@@ -51,7 +52,7 @@ export function BackupSection({ onExport, onImport, locale }: Props) {
       <button
         className="settings-icon-btn"
         onClick={doExport}
-        title={`${t("backup.export", locale)} — ${t("backup.hint", locale)}`}
+        {...tipHint(`${t("backup.export", locale)} — ${t("backup.hint", locale)}`)}
         aria-label={t("backup.export", locale)}
       >
         <DownloadIcon />
@@ -59,7 +60,7 @@ export function BackupSection({ onExport, onImport, locale }: Props) {
       <button
         className="settings-icon-btn"
         onClick={() => fileRef.current?.click()}
-        title={`${t("backup.import", locale)} — ${t("backup.hint", locale)}`}
+        {...tipHint(`${t("backup.import", locale)} — ${t("backup.hint", locale)}`)}
         aria-label={t("backup.import", locale)}
       >
         <UploadIcon />

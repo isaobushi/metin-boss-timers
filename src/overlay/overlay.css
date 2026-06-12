@@ -2283,3 +2283,34 @@ body[data-window="settings"] {
   z-index: 2;
   white-space: nowrap;
 }
+
+/* ---- instant tooltip layer (Tooltip.tsx) ---- */
+/* One fixed, pointer-events-none box per window, positioned by tooltipPlace.ts. It must never
+   affect layout: the Tauri window is sized to its content (useOverlayAutosize), so a tooltip
+   that grew the content would resize the window on hover. Above every panel/curtain z-index. */
+.tip-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  max-width: 240px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.4px;
+  color: #e9e4f7;
+  background: rgba(10, 8, 18, 0.96);
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 4px 14px #000c;
+  animation: tip-in 70ms ease-out;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

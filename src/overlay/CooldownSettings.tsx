@@ -2,6 +2,7 @@ import type { CooldownDef } from "../engine/cooldown";
 import { readNum } from "./numberInput";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip, tipHint } from "./Tooltip";
 
 type Props = {
   cooldowns: CooldownDef[];
@@ -60,9 +61,9 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
               onChange={(e) => onRetag(d.id, e.target.value)}
               placeholder={t("cooldown.tagPlaceholder", locale)}
               maxLength={6}
-              title={t("cooldown.tagTitle", locale)}
+              {...tip(t("cooldown.tagTitle", locale))}
             />
-            <div className="cd-dur" title={t("cooldown.durationTitle", locale)}>
+            <div className="cd-dur" {...tipHint(t("cooldown.durationTitle", locale))}>
               <input
                 className="cd-dur__n"
                 type="number"
@@ -82,7 +83,7 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
               />
               <span className="cd-dur__u">m</span>
             </div>
-            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("cooldown.removeCooldown", locale)}>
+            <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} {...tip(t("cooldown.removeCooldown", locale))}>
               ✕
             </button>
           </div>

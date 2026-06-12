@@ -6,6 +6,7 @@ import { eventToCombo, prettyCombo } from "../engine/hotkey";
 import { previewSound } from "./audio";
 import { inTextField } from "./hotkeys";
 import { t } from "../engine/chrome";
+import { tip, tipHint } from "./Tooltip";
 import type { Locale } from "../engine/localeTypes";
 
 type Props = {
@@ -73,7 +74,7 @@ export function BossSettings({
           onChange={(e) => onRenameBoss(e.target.value)}
           placeholder={t("boss.bossNamePlaceholder", locale)}
         />
-        <button className="icon-btn icon-btn--danger" onClick={onDeleteBoss} title={t("boss.deleteBoss", locale)}>
+        <button className="icon-btn icon-btn--danger" onClick={onDeleteBoss} {...tip(t("boss.deleteBoss", locale))}>
           🗑
         </button>
       </div>
@@ -101,14 +102,14 @@ export function BossSettings({
             max={999}
             value={Math.round(s.durationMs / 1000)}
             onChange={(e) => onSetDuration(s.id, readNum(e.target) * 1000)}
-            title={t("boss.durationTitle", locale)}
+            {...tip(t("boss.durationTitle", locale))}
           />
           <div className="skill-sound">
             <select
               className="skill-sound__select"
               value={s.soundId}
               onChange={(e) => onSetSound(s.id, e.target.value as SoundId)}
-              title={t("boss.soundTitle", locale)}
+              {...tip(t("boss.soundTitle", locale))}
             >
               {SOUND_IDS.map((id) => (
                 <option key={id} value={id}>
@@ -119,7 +120,7 @@ export function BossSettings({
             <button
               className="skill-sound__preview"
               onClick={() => previewSound(s.soundId)}
-              title={t("boss.previewSound", locale)}
+              {...tip(t("boss.previewSound", locale))}
             >
               ▶
             </button>
@@ -127,11 +128,11 @@ export function BossSettings({
           <button
             className={`skill-key${capturing === s.id ? " skill-key--capturing" : ""}`}
             onClick={() => setCapturing(capturing === s.id ? null : s.id)}
-            title={t("boss.hotkeyTitle", locale)}
+            {...tipHint(t("boss.hotkeyTitle", locale))}
           >
             {capturing === s.id ? "…" : prettyCombo(s.hotkey)}
           </button>
-          <button className="icon-btn icon-btn--danger" onClick={() => onRemoveSkill(s.id)} title={t("boss.removeSkill", locale)}>
+          <button className="icon-btn icon-btn--danger" onClick={() => onRemoveSkill(s.id)} {...tip(t("boss.removeSkill", locale))}>
             ✕
           </button>
         </div>

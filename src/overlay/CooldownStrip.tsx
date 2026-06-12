@@ -18,6 +18,7 @@ import { CooldownPicker } from "./CooldownPicker";
 import type { CooldownPill } from "./useCooldowns";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip } from "./Tooltip";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -89,7 +90,7 @@ export function CooldownStrip({
                 e.preventDefault();
                 onClear(p.defId);
               }}
-              title={`${p.name} — ${t("cooldownStrip.pillHint", locale)}`}
+              {...tip(`${p.name} — ${t("cooldownStrip.pillHint", locale)}`)}
             >
               <span className="cooldown-pill__tag">{p.tag}</span>
               <span className="cooldown-pill__num">{p.readout}</span>

@@ -13,6 +13,7 @@ import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tipHint } from "./Tooltip";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -84,7 +85,7 @@ export function RungCurtain({ text, ladderId, currentRung, onPick, locale }: Pro
       <button
         className="dock-acc__ladder rung-curtain__trigger"
         onClick={() => setOpen((o) => !o)}
-        title={t("rung.triggerTitle", locale)}
+        {...tipHint(t("rung.triggerTitle", locale))}
       >
         {text}
       </button>

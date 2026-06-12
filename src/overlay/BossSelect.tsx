@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Boss } from "../engine/config";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip, tipHint } from "./Tooltip";
 
 type Props = {
   bosses: Boss[];
@@ -32,7 +33,7 @@ export function BossSelect({ bosses, onPick, onOpenSequence, onOpenSettings, loc
         {t("bossSelect.title", locale)}
       </div>
       {onOpenSettings && (
-        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+        <button className="card-gear" onClick={onOpenSettings} {...tip(t("dock.settings", locale))}>
           ⚙
         </button>
       )}
@@ -48,7 +49,7 @@ export function BossSelect({ bosses, onPick, onOpenSequence, onOpenSettings, loc
         className="boss-row"
         style={{ "--accent": TEMPLUM_ACCENT.accent, "--accent2": TEMPLUM_ACCENT.accent2 } as CSSProperties}
       >
-        <button className="boss-row__pick" onClick={onOpenSequence} title="Templum Serpens helper">
+        <button className="boss-row__pick" onClick={onOpenSequence} {...tipHint("Templum Serpens helper")}>
           TEMPLUM
         </button>
       </div>
