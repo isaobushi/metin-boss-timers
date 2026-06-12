@@ -712,12 +712,11 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
 
 describe("hasSeenTour persistence (#68 — additive, no version bump)", () => {
   it("round-trips a seen tour through the disk hop", () => {
+    // The only test that catches serialize() forgetting the field — a dropped `true` reads back as
+    // the reader's `false` fallback. (No false→false twin: the pre-field test below already pins
+    // the absent→false path.)
     const restored = deserialize(throughDisk(markTourSeen(makeConfig())));
     expect(restored.hasSeenTour).toBe(true);
-  });
-
-  it("round-trips an unseen tour (a fresh install that hasn't exited the tour yet)", () => {
-    expect(deserialize(throughDisk(makeConfig())).hasSeenTour).toBe(false);
   });
 
   it("hydrates a pre-field payload to false, so existing users are shown the tour once", () => {
