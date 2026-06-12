@@ -26,6 +26,7 @@ import {
   addRecurring,
   renameRecurring,
   setRecurringDuration,
+  setRecurringMaxed,
   removeRecurring,
   addCharacter,
   renameCharacter,
@@ -277,6 +278,11 @@ export function useConfig() {
     [],
   );
   const deleteRecurring = useCallback((defId: string) => setConfig((c) => removeRecurring(c, defId)), []);
+  // The done-forever toggle (#69) — retire a perfected Routine / restore it, reversibly (vs delete).
+  const editRecurringMaxed = useCallback(
+    (defId: string, maxed: boolean) => setConfig((c) => setRecurringMaxed(c, defId, maxed)),
+    [],
+  );
 
   // Character actions (PRD #47, create flow #54). `createCharacter` mirrors `createBoss`: it runs the
   // transform on this render's `config` so it can hand the new id back synchronously — the caller
@@ -377,6 +383,7 @@ export function useConfig() {
     createRoutine,
     editRecurringName,
     editRecurringDuration,
+    editRecurringMaxed,
     deleteRecurring,
     createCharacter,
     switchCharacter,

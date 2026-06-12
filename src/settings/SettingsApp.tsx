@@ -204,6 +204,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
           onRemove={(defId) => cfg.deleteRecurring(defId)}
+          onSetMaxed={(defId, maxed) => cfg.editRecurringMaxed(defId, maxed)}
         />
       )}
 

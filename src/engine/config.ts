@@ -712,6 +712,25 @@ export function setRecurringDuration(c: Config, defId: string, durationMs: numbe
 }
 
 /**
+ * Mark a definition done-forever / restore it to active (#69) — the reversible retire gesture,
+ * distinct from `removeRecurring` (which discards the record). Only the `maxed` flag moves:
+ * duration, ladder rank, and any running instance are kept untouched, so a restore picks the
+ * routine back up exactly where it was. Restoring DELETES the key (rather than writing `false`)
+ * so an un-maxed def round-trips byte-identical to a pre-#69 one. An unknown `defId` is a no-op —
+ * and so is a `deadline` one: maxed is a Routine (gate) state, and only the gate settings section
+ * carries the restore affordance, so a maxed deadline would be a dimmed row with no way back.
+ */
+export function setRecurringMaxed(c: Config, defId: string, maxed: boolean): Config {
+  if (recurringById(c, defId)?.kind !== "gate") return c;
+  return editRecurring(c, defId, (d) => {
+    if (maxed) return { ...d, maxed: true };
+    const next = { ...d };
+    delete next.maxed; // restore → drop the field entirely (not `maxed: false`)
+    return next;
+  });
+}
+
+/**
  * Remove a definition from the catalog AND stop any running instance of it, so the dock never
  * holds a running item pointing at a deleted def (mirrors `removeCooldown`). Other definitions
  * and the rest of the running set are untouched; an unknown `defId` simply matches nothing.

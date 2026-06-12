@@ -109,7 +109,8 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   useEffect(() => {
     const prev = prevObs.current;
     const ofKind = (rs: RunningRecurring[], kind: "deadline" | "gate") => {
-      const ids = new Set(catalog.filter((d) => d.kind === kind).map((d) => d.id));
+      // A maxed (done-forever, #69) def is off the menu — its kept running instance must not chime.
+      const ids = new Set(catalog.filter((d) => d.kind === kind && !d.maxed).map((d) => d.id));
       return rs.filter((r) => ids.has(r.defId));
     };
     const crossed =
@@ -159,7 +160,9 @@ export function useRecurring(cfg: ReturnType<typeof useConfig>) {
   // opposite valence to a deadline: `isDue` is "ready" (do it now), not "overdue". An unstarted def
   // (never done) also reads ready. A satisfied item (running, not yet due) shows the countdown until
   // it rolls back into ready.
-  const gateDefs = catalog.filter((def) => def.kind === "gate");
+  // A maxed (done-forever, #69) def is retired from the whole ✓ surface: no accordion row, and
+  // `routineToDo` drops it from the `x/n` count too (engine-side, belt and braces with this filter).
+  const gateDefs = catalog.filter((def) => def.kind === "gate" && !def.maxed);
   const routineRows: RoutineRow[] = gateDefs.map((def) => {
     const r = running.find((x) => x.defId === def.id);
     const ready = r ? isDue(r, now) : true; // unstarted → ready (never done)

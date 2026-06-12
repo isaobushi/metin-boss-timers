@@ -461,6 +461,12 @@ describe("isCapped / routineToDo (the ✓ nudge, #45)", () => {
     const progress = [{ defId: "lang", position: 20 }]; // lang capped → excluded
     expect(routineToDo(running, defs, progress, 0)).toEqual({ ready: 0, total: 1 });
   });
+
+  it("excludes a maxed (done-forever, #69) def from both ready and total, like a capped ladder", () => {
+    const defs = [{ ...plainGate("bio"), maxed: true }, plainGate("books")];
+    // bio is unstarted (would read ready) but retired → dropped entirely. So 1 to-do of 1, not 2 of 2.
+    expect(routineToDo([], defs, [], 0)).toEqual({ ready: 1, total: 1 });
+  });
 });
 
 describe("ladderRungs / rungEntry (the curtain's snap targets, #46)", () => {
