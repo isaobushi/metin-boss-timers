@@ -163,6 +163,18 @@ export function CloseIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Straight left arrow — back to the previous screen (replaces the ← text glyph, whose
+ *  baseline sat it off-center in the 24px icon buttons). */
+export function BackIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 12H4.5M10.5 6l-6 6 6 6" />
+      </g>
+    </svg>
+  );
+}
+
 /** Two-way swap arrows — flips between the Phase 1 / Phase 2 tools. */
 export function SwapIcon(p: SVGProps<SVGSVGElement>) {
   return (

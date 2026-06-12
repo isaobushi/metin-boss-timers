@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
-import { ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
+import { BackIcon, ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
 import { COLUMNS, ELEMENTS, findToken, type Token } from "./sequenceTokens";
 import { useSequence, type SequenceController } from "./useSequence";
 import { playSelect } from "./audio";
@@ -36,7 +36,7 @@ export function SequenceScreen({ onBack, locale }: Props) {
     <div className="panel sequence">
       <div className="seq-head">
         <button className="icon-btn" onClick={onBack} title={t("sequence.back", locale)}>
-          ←
+          <BackIcon />
         </button>
         {/* Labeled destination toggle: the text is where you'll land, so the control says
             what tapping does — not just "swap". Accent-filled to read as the primary action. */}

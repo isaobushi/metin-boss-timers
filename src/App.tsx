@@ -203,6 +203,14 @@ export default function App() {
     setCooldownsPinned(false);
     setAddOpen(false);
   };
+  // Switching tools must NOT hide running pills (design walk 3): the strip is a status line, not a
+  // tool panel — a counting Hydra chip stays visible over ITEMS/TRAINING just like over the boss
+  // timers. Only the add-picker menu closes (its dropdown would sit over the incoming panel), and
+  // an EMPTY pinned strip (just the +, nothing counting) unpins — there's no status to keep.
+  const yieldCooldownChrome = () => {
+    setAddOpen(false);
+    if (cd.pills.length === 0) setCooldownsPinned(false);
+  };
 
   // The card reports each beat (#71); drive the real shell to match — ring on the beat's glyph, its
   // live panel open under the card, the strip pinned on the ⏱ beat. The ⚔ beat shows the real chips
@@ -298,12 +306,12 @@ export default function App() {
       locale={cfg.config.locale}
       onSwitch={cfg.switchCharacter}
       onEdit={(id) => {
-        closeCooldownStrip();
+        yieldCooldownChrome();
         setCharEdit({ id });
       }}
       onDelete={cfg.removeCharacter}
       onNew={() => {
-        closeCooldownStrip();
+        yieldCooldownChrome();
         setCharEdit({ id: null });
       }}
       onUpgrade={() => setShowSubscribe(true)}
@@ -426,7 +434,7 @@ export default function App() {
             endTour("items");
             return;
           }
-          closeCooldownStrip();
+          yieldCooldownChrome();
           toggle("items");
         }}
         onRoutine={() => {
@@ -434,7 +442,7 @@ export default function App() {
             endTour("routine");
             return;
           }
-          closeCooldownStrip();
+          yieldCooldownChrome();
           toggle("routine");
         }}
         onSettings={openSettings}

@@ -79,13 +79,14 @@ const COOLDOWN_VOICE = "__cooldown_ready__";
 
 /**
  * Play the one shared "cooldown ready" cue (ADR-0002, best-effort sound only). Reuses the
- * existing per-skill cue path — the default sample, the first-gesture `unlockAudio`, and
- * the synth fallback — so it introduces no new audio asset pipeline. The `hit` cue gives
- * it the harder 0-boundary landing; voicing under a single shared key keeps a burst of
- * simultaneous crossings to one chime.
+ * existing per-skill cue path — the first-gesture `unlockAudio` and the synth fallback —
+ * so it introduces no new audio asset pipeline. Voiced as the CHIME sample (design walk 3:
+ * "ready" is good news, not a combat hit — the kick belongs to the skill timers); the `hit`
+ * cue gives it the harder 0-boundary landing. Voicing under a single shared key keeps a
+ * burst of simultaneous crossings to one chime.
  */
 export function playCooldownReady() {
-  playCue("hit", DEFAULT_SOUND_ID, COOLDOWN_VOICE);
+  playCue("hit", "chime", COOLDOWN_VOICE);
 }
 
 /**
