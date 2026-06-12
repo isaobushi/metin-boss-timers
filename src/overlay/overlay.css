@@ -1921,6 +1921,23 @@ body[data-window="settings"] {
   opacity: 1;
   text-decoration: underline;
 }
+/* The character beat's embedded wizard (design walk 4): the wizard component ships its own
+   .dock-acc frame for the standalone (below-dock) entry points — nested inside the card that
+   would read as a panel-in-a-panel and overflow the card's padding, so flatten it to a plain
+   section divided from the copy by a hairline. The card's title carries the beat, so the
+   wizard's own head title yields (its step dots stay — they read the sub-flow). */
+.tour-card .char-wizard {
+  width: auto;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid #ffffff14;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.tour-card .char-wizard__title {
+  display: none;
+}
 .tour-card__actions {
   display: flex;
   align-items: center;

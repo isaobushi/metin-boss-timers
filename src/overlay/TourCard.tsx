@@ -1,9 +1,9 @@
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { CheckboxIcon, HourglassIcon } from "./icons";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 import { advanceTour, initialTour, type TourEvent } from "../engine/tourMachine";
-import { TOUR_STEPS, type TourStep } from "../engine/tourSteps";
+import { tourStepsFor, type TourStep } from "../engine/tourSteps";
 import type { SettingsTab } from "../engine/settingsLink";
 
 type Props = {
@@ -24,11 +24,25 @@ type Props = {
   onStepChange: (step: TourStep) => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
+  /**
+   * Whether the active character is classified (race chosen) — LIVE from config. Read twice,
+   * differently: frozen at mount it picks the step list (a replay over a classified character
+   * drops the character beat — tourStepsFor); live it gates the character beat itself (wizard
+   * shows + Next locks until the save flips it).
+   */
+  characterClassified: boolean;
+  /**
+   * The wizard the character beat embeds (App owns its config wiring — classify the seeded
+   * "Main", or create-first over an empty roster; no cancel either way, the save IS the way
+   * past the beat). Rendered between body and actions while the beat is unsatisfied.
+   */
+  charWizard: ReactNode;
 };
 
 /**
- * The first-run coach card (PRD #63, slice #70) — walks the 8 tourSteps beats with Back / Next /
- * Skip and a step counter. It anchors directly under the dock (ADR-0003: the tour lives in the
+ * The first-run coach card (PRD #63, slice #70) — walks the tourSteps beats (9 first-run; a run
+ * whose active character is already classified drops the character beat) with Back / Next / Skip
+ * and a step counter. It anchors directly under the dock (ADR-0003: the tour lives in the
  * dock shell, no new routing concept) while the beat's LIVE panel opens below it — App reacts to
  * onStepChange and drives the real shell (slice 3, #71), so the ringed glyph above and its working
  * tool below are both visible while the card explains them. Step state is local and ephemeral on
@@ -57,10 +71,18 @@ function renderBody(text: string) {
   );
 }
 
-export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }: Props) {
+export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale, characterClassified, charWizard }: Props) {
   const [tour, setTour] = useState(initialTour);
-  const step = TOUR_STEPS[tour.index];
-  const last = tour.index === TOUR_STEPS.length - 1;
+  // The run's beats, frozen at mount (useState initializer, never set): the character beat saving
+  // its details flips `characterClassified` mid-run, and a live re-filter would yank the
+  // active beat out from under the card. A replay (remount via key) re-decides with fresh eyes.
+  const [steps] = useState(() => tourStepsFor(characterClassified));
+  const step = steps[tour.index];
+  const last = tour.index === steps.length - 1;
+  // The character beat holds the door until its wizard saves. While pending, the wizard's own
+  // stepper is THE control — the tour's Back/Next hide rather than compete with it (design walk
+  // 4: two stacked Back/Next pairs read as a mess), leaving only Skip as the tour-level exit.
+  const charPending = step.id === "character" && !characterClassified;
   // Extracted so the truthiness guard narrows into the onClick closure (no non-null assertion).
   const deepLink = step.settingsDeepLink;
 
@@ -73,20 +95,33 @@ export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }:
 
   // Terminal events exit through the slice-1 gate (mark seen + persist); the rest just move.
   const dispatch = (ev: TourEvent) => {
-    const next = advanceTour(tour, ev, TOUR_STEPS.length);
+    const next = advanceTour(tour, ev, steps.length);
     if (next.done) (ev === "skip" ? onSkip : onFinish)();
     else setTour(next);
   };
+
+  // The wizard's Save doubles as the beat's Next: the pending→classified flip auto-advances, so
+  // the user is never shown a beat they just satisfied with nothing left to do on it. The ref
+  // keys the advance on the TRANSITION — landing back on the already-classified beat via Back
+  // (charPending false on arrival) must stay put, not bounce forward.
+  const wasPending = useRef(charPending);
+  useEffect(() => {
+    if (wasPending.current && !charPending && step.id === "character") {
+      setTour((cur) => advanceTour(cur, "next", steps.length));
+    }
+    wasPending.current = charPending;
+  }, [charPending, step.id, steps.length]);
 
   return (
     <div className="dock-acc tour-card" role="dialog" aria-label={t(step.copy.title, locale)}>
       <div className="tour-card__head">
         <p className="tour-card__title">{t(step.copy.title, locale)}</p>
         <span className="tour-card__counter">
-          {tour.index + 1} / {TOUR_STEPS.length}
+          {tour.index + 1} / {steps.length}
         </span>
       </div>
       <p className="tour-card__body">{renderBody(t(step.copy.body, locale))}</p>
+      {charPending && charWizard}
       {deepLink && (
         <button className="tour-card__nudge" onClick={() => onDeepLink(deepLink)}>
           {t("tour.makeItYours", locale)}
@@ -96,14 +131,16 @@ export function TourCard({ onFinish, onSkip, onStepChange, onDeepLink, locale }:
         <button className="tour-card__skip" onClick={() => dispatch("skip")}>
           {t("tour.skip", locale)}
         </button>
-        <div className="tour-card__nav">
-          <button className="tour-card__back" onClick={() => dispatch("back")} disabled={tour.index === 0}>
-            {t("tour.back", locale)}
-          </button>
-          <button className="tour-card__finish" onClick={() => dispatch(last ? "finish" : "next")}>
-            {last ? t("tour.finish", locale) : t("tour.next", locale)}
-          </button>
-        </div>
+        {!charPending && (
+          <div className="tour-card__nav">
+            <button className="tour-card__back" onClick={() => dispatch("back")} disabled={tour.index === 0}>
+              {t("tour.back", locale)}
+            </button>
+            <button className="tour-card__finish" onClick={() => dispatch(last ? "finish" : "next")}>
+              {last ? t("tour.finish", locale) : t("tour.next", locale)}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

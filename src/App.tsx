@@ -29,6 +29,7 @@ import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
 import { allows, partition, type Entitlement } from "./engine/entitlement";
 import { shouldRunTour } from "./engine/config";
+import { activeCharacter } from "./engine/character";
 import { driveForStep } from "./engine/tourDrive";
 import type { TourStep } from "./engine/tourSteps";
 import type { SettingsTab } from "./engine/settingsLink";
@@ -166,20 +167,30 @@ export default function App() {
     [setEntitlement],
   );
 
-  // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
-  // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
+  // Character details now enter INSIDE the tour (design walk 4): its character beat embeds the
+  // wizard — classifying the seeded "Main" on first run (rename + empire/race/build; the save
+  // re-seeds Training class-filtered via classifyCharacter), or creating outright when the
+  // roster is somehow empty — and gates Next on the save, so a pending tour takes the slot even
+  // over an empty roster. The BLOCKING wizard remains the fallback for an empty roster with no
+  // tour to run — the last character deleted post-tour, or the tour skipped/escaped before the
+  // character beat saved (both terminal exits mark the tour seen) — and it can't be dismissed:
+  // there's nothing to fall back to until a character exists.
+  // A replay request (#73) is OR-ed in as a second, independent way into the same tour. Both ways
+  // wait for hydration: a replay landing in the boot window (settings stayed open across an
+  // overlay reload) would otherwise run the tour over the default config, and an exit there is
+  // clobbered by the hydrating setConfig. Slice-5 review.
   const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
-  const showWizard = firstRun || charEdit != null;
-  // The first-run tour (#68) holds the same exclusive slot right after the wizard. While either gate
-  // holds it, the tool panels are shadowed — so their glyphs must not read open, and a tool click
-  // during the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
-  // A replay request (#73) is OR-ed in as a second, independent way into the same tour — it still
-  // defers to the wizard, and the wizard's close re-admits a pending replay just like first-run.
-  // Both ways wait for hydration: a replay landing in the boot window (settings stayed open
-  // across an overlay reload) would otherwise run the tour over the default config, and an exit
-  // there is clobbered by the hydrating setConfig. Slice-5 review.
-  const tourActive =
-    !showWizard && (shouldRunTour(cfg.hydrated, cfg.config) || (cfg.hydrated && replayNonce > 0));
+  // The character beat's subject + its gate: classified = a race was saved (the wizard can't save
+  // without one). Undefined active character reads unclassified — the beat then creates instead.
+  const tourChar = activeCharacter(cfg.config);
+  const tourCharClassified = tourChar?.race != null;
+  const tourPending = shouldRunTour(cfg.hydrated, cfg.config) || (cfg.hydrated && replayNonce > 0);
+  const showWizard = (firstRun && !tourPending) || charEdit != null;
+  // The tour holds the same exclusive slot, yielding only to the charEdit wizard (✎ / + New
+  // shadows the card; its close re-admits the pending tour). While either gate holds the slot,
+  // the tool panels are shadowed — so their glyphs must not read open, and a tool click during
+  // the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
+  const tourActive = tourPending && charEdit == null;
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
   // pinned independently, so it can be open alongside one of the panels. While the WIZARD shadows
@@ -319,7 +330,9 @@ export default function App() {
   );
 
   // The character wizard, shared by three entry points: "+ New" (create, cancellable), ✎ (edit/classify
-  // an existing character, pre-filled), and first-run (create, no cancel — nothing to fall back to).
+  // an existing character, pre-filled), and the empty-roster fallback (create, no cancel — nothing to
+  // fall back to). Cancellability keys on charEdit, not firstRun: + New over an empty roster mid-tour
+  // must still cancel back to the tour, not trap the user in the wizard.
   const editingChar = charEdit?.id != null ? cfg.config.characters.find((c) => c.id === charEdit.id) : undefined;
   const characterWizard = (
     <CharacterWizard
@@ -335,7 +348,7 @@ export default function App() {
         else cfg.createCharacter(draft);
         setCharEdit(null);
       }}
-      onCancel={firstRun ? undefined : () => setCharEdit(null)}
+      onCancel={charEdit != null ? () => setCharEdit(null) : undefined}
     />
   );
 
@@ -451,7 +464,9 @@ export default function App() {
       {/* The first-run coach card (#68/#71), anchored directly under the dock — ringed glyph above,
           the beat's live tool (pinned strip / exclusive panel) below — so all three read together.
           Finish, Skip, and clicking ⚔/⧗/✓ all mark the tour seen forever (a second character never
-          re-triggers it). It follows the blocking wizard: tourActive is false while the wizard shows. */}
+          re-triggers it). Its character beat embeds the wizard (design walk 4) — classify the
+          seeded "Main" (pre-filled, the save IS the way past the beat; no cancel), or create-first
+          over an empty roster; the renamed chip appears live in the dock above as it saves. */}
       {tourActive && (
         <TourCard
           key={replayNonce} // a replay request mid-tour remounts the card → restart from beat 1 (#73)
@@ -460,6 +475,19 @@ export default function App() {
           onStepChange={onTourStep}
           onDeepLink={openSettingsTo}
           locale={cfg.config.locale}
+          characterClassified={tourCharClassified}
+          charWizard={
+            tourChar ? (
+              <CharacterWizard
+                mode="edit"
+                initial={{ name: tourChar.name, empire: tourChar.empire, race: tourChar.race, builds: tourChar.builds }}
+                locale={cfg.config.locale}
+                onCreate={(draft) => cfg.editCharacter(tourChar.id, draft)}
+              />
+            ) : (
+              <CharacterWizard locale={cfg.config.locale} onCreate={cfg.createCharacter} />
+            )
+          }
         />
       )}
       {cooldownStrip}

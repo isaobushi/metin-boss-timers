@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { t } from "./chrome";
-import { TOUR_STEPS } from "./tourSteps";
+import { TOUR_STEPS, tourStepsFor } from "./tourSteps";
 
 // The tour registry (#70): order and shape are the contract — slice 3 spotlights dockSegment and
 // opens panelToOpen per beat, so a reorder or a broken copy key is a real regression, not style.
 describe("tourSteps (#70)", () => {
-  it("declares the 8 beats in dock order: welcome → dock → ⚔ ⏱ ⧗ ✓ ⚙ → done", () => {
+  it("declares the 9 beats in dock order: welcome → dock → character → ⚔ ⏱ ⧗ ✓ ⚙ → done", () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual([
       "welcome",
       "dock",
+      "character",
       "skills",
       "cooldowns",
       "items",
@@ -18,11 +19,12 @@ describe("tourSteps (#70)", () => {
     ]);
   });
 
-  it("tool beats point at their dock glyph; framing beats (welcome/dock/done) point at none", () => {
+  it("tool beats point at their dock glyph; framing beats (welcome/dock/character/done) point at none", () => {
     const segs = Object.fromEntries(TOUR_STEPS.map((s) => [s.id, s.dockSegment]));
     expect(segs).toEqual({
       welcome: null,
       dock: null,
+      character: null,
       skills: "skills",
       cooldowns: "cooldowns",
       items: "items",
@@ -37,6 +39,7 @@ describe("tourSteps (#70)", () => {
     expect(panels).toEqual({
       welcome: null,
       dock: null,
+      character: null,
       skills: "skills",
       cooldowns: null,
       items: "items",
@@ -44,6 +47,16 @@ describe("tourSteps (#70)", () => {
       settings: null,
       done: null,
     });
+  });
+
+  // The character beat (design walk 4): it gets the character details in (classify the seeded
+  // "Main", or create over an empty roster), so it plays only while the active character is
+  // unclassified — a replay over a classified one drops it; the rest of the registry is untouched.
+  it("tourStepsFor keeps the character beat only while the active character is unclassified", () => {
+    expect(tourStepsFor(false)).toEqual(TOUR_STEPS);
+    expect(tourStepsFor(true).map((s) => s.id)).toEqual(
+      TOUR_STEPS.map((s) => s.id).filter((id) => id !== "character"),
+    );
   });
 
   it("every beat's copy resolves to non-empty strings in both shipped locales", () => {
@@ -75,6 +88,7 @@ describe("tourSteps (#70)", () => {
     expect(links).toEqual({
       welcome: null,
       dock: null,
+      character: null, // its editor is embedded right in the card — nothing to deep-link to
       skills: "dungeons", // the ⚔ boss/skill editor lives on the Dungeons tab
       cooldowns: "cooldowns",
       items: "items",

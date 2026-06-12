@@ -167,7 +167,7 @@ const EN = {
   "wizard.save":            "Save",
   "wizard.create":          "Create",
 
-  // ---- TourCard (#70 — the 8-beat first-run tour; keys are referenced from tourSteps.ts) ----
+  // ---- TourCard (#70 — the 9-beat first-run tour; keys are referenced from tourSteps.ts) ----
   // Glossary note: the domain term is "Elapsable item" (CONTEXT.md), whose established user-facing
   // surface form is "expiring items" (dock.expiring, recurring.titleItems) — the tour matches the
   // labels the user actually sees. Avoid-words hold everywhere: no reminder/daily/quest/alarm.
@@ -175,6 +175,8 @@ const EN = {
   "tour.welcomeBody":    "This dock floats on top of your game — each glyph below is a tool. A quick tour of every section follows; skip any time.",
   "tour.dockTitle":      "THE DOCK",
   "tour.dockBody":       "The bar stays on top of the game window. Drag the grip to park it anywhere; every tool opens right below it.",
+  "tour.characterTitle": "YOUR CHARACTER",
+  "tour.characterBody":  "Who do you play? Name, empire, class — Training tailors its menu of chores to exactly that. More characters can join later from the chip at the dock's left.",
   "tour.skillsTitle":    "DUNGEONS",
   "tour.skillsBody":     "⚔ opens your Dungeons: pick the boss you're fighting and each skill becomes a draining chip with sound cues in its final seconds, reset by global hotkeys mid-fight.",
   "tour.cooldownsTitle": "COOLDOWNS",
@@ -421,6 +423,8 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "tour.welcomeBody":    "Diese Leiste schwebt über deinem Spiel — jedes Symbol darunter ist ein Werkzeug. Eine kurze Tour durch alle Bereiche folgt; überspringen geht jederzeit.",
   "tour.dockTitle":      "DIE LEISTE",
   "tour.dockBody":       "Die Leiste bleibt über dem Spielfenster. Zieh sie am Griff, wohin du willst; jedes Werkzeug öffnet sich direkt darunter.",
+  "tour.characterTitle": "DEIN CHARAKTER",
+  "tour.characterBody":  "Wen spielst du? Name, Reich, Klasse — Training stimmt sein Aufgaben-Menü genau darauf ab. Weitere Charaktere kommen später über den Chip links in der Leiste dazu.",
   "tour.skillsTitle":    "DUNGEONS",
   "tour.skillsBody":     "⚔ öffnet deine Dungeons: wähl den Boss, gegen den du kämpfst — jeder Skill wird zum ablaufenden Chip mit Tonsignalen in den letzten Sekunden, mitten im Kampf per globalem Hotkey zurücksetzbar.",
   "tour.cooldownsTitle": "COOLDOWNS",
