@@ -53,7 +53,8 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
   // The subscribe screen, opened by a cap-hit nudge here in the settings window (#56/#58).
   const [showSubscribe, setShowSubscribe] = useState(false);
 
-  // Stubbed purchase flow (mirrors App) — on success reflect the granted entitlement at runtime.
+  // Purchase flow (mirrors App) — real Store dialog on Windows, stub elsewhere; on success reflect
+  // the granted entitlement at runtime.
   const { setEntitlement, dismissNudge } = cfg;
   const applyPurchase = useCallback(
     async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {

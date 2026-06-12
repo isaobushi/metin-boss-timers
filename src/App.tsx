@@ -131,10 +131,10 @@ export default function App() {
   const openSettings = useCallback(() => openSettingsTo(), [openSettingsTo]);
   const closeSettings = useCallback(() => setShowSettings(false), []);
 
-  // The subscribe flow (#58). Both actions run the STUBBED Store purchase (pending #16); on success we
-  // reflect the granted entitlement immediately. In production the real path is Store → OS-cached
-  // license → the #55 adapter re-reads it; the dev-setter here stands in for that loop so Pro unlocks
-  // at runtime as the screen promises.
+  // The subscribe flow (#58). On Windows the actions run the REAL Store purchase dialog and the
+  // result's entitlement comes from re-reading the OS-cached license (the #55 adapter loop); in
+  // Store-less runs (web demo, macOS dev) purchaseFlow short-circuits to the granted tier. Either
+  // way the dev-setter reflects it so Pro unlocks at runtime as the screen promises.
   const { setEntitlement } = cfg;
   const applyPurchase = useCallback(
     async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {

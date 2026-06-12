@@ -15,7 +15,7 @@ type Props = {
 
 /**
  * The in-app subscribe screen (PRD #48, issue #58). Presents the Pro pitch and the two plans —
- * **annual surfaced first as the default**, $1/month as the fallback — plus a 7-day free trial for new
+ * **annual surfaced first as the default**, €1.79/month as the fallback — plus a 7-day free trial for new
  * users. The copy sells "the maintained, growing Pro app," never per-dungeon, and there are no dark
  * patterns (close is always available; the cheaper plan is shown plainly alongside the annual one).
  *

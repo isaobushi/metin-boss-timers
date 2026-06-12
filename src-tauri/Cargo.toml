@@ -29,3 +29,13 @@ tauri-plugin-store = "2"
 # desktop-only: global hotkeys aren't available on mobile targets
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
+
+# Windows-only: the Microsoft Store IAP surface (#58) — license read + purchase dialog
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Services_Store",
+  "Foundation",
+  "Foundation_Collections",
+  "Win32_Foundation",
+  "Win32_UI_Shell",
+] }
