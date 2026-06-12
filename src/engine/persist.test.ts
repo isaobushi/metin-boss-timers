@@ -214,6 +214,21 @@ describe("character persistence — v2 round-trip (#47)", () => {
     }
   });
 
+  it("drops maxed from a deadline def — a hand-edited save can't strand an item with no restore UI", () => {
+    const c = makeConfig();
+    const payload = serialize(c);
+    const tampered = JSON.parse(JSON.stringify({
+      ...payload,
+      characters: payload.characters.map((ch) => ({
+        ...ch,
+        recurring: ch.recurring.map((d) => ({ ...d, maxed: true })), // maxed onto EVERY def, both kinds
+      })),
+    }));
+    const restored = deserialize(tampered);
+    expect(rec(restored).filter((d) => d.kind === "deadline").every((d) => !("maxed" in d))).toBe(true);
+    expect(rec(restored).filter((d) => d.kind === "gate").every((d) => d.maxed === true)).toBe(true);
+  });
+
   it("keeps two characters' chore slices isolated and preserves the active id", () => {
     const payload = {
       version: 2,

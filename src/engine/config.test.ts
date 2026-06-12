@@ -657,6 +657,13 @@ describe("setRecurringMaxed (done-forever state, #69)", () => {
     const c = makeConfig();
     expect(setRecurringMaxed(c, "recurring-999", true)).toBe(c);
   });
+
+  it("is a no-op for a deadline def — maxed is a Routine (gate) state only", () => {
+    const c = makeConfig();
+    const deadline = rec(c).find((d) => d.kind === "deadline")!;
+    // a maxed deadline would dim in the items tab with NO restore affordance (no trophy there)
+    expect(setRecurringMaxed(c, deadline.id, true)).toBe(c);
+  });
 });
 
 describe("markRecurring (refresh / start gesture)", () => {
