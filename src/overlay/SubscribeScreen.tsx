@@ -4,8 +4,13 @@ import { PLAN_PRICE, type Plan } from "./purchaseFlow";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 
+/** Where the in-flight purchase stands: drives the busy lock and the error line. */
+export type PurchasePhase = "idle" | "busy" | "error";
+
 type Props = {
   entitlement: Entitlement;
+  /** Required (like `locale`) so a call site can't silently ship a real-money flow with no busy lock or error surface. */
+  phase: PurchasePhase;
   onStartTrial: () => void;
   onSubscribe: (plan: Plan) => void;
   onClose: () => void;
@@ -24,9 +29,12 @@ type Props = {
  * trial user is nudged to lock in Pro). Purchase/trial actions are handed up via props to the stubbed
  * `purchaseFlow`; on success the gate unlocks at runtime through the same entitlement state.
  */
-export function SubscribeScreen({ entitlement, onStartTrial, onSubscribe, onClose, locale }: Props) {
+export function SubscribeScreen({ entitlement, phase, onStartTrial, onSubscribe, onClose, locale }: Props) {
   const [plan, setPlan] = useState<Plan>("annual"); // annual is the default selection
   const trialEligible = entitlement === "never"; // the Store grants the 7-day trial once, to new users
+  // While the Store dialog is up, lock the action buttons (a double-tap would queue a second
+  // purchase invoke). Close stays live — never trap the user (no dark patterns).
+  const busy = phase === "busy";
 
   const lede =
     entitlement === "trial"
@@ -86,17 +94,19 @@ export function SubscribeScreen({ entitlement, onStartTrial, onSubscribe, onClos
             </button>
           </div>
 
+          {phase === "error" && <p className="subscribe__error">{t("subscribe.error", locale)}</p>}
+
           {trialEligible ? (
             <>
-              <button className="subscribe__primary" onClick={onStartTrial}>
+              <button className="subscribe__primary" disabled={busy} onClick={onStartTrial}>
                 {t("subscribe.startTrial", locale)}
               </button>
-              <button className="subscribe__secondary" onClick={() => onSubscribe(plan)}>
+              <button className="subscribe__secondary" disabled={busy} onClick={() => onSubscribe(plan)}>
                 {t("subscribe.orSubscribeNow", locale)} — {plan === "annual" ? PLAN_PRICE.annual : PLAN_PRICE.monthly}
               </button>
             </>
           ) : (
-            <button className="subscribe__primary" onClick={() => onSubscribe(plan)}>
+            <button className="subscribe__primary" disabled={busy} onClick={() => onSubscribe(plan)}>
               {entitlement === "lapsed" ? t("subscribe.resubscribe", locale) : t("subscribe.subscribe", locale)} — {plan === "annual" ? PLAN_PRICE.annual : PLAN_PRICE.monthly}
             </button>
           )}

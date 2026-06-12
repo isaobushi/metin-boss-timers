@@ -9,8 +9,8 @@
 // network call from this binary. Windows refreshes the cached license in the background; we only read.
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { load as loadStore, type Store } from "@tauri-apps/plugin-store";
-import { type GraceState, type LicenseRead, resolveEntitlement } from "../engine/storeLicense";
-import type { Entitlement } from "../engine/entitlement";
+import { type GraceState, isTrialActive, type LicenseRead, resolveEntitlement, TRIAL_MS } from "../engine/storeLicense";
+import { type Entitlement, isPro } from "../engine/entitlement";
 
 const STORE_FILE = "entitlement.json"; // app data dir, managed by plugin-store
 const GRACE_KEY = "grace";
@@ -22,10 +22,40 @@ const LS_KEY = "metin-boss-timers:grace:v1"; // browser-dev fallback only
 // same license reads `subscribed` — which matches reality: the Store auto-converts the trial to paid.
 const TRIAL_KEY = "trialUntil";
 const TRIAL_LS_KEY = "metin-boss-timers:trialUntil:v1"; // browser-dev fallback only
-const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 let storePromise: Promise<Store> | null = null;
 const tauriStore = () => (storePromise ??= loadStore(STORE_FILE, { defaults: {}, autoSave: false }));
+
+/** Read one persisted key (Tauri store, or the localStorage fallback in browser dev). null = absent/unreadable. */
+async function readKey<T>(key: string, lsKey: string): Promise<T | null> {
+  try {
+    if (isTauri()) {
+      const store = await tauriStore();
+      return (await store.get<T>(key)) ?? null;
+    }
+    const raw = localStorage.getItem(lsKey);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null; // corrupt/unavailable → behave as "no record" (fail to Lite, never crash)
+  }
+}
+
+/** Persist one key (null deletes it). Best-effort: failures are swallowed so launch never breaks. */
+async function writeKey(key: string, lsKey: string, value: unknown): Promise<void> {
+  try {
+    if (isTauri()) {
+      const store = await tauriStore();
+      if (value == null) await store.delete(key);
+      else await store.set(key, value);
+      await store.save();
+      return;
+    }
+    if (value == null) localStorage.removeItem(lsKey);
+    else localStorage.setItem(lsKey, JSON.stringify(value));
+  } catch {
+    /* storage unavailable — keep running; we just lose this record for the launch */
+  }
+}
 
 /**
  * The dev license read for runs where no Microsoft Store exists — the web demo, `npm run dev`, and
@@ -58,68 +88,18 @@ async function readLicense(): Promise<LicenseRead> {
   }
 }
 
-/** Load the persisted grace memory (null if absent/unreadable — treated as "no Pro history"). */
-async function loadGrace(): Promise<GraceState> {
-  try {
-    if (isTauri()) {
-      const store = await tauriStore();
-      return ((await store.get<GraceState>(GRACE_KEY)) ?? null);
-    }
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as GraceState) : null;
-  } catch {
-    return null; // corrupt/unavailable → behave as "no Pro history" (fail to Lite, never crash)
-  }
-}
+/** Load the persisted grace memory (null = "no Pro history"). */
+const loadGrace = (): Promise<GraceState> => readKey<NonNullable<GraceState>>(GRACE_KEY, LS_KEY);
 
-/** Persist the grace memory. Best-effort: failures are swallowed so launch never breaks. */
-async function saveGrace(grace: GraceState): Promise<void> {
-  try {
-    if (isTauri()) {
-      const store = await tauriStore();
-      await store.set(GRACE_KEY, grace);
-      await store.save();
-      return;
-    }
-    localStorage.setItem(LS_KEY, JSON.stringify(grace));
-  } catch {
-    /* storage unavailable — keep running; we just lose offline-grace memory for this launch */
-  }
-}
+/** Persist the grace memory. */
+const saveGrace = (grace: GraceState): Promise<void> => writeKey(GRACE_KEY, LS_KEY, grace);
 
-/** Is the locally stamped 7-day trial window still open? (False on no stamp / unreadable storage.) */
-async function inTrialWindow(): Promise<boolean> {
-  try {
-    let until: number | null;
-    if (isTauri()) {
-      const store = await tauriStore();
-      until = (await store.get<number>(TRIAL_KEY)) ?? null;
-    } else {
-      const raw = localStorage.getItem(TRIAL_LS_KEY);
-      until = raw ? Number(raw) : null;
-    }
-    return until != null && Number.isFinite(until) && Date.now() < until;
-  } catch {
-    return false; // unknowable → read as paid, the harmless direction (cosmetic nudge copy only)
-  }
-}
+/** Is the locally stamped 7-day trial window still open? (Closed on no stamp / unreadable storage.) */
+const inTrialWindow = async (): Promise<boolean> =>
+  isTrialActive(await readKey<number>(TRIAL_KEY, TRIAL_LS_KEY), Date.now());
 
-/** Stamp the trial window (`until` ms epoch), or clear it with null. Best-effort like saveGrace. */
-async function saveTrialUntil(until: number | null): Promise<void> {
-  try {
-    if (isTauri()) {
-      const store = await tauriStore();
-      if (until == null) await store.delete(TRIAL_KEY);
-      else await store.set(TRIAL_KEY, until);
-      await store.save();
-      return;
-    }
-    if (until == null) localStorage.removeItem(TRIAL_LS_KEY);
-    else localStorage.setItem(TRIAL_LS_KEY, String(until));
-  } catch {
-    /* storage unavailable — a trial may read as `subscribed`; cosmetic only */
-  }
-}
+/** Stamp the trial window (`until` ms epoch), or clear it with null. */
+const saveTrialUntil = (until: number | null): Promise<void> => writeKey(TRIAL_KEY, TRIAL_LS_KEY, until);
 
 /**
  * Fold a successful Store purchase into entitlement state (#58). Called by `purchaseFlow` after the
@@ -132,7 +112,7 @@ export async function confirmPurchase(granted: "trial" | "subscribed"): Promise<
   await saveTrialUntil(granted === "trial" ? Date.now() + TRIAL_MS : null);
   await saveGrace({ lastProAt: Date.now(), pro: granted });
   const resolved = await resolveLaunchEntitlement();
-  return resolved === "subscribed" || resolved === "trial" ? resolved : granted;
+  return isPro(resolved) ? resolved : granted;
 }
 
 /**

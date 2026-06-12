@@ -9,8 +9,8 @@
 // with the entitlement the purchase WOULD grant (reflected via the dev entitlement setter), so the
 // screen stays fully demoable end-to-end.
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { Entitlement } from "../engine/entitlement";
-import { confirmPurchase } from "./entitlementSource";
+import { type Entitlement, isPro } from "../engine/entitlement";
+import { confirmPurchase, resolveLaunchEntitlement } from "./entitlementSource";
 
 /** The two subscription options. Annual is the default (surfaced first); monthly is the cheap fallback. */
 export type Plan = "annual" | "monthly";
@@ -26,14 +26,19 @@ export const PLAN_PRICE: Record<Plan, string> = {
 
 /**
  * The subscription add-ons' Store IDs (Partner Center: dragonsaid_pro_annual / dragonsaid_pro_monthly;
- * keep in sync with PRO_STORE_IDS in src-tauri/src/store_iap.rs). The 7-day trial is configured on
- * the ANNUAL add-on only, so "start trial" purchases the annual SKU — the Store decides eligibility
- * and presents the trial offer in its own dialog.
+ * keep in sync with PRO_STORE_IDS in src-tauri/src/store_iap.rs).
  */
 const PLAN_STORE_ID: Record<Plan, string> = {
   annual: "9MT2ZXJL1P1N",
   monthly: "9PNLM89SZ2NL",
 };
+
+/**
+ * The SKU a trial-start purchases: the 7-day trial is configured on the ANNUAL add-on only (Partner
+ * Center), so "start trial" buys the annual SKU and the Store presents the trial offer in its own
+ * dialog. Load-bearing — if a dedicated trial SKU ever exists, change it HERE.
+ */
+const TRIAL_STORE_ID = PLAN_STORE_ID.annual;
 
 /** What a purchase/trial attempt yields. `ok` carries the entitlement the user is now on. */
 export type PurchaseResult = { ok: true; entitlement: Entitlement } | { ok: false; reason: "cancelled" | "error" };
@@ -50,14 +55,17 @@ async function runStorePurchase(product: Plan | "trial"): Promise<PurchaseResult
   const granted = product === "trial" ? "trial" : "subscribed";
   if (!isTauri()) return { ok: true, entitlement: granted }; // web demo / npm run dev — no Store exists
   try {
-    const storeId = PLAN_STORE_ID[product === "trial" ? "annual" : product];
+    const storeId = product === "trial" ? TRIAL_STORE_ID : PLAN_STORE_ID[product];
     const status = await invoke<RawPurchaseStatus>("store_purchase", { storeId });
     if (status === "unsupported") return { ok: true, entitlement: granted }; // Tauri-on-macOS dev
     if (status === "succeeded") return { ok: true, entitlement: await confirmPurchase(granted) };
     if (status === "alreadyPurchased") {
-      // The user already owns the subscription (e.g. reinstall before the license cache warmed) —
-      // they are PAID regardless of which button they pressed, so never stamp a fresh trial window.
-      return { ok: true, entitlement: await confirmPurchase("subscribed") };
+      // The user already owns the subscription — a running trial IS ownership of the add-on, so a
+      // mid-trial Subscribe (or a reinstall's re-tap) lands here. Re-resolve from the license and
+      // the UNTOUCHED trial stamp; stamping `subscribed` here would relabel an active trial as paid
+      // and kill the trial-ending nudge (review of this PR). If the read isn't Pro, they paid: subscribed.
+      const resolved = await resolveLaunchEntitlement();
+      return { ok: true, entitlement: isPro(resolved) ? resolved : "subscribed" };
     }
     return { ok: false, reason: status === "cancelled" ? "cancelled" : "error" };
   } catch {

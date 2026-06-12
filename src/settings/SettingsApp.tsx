@@ -19,7 +19,7 @@ import type { SettingsTab } from "../engine/settingsLink";
 import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
-import { SubscribeScreen } from "../overlay/SubscribeScreen";
+import { type PurchasePhase, SubscribeScreen } from "../overlay/SubscribeScreen";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
 import type { Entitlement } from "../engine/entitlement";
 import { t } from "../engine/chrome";
@@ -42,26 +42,34 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
   const [tab, setTab] = useState<TabId>(initialTab ?? "dungeons");
 
   // Deep links aimed at an ALREADY-open settings surface (#72) — the URL hash is long consumed,
-  // so the tour's nudge re-tabs this window live over the transient bus.
+  // so the tour's nudge re-tabs this window live over the transient bus. A purchase completed in
+  // the OTHER surface (the overlay) unlocks this window's gates live too (#58).
+  const { setEntitlement, dismissNudge } = cfg;
   useEffect(
     () =>
       subscribeTransient((msg) => {
         if (msg.kind === "settings-navigate") setTab(msg.tab);
+        if (msg.kind === "entitlement-changed") setEntitlement(msg.entitlement);
       }),
-    [],
+    [setEntitlement],
   );
   // The subscribe screen, opened by a cap-hit nudge here in the settings window (#56/#58).
   const [showSubscribe, setShowSubscribe] = useState(false);
 
-  // Purchase flow (mirrors App) — real Store dialog on Windows, stub elsewhere; on success reflect
-  // the granted entitlement at runtime.
-  const { setEntitlement, dismissNudge } = cfg;
+  // Purchase flow (mirrors App — see the applyPurchase comment there): busy-lock + error surface,
+  // broadcast the unlock to the overlay, stay quiet on a user-cancelled Store dialog.
+  const [purchasePhase, setPurchasePhase] = useState<PurchasePhase>("idle");
   const applyPurchase = useCallback(
     async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {
+      setPurchasePhase("busy");
       const result = await run;
       if (result.ok) {
         setEntitlement(result.entitlement);
+        emitTransient({ kind: "entitlement-changed", entitlement: result.entitlement });
+        setPurchasePhase("idle");
         setShowSubscribe(false);
+      } else {
+        setPurchasePhase(result.reason === "error" ? "error" : "idle");
       }
     },
     [setEntitlement],
@@ -247,9 +255,13 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
         <div className="settings-modal">
           <SubscribeScreen
             entitlement={cfg.entitlement}
+            phase={purchasePhase}
             onStartTrial={() => void applyPurchase(startTrial())}
             onSubscribe={(plan: Plan) => void applyPurchase(subscribe(plan))}
-            onClose={() => setShowSubscribe(false)}
+            onClose={() => {
+              setShowSubscribe(false);
+              setPurchasePhase("idle"); // a stale error must not greet the next open
+            }}
             locale={cfg.config.locale}
           />
         </div>

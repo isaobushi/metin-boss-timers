@@ -23,7 +23,7 @@ import { ExpiringAccordion } from "./overlay/ExpiringAccordion";
 import { RoutineAccordion } from "./overlay/RoutineAccordion";
 import { CooldownStrip } from "./overlay/CooldownStrip";
 import { CooldownPicker } from "./overlay/CooldownPicker";
-import { SubscribeScreen } from "./overlay/SubscribeScreen";
+import { type PurchasePhase, SubscribeScreen } from "./overlay/SubscribeScreen";
 import { UpgradeBanner } from "./overlay/UpgradeBanner";
 import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
@@ -134,20 +134,37 @@ export default function App() {
   // The subscribe flow (#58). On Windows the actions run the REAL Store purchase dialog and the
   // result's entitlement comes from re-reading the OS-cached license (the #55 adapter loop); in
   // Store-less runs (web demo, macOS dev) purchaseFlow short-circuits to the granted tier. Either
-  // way the dev-setter reflects it so Pro unlocks at runtime as the screen promises.
+  // way the setter reflects it so Pro unlocks at runtime as the screen promises, and the unlock is
+  // broadcast — the settings surface holds its own entitlement state (separate window under Tauri).
+  // `phase` locks the screen's actions while the Store dialog is up and surfaces a Store failure;
+  // a cancelled dialog is the user's own deliberate act, so it stays quiet (review of this PR).
   const { setEntitlement } = cfg;
+  const [purchasePhase, setPurchasePhase] = useState<PurchasePhase>("idle");
   const applyPurchase = useCallback(
     async (run: Promise<{ ok: true; entitlement: Entitlement } | { ok: false; reason: string }>) => {
+      setPurchasePhase("busy");
       const result = await run;
       if (result.ok) {
         setEntitlement(result.entitlement);
+        emitTransient({ kind: "entitlement-changed", entitlement: result.entitlement });
+        setPurchasePhase("idle");
         setShowSubscribe(false);
+      } else {
+        setPurchasePhase(result.reason === "error" ? "error" : "idle");
       }
     },
     [setEntitlement],
   );
   const onStartTrial = useCallback(() => void applyPurchase(startTrial()), [applyPurchase]);
   const onSubscribe = useCallback((plan: Plan) => void applyPurchase(subscribe(plan)), [applyPurchase]);
+  // A purchase completed in the OTHER surface (the settings window) unlocks this one live too.
+  useEffect(
+    () =>
+      subscribeTransient((msg) => {
+        if (msg.kind === "entitlement-changed") setEntitlement(msg.entitlement);
+      }),
+    [setEntitlement],
+  );
 
   // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
   // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
@@ -460,9 +477,13 @@ export default function App() {
         <div className="settings-modal">
           <SubscribeScreen
             entitlement={cfg.entitlement}
+            phase={purchasePhase}
             onStartTrial={onStartTrial}
             onSubscribe={onSubscribe}
-            onClose={() => setShowSubscribe(false)}
+            onClose={() => {
+              setShowSubscribe(false);
+              setPurchasePhase("idle"); // a stale error must not greet the next open
+            }}
             locale={cfg.config.locale}
           />
         </div>

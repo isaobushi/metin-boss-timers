@@ -18,6 +18,17 @@ describe("transientMsg (#72/#73)", () => {
     expect(isTransientMsg({ kind: "tour-replay" })).toBe(true);
   });
 
+  it("passes entitlement-changed for each real tier (#58)", () => {
+    for (const e of ["subscribed", "trial", "lapsed", "never"]) {
+      expect(isTransientMsg({ kind: "entitlement-changed", entitlement: e })).toBe(true);
+    }
+  });
+
+  it("rejects entitlement-changed with an unknown or missing tier — never dispatch a bogus unlock", () => {
+    expect(isTransientMsg({ kind: "entitlement-changed", entitlement: "pro" })).toBe(false);
+    expect(isTransientMsg({ kind: "entitlement-changed" })).toBe(false);
+  });
+
   it("rejects unknown kinds and non-objects — a stale/foreign payload degrades to a drop", () => {
     expect(isTransientMsg({ kind: "self-destruct" })).toBe(false);
     expect(isTransientMsg({})).toBe(false);
