@@ -17,8 +17,6 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { isTransientMsg, type TransientMsg } from "../engine/transientMsg";
 
-export type { TransientMsg };
-
 const EVENT = "transient://message"; // Tauri event name
 const CHANNEL = "metin-boss-timers:transient"; // browser BroadcastChannel name
 

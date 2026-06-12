@@ -25,4 +25,11 @@ describe("transientMsg (#72/#73)", () => {
     expect(isTransientMsg("tour-replay")).toBe(false);
     expect(isTransientMsg(42)).toBe(false);
   });
+
+  it("rejects kinds that collide with inherited Object.prototype keys — and never throws", () => {
+    expect(isTransientMsg({ kind: "constructor" })).toBe(false);
+    expect(isTransientMsg({ kind: "toString" })).toBe(false);
+    expect(isTransientMsg({ kind: "hasOwnProperty" })).toBe(false);
+    expect(isTransientMsg({ kind: "__proto__" })).toBe(false);
+  });
 });

@@ -977,7 +977,9 @@ describe("first-run tour gate (#68)", () => {
     const c = makeConfig();
     const seen = markTourSeen(c);
     expect(seen).toEqual({ ...c, hasSeenTour: true });
-    expect(markTourSeen(seen).hasSeenTour).toBe(true); // idempotent — never un-set
+    // Idempotent BY REFERENCE — the same object back, so a replay exit's unconditional call
+    // (#73) bails out of React state and never churns a persist + broadcast.
+    expect(markTourSeen(seen)).toBe(seen);
   });
 
   it("shouldRunTour fires only when hydrated AND unseen", () => {

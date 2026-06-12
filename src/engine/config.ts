@@ -728,8 +728,14 @@ export function removeRecurring(c: Config, defId: string): Config {
 // The trigger spine for onboarding: one boolean, one exit transform, one predicate. Later slices
 // (tourMachine/tourSteps) own WHAT the tour shows; this owns only WHETHER it fires.
 
-/** Mark the tour seen — the single exit transform for BOTH finish and skip. Never un-set. */
+/**
+ * Mark the tour seen — the single exit transform for BOTH finish and skip. Never un-set.
+ * Idempotent BY REFERENCE: an already-seen config comes back unchanged, so React state setters
+ * bail and useConfig's persist effect (keyed on the config object) skips the no-op write +
+ * broadcast — which is what lets a replay exit (#73) call this unconditionally without churn.
+ */
 export function markTourSeen(c: Config): Config {
+  if (c.hasSeenTour) return c;
   return { ...c, hasSeenTour: true };
 }
 

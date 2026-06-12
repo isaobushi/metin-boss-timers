@@ -27,6 +27,9 @@ const VALIDATORS: { [K in TransientMsg["kind"]]: (msg: { kind: K } & Record<stri
 export function isTransientMsg(value: unknown): value is TransientMsg {
   if (typeof value !== "object" || value === null) return false;
   const kind = (value as { kind?: unknown }).kind;
-  if (typeof kind !== "string" || !(kind in VALIDATORS)) return false;
+  // Own-key check, not `in`: a plain object literal inherits Object.prototype, so `in` would
+  // admit kinds like "constructor"/"toString" (whose inherited members return truthy when
+  // called) and crash on "__proto__" (not a function). Slice-5 review.
+  if (typeof kind !== "string" || !Object.hasOwn(VALIDATORS, kind)) return false;
   return VALIDATORS[kind as TransientMsg["kind"]](value as never);
 }

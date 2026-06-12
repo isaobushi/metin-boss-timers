@@ -158,7 +158,11 @@ export default function App() {
   // during the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
   // A replay request (#73) is OR-ed in as a second, independent way into the same tour — it still
   // defers to the wizard, and the wizard's close re-admits a pending replay just like first-run.
-  const tourActive = !showWizard && (shouldRunTour(cfg.hydrated, cfg.config) || replayNonce > 0);
+  // Both ways wait for hydration: a replay landing in the boot window (settings stayed open
+  // across an overlay reload) would otherwise run the tour over the default config, and an exit
+  // there is clobbered by the hydrating setConfig. Slice-5 review.
+  const tourActive =
+    !showWizard && (shouldRunTour(cfg.hydrated, cfg.config) || (cfg.hydrated && replayNonce > 0));
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
   // pinned independently, so it can be open alongside one of the panels. While the WIZARD shadows
@@ -211,10 +215,11 @@ export default function App() {
   // reset is unconditional), or the clicked tool for the dock escape hatches. Force-OPEN, no
   // toggle: even when the tour has that very panel open (its glyph lit + ringed), clicking the
   // glyph the card just pointed at must keep the tool open, not snap it shut as the card leaves.
-  // A replay's exit (#73) clears only the transient nonce: `hasSeenTour` is already true, and
-  // re-writing it would churn a persist + broadcast for a no-op value.
+  // A replay's exit (#73) additionally clears the transient nonce; completeTour stays
+  // unconditional because markTourSeen is idempotent — an already-seen config comes back by
+  // reference, so the persist effect (keyed on the object) skips the no-op write + broadcast.
   const endTour = (to: Panel = null) => {
-    if (!cfg.config.hasSeenTour) cfg.completeTour();
+    cfg.completeTour();
     setReplayNonce(0);
     setTourSpot(null);
     closeCooldownStrip();
