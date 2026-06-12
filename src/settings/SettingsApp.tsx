@@ -14,7 +14,7 @@ import { activeRecurring } from "../engine/config";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
-import { subscribeTransient } from "../overlay/transientSync";
+import { emitTransient, subscribeTransient } from "../overlay/transientSync";
 import type { SettingsTab } from "../engine/settingsLink";
 import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
@@ -213,6 +213,24 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           onChange={(locale) => cfg.changeLocale(locale)}
         />
       )}
+
+      {/* The tour-replay row (#73) — the app's permanent home for re-running the onboarding tour
+          (the Done beat's copy points here; the dense dock deliberately carries no ? glyph).
+          Global like backup, not tab-scoped. The request rides the transient bus to the overlay —
+          the reverse direction of settings-navigate — and the settings surface closes so the tour
+          is actually visible (in the browser the inline modal would otherwise cover it). */}
+      <div className="tour-replay">
+        <button
+          className="btn-dashed"
+          onClick={() => {
+            emitTransient({ kind: "tour-replay" });
+            close();
+          }}
+        >
+          {t("settings.showAround", locale)}
+        </button>
+        <p className="tour-replay__hint">{t("settings.showAroundHint", locale)}</p>
+      </div>
 
       {/* Global backup/trust feature (#56) — export/import a portable copy of the whole config. */}
       <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />

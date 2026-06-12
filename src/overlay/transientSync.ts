@@ -1,9 +1,10 @@
 // Cross-window TRANSIENT messaging — the impure sibling of configSync for one-shot intents
 // that must never touch durable state. configSync carries the persisted config (every payload
 // is also on disk); this carries fire-and-forget commands between windows — "navigate to this
-// settings tab" (#72), and the tour-replay request when slice 5 (#73) lands. A transient
-// message that misses its window (nothing open, nothing subscribed) is correctly LOST — that's
-// the contract; anything that must survive a miss belongs in configSync/configStore instead.
+// settings tab" (#72) and "replay the tour" (#73). A transient message that misses its window
+// (nothing open, nothing subscribed) is correctly LOST — that's the contract; anything that
+// must survive a miss belongs in configSync/configStore instead. The message union and its
+// wire guard live in the engine (transientMsg.ts); this module owns only the transport.
 //
 // Transport mirrors configSync exactly: the Tauri event bus (emit fans out to every webview
 // including the sender, so payloads carry the sender's label and listeners drop their own
@@ -14,21 +15,12 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { isSettingsTab, type SettingsTab } from "../engine/settingsLink";
+import { isTransientMsg, type TransientMsg } from "../engine/transientMsg";
 
 const EVENT = "transient://message"; // Tauri event name
 const CHANNEL = "metin-boss-timers:transient"; // browser BroadcastChannel name
 
-/** The one-shot intents windows send each other. #73 adds `{ kind: "tour-replay" }`. */
-export type TransientMsg = { kind: "settings-navigate"; tab: SettingsTab };
-
 type Wire = { from: string; payload: TransientMsg };
-
-/** Runtime guard for wire payloads — a malformed message is dropped, never dispatched. */
-function isTransientMsg(value: unknown): value is TransientMsg {
-  const msg = value as TransientMsg | null;
-  return msg?.kind === "settings-navigate" && isSettingsTab(msg.tab);
-}
 
 /** Send a one-shot intent to the other window(s). Fire-and-forget; lost if nobody listens. */
 export function emitTransient(msg: TransientMsg): void {
