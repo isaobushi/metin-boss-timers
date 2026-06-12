@@ -31,4 +31,5 @@ dist-ssr
 metin2-influencer-contacts.csv
 
 # Scraped/3rd-party reference data (metin2alerts locale dumps, skill x-refs) — never committed
-reference/
+# (root-anchored: brand/reference/ holds deliberate brand source assets and IS committed)
+/reference/

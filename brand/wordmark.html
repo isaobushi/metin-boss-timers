@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- DragonsAid wordmark — canonical live-text construction ("B / Strike / italic" variant).
+     Open in a browser to view; the .da-wordmark block is copy-pasteable into any page
+     that loads Chakra Petch 700 italic + brand/tokens.css. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>DRAGON'S AID — wordmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: var(--da-bg);
+  }
+
+  .da-wordmark {
+    font-family: var(--da-font-display);
+    font-weight: 700;
+    font-style: italic;
+    font-size: 38px;            /* scale freely; everything below is em-relative */
+    letter-spacing: 0.05em;     /* 1.9px @ 38px */
+    color: var(--da-text);
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .da-wordmark .ember {
+    color: var(--da-ember);
+    text-shadow: 0 0 0.37em rgba(255, 107, 44, 0.55);
+  }
+  .da-wordmark .rule {
+    margin-top: 0.32em;
+    display: flex;
+    gap: 0.26em;
+    align-items: center;
+  }
+  .da-wordmark .rule i {
+    display: block;
+    height: 0.08em;
+    transform: skewX(-20deg);
+    background: linear-gradient(90deg, var(--da-ember), var(--da-blue));
+  }
+  .da-wordmark .rule i:nth-child(1) { width: 3.4em; }
+  .da-wordmark .rule i:nth-child(2) { width: 0.55em; background: var(--da-blue-mid); }
+  .da-wordmark .rule i:nth-child(3) { width: 0.9em;  background: var(--da-blue); }
+</style>
+</head>
+<body>
+  <div class="da-wordmark">
+    <div>DRAGON<span class="ember">'</span>S&nbsp;<span class="ember">AID</span></div>
+    <div class="rule"><i></i><i></i><i></i></div>
+  </div>
+</body>
+</html>
