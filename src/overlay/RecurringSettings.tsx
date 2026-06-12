@@ -10,6 +10,11 @@ type Props = {
   onRename: (defId: string, name: string) => void;
   onSetDuration: (defId: string, durationMs: number) => void;
   onRemove: (defId: string) => void;
+  /**
+   * The done-forever toggle (#69), passed only by the ROUTINE (`gate`) call site — a perfected task
+   * is retired reversibly, not deleted. Absent on the EXPIRING ITEMS section: no trophy column there.
+   */
+  onSetMaxed?: (defId: string, maxed: boolean) => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
@@ -32,6 +37,10 @@ const MS_PER_DAY = 86_400_000;
  * are split out of the stored ms and recombined on edit; the engine clamps the result to the
  * day-scale [1m, 365d] band (overlay/useConfig → setRecurringDuration), so an empty/zero entry
  * snaps back to 1 minute.
+ *
+ * The ROUTINE call site also passes `onSetMaxed` (#69): a 🏆 toggle per row retires a perfected
+ * task done-forever — the row stays listed here (dimmed, struck) so it can be restored, while the
+ * ✓ accordion and the `x/n` nudge drop it. Distinct from ✕, which discards the definition.
  */
 export function RecurringSettings({
   recurring,
@@ -40,6 +49,7 @@ export function RecurringSettings({
   onRename,
   onSetDuration,
   onRemove,
+  onSetMaxed,
   locale,
 }: Props) {
   const items = recurring.filter((d) => d.kind === kind);
@@ -55,6 +65,7 @@ export function RecurringSettings({
       <div className="cd-head">
         <span className="cd-head__name">{t("recurring.colName", locale)}</span>
         <span className="cd-head__dur">{t("recurring.colDuration", locale)}</span>
+        {onSetMaxed && <span className="cd-head__x" />}
         <span className="cd-head__x" />
       </div>
 
@@ -65,7 +76,7 @@ export function RecurringSettings({
         const setDHM = (dd: number, hh: number, mm: number) =>
           onSetDuration(d.id, dd * MS_PER_DAY + hh * MS_PER_HOUR + mm * MS_PER_MIN);
         return (
-          <div className="cd-row" key={d.id}>
+          <div className={`cd-row${d.maxed ? " cd-row--maxed" : ""}`} key={d.id}>
             <input
               className="cd-name"
               value={d.name}
@@ -101,6 +112,15 @@ export function RecurringSettings({
               />
               <span className="cd-dur__u">m</span>
             </div>
+            {onSetMaxed && (
+              <button
+                className={`icon-btn icon-btn--trophy${d.maxed ? " icon-btn--trophy-on" : ""}`}
+                onClick={() => onSetMaxed(d.id, !d.maxed)}
+                title={t(d.maxed ? "recurring.restoreMaxed" : "recurring.markMaxed", locale)}
+              >
+                🏆
+              </button>
+            )}
             <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("recurring.removeItem", locale)}>
               ✕
             </button>

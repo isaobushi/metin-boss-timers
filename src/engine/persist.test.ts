@@ -5,6 +5,7 @@ import {
   makeConfig,
   markRecurring,
   markTourSeen,
+  setRecurringMaxed,
   setSkillHotkey,
   setSkillSound,
   activeRecurring,
@@ -185,6 +186,32 @@ describe("character persistence — v2 round-trip (#47)", () => {
     const restored = deserialize(throughDisk(c));
     expect(recProg(restored)).toEqual(recProg(c));
     expect(rec(restored)[3].ladderId).toBe("class-skill"); // ladderId survives the disk hop
+  });
+
+  it("round-trips a maxed (done-forever, #69) def — the retired state survives a disk hop", () => {
+    const base = makeConfig();
+    const gate = rec(base).find((d) => d.kind === "gate")!;
+    const c = setRecurringMaxed(base, gate.id, true);
+    const restored = deserialize(throughDisk(c));
+    expect(rec(restored).find((d) => d.id === gate.id)?.maxed).toBe(true);
+    expect(rec(restored)).toEqual(rec(c));
+  });
+
+  it("admits only `maxed: true` — anything else hydrates to active with the key absent", () => {
+    const c = makeConfig();
+    const payload = serialize(c);
+    const tamper = (maxed: unknown) =>
+      JSON.parse(JSON.stringify({
+        ...payload,
+        characters: payload.characters.map((ch) => ({
+          ...ch,
+          recurring: ch.recurring.map((d) => ({ ...d, maxed })),
+        })),
+      }));
+    for (const junk of [false, "yes", 1]) {
+      const restored = deserialize(tamper(junk));
+      expect(rec(restored).every((d) => !("maxed" in d))).toBe(true); // dropped, not preserved as junk
+    }
   });
 
   it("keeps two characters' chore slices isolated and preserves the active id", () => {

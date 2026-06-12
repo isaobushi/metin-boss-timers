@@ -44,6 +44,15 @@ export type RecurringDef = {
    * Pure presentation, like `ladderId`/`kind`.
    */
   catalogKey?: string;
+  /**
+   * Done-forever (#69): the player has perfected this task (reached P on its ladder, finished the
+   * Biologist chain) and retired it — distinct from delete, which discards the definition. A maxed
+   * def keeps its record (duration, ladder rank, even a running instance) so restoring it is a pure
+   * flag flip, but it is excluded from the ✓ Routine surfaces: the accordion rows, the `x/n` ready
+   * count, and the ready chime. A SELECTION concern like `kind`/`ladderId` — the running-set engine
+   * never branches on it. Absent = active (every pre-#69 payload round-trips unchanged).
+   */
+  maxed?: boolean;
 };
 
 /** A running recurring item: its absolute `expiry`, plus `startedAt` for progress derivation. */
@@ -437,8 +446,9 @@ export const isCapped = (def: RecurringDef, progress: RecurringProgress[]): bool
 
 /**
  * The ✓ routine nudge (issue #45): how many gate routines still need doing, of the total — but with
- * capped ladder defs dropped entirely. A maxed ladder is a finished trophy, not an outstanding chore,
- * so it counts toward neither `ready` nor `total` (otherwise the bar would nudge a ladder forever).
+ * capped ladder defs AND done-forever (`maxed`, #69) defs dropped entirely. A maxed ladder is a
+ * finished trophy and a retired def is off the menu — neither is an outstanding chore, so each
+ * counts toward neither `ready` nor `total` (otherwise the bar would nudge it forever).
  * Over the surviving defs the to-do count is `total - done` (every gate is either done or ready),
  * reusing `doneCount`. Kind-free like its siblings: the caller hands in the gate defs + progress.
  */
@@ -448,7 +458,7 @@ export function routineToDo(
   progress: RecurringProgress[],
   now: number,
 ): { ready: number; total: number } {
-  const active = defs.filter((d) => !isCapped(d, progress));
+  const active = defs.filter((d) => !d.maxed && !isCapped(d, progress));
   const { done, total } = doneCount(running, active, now);
   return { ready: total - done, total };
 }

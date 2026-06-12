@@ -755,9 +755,18 @@ body[data-window="settings"] {
   display: flex;
   align-items: center;
   gap: 3px;
+  /* rigid cells: the flexible name column absorbs any squeeze (the routine rows gained a 🏆
+     column, #69 — without this the dur inputs shrink into overlapping the row's buttons) */
+  flex-shrink: 0;
+}
+.cd-row .icon-btn {
+  flex-shrink: 0;
 }
 .cd-dur__n {
   width: 46px;
+  /* let the inputs actually shrink inside the fixed 132px cell (flex min-width:auto would hold
+     them at intrinsic size and spill the third d/h/m input over the row's buttons, #69) */
+  min-width: 0;
   padding: 6px 4px;
   font-size: 12px;
   text-align: right;
@@ -765,6 +774,24 @@ body[data-window="settings"] {
 .cd-dur__u {
   font-size: 10px;
   opacity: 0.5;
+}
+/* a maxed (done-forever, #69) routine reads as retired-but-kept: dimmed, struck, restorable */
+.cd-row--maxed .cd-name,
+.cd-row--maxed .cd-dur {
+  opacity: 0.45;
+}
+.cd-row--maxed .cd-name {
+  text-decoration: line-through;
+}
+/* the 🏆 toggle: greyscale while the routine is active, full colour once retired */
+.icon-btn--trophy {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.icon-btn--trophy-on {
+  filter: none;
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 /* ---- chip ---- */

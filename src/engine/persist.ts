@@ -284,6 +284,10 @@ function readRecurringDef(r: unknown): RecurringDef | null {
   // Ability keeps its band label and a seeded def keeps its locale-independent identity across a hop.
   if (isStr(r.school)) def.school = r.school;
   if (isStr(r.catalogKey)) def.catalogKey = r.catalogKey;
+  // maxed (#69) is optional + STRICT-true: only the canonical `true` marks a def retired; anything
+  // else (false, junk, or — every pre-#69 payload — absent) hydrates to active with the key absent,
+  // matching `setRecurringMaxed`'s restore (which deletes the key rather than writing `false`).
+  if (r.maxed === true) def.maxed = true;
   return def;
 }
 

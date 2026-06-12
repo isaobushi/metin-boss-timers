@@ -109,6 +109,8 @@ const EN = {
   "recurring.addRoutine":     "+ ADD ROUTINE",
   "recurring.noItems":        "no expiring items yet",
   "recurring.noRoutine":      "no routine items yet",
+  "recurring.markMaxed":      "maxed — retire from the routine (reversible)",
+  "recurring.restoreMaxed":   "maxed — click to restore to the routine",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "start a cooldown",
@@ -355,6 +357,8 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "recurring.addRoutine":     "+ ROUTINE HINZUFÜGEN",
   "recurring.noItems":        "noch keine ablaufenden Items",
   "recurring.noRoutine":      "noch keine Routine-Items",
+  "recurring.markMaxed":      "gemaxt — aus der Routine zurückziehen (umkehrbar)",
+  "recurring.restoreMaxed":   "gemaxt — klicken, um in die Routine zurückzuholen",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "Cooldown starten",

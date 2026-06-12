@@ -28,6 +28,7 @@ import {
   addRecurring,
   renameRecurring,
   setRecurringDuration,
+  setRecurringMaxed,
   removeRecurring,
   activeRecurring,
   activeRecurringRunning,
@@ -624,6 +625,37 @@ describe("removeRecurring", () => {
     const c = makeConfig();
     const after = removeRecurring(c, rec(c)[0].id);
     expect(after.bosses).toBe(c.bosses);
+  });
+});
+
+describe("setRecurringMaxed (done-forever state, #69)", () => {
+  it("marks a routine maxed, leaving its siblings alone", () => {
+    const c = makeConfig();
+    const gate = rec(c).find((d) => d.kind === "gate")!;
+    const after = setRecurringMaxed(c, gate.id, true);
+    expect(rec(after).find((d) => d.id === gate.id)?.maxed).toBe(true);
+    expect(rec(after).filter((d) => d.id !== gate.id)).toEqual(rec(c).filter((d) => d.id !== gate.id));
+  });
+
+  it("restores a maxed routine to active with no residue (round-trips to the original def)", () => {
+    const c = makeConfig();
+    const gate = rec(c).find((d) => d.kind === "gate")!;
+    const restored = setRecurringMaxed(setRecurringMaxed(c, gate.id, true), gate.id, false);
+    expect(rec(restored).find((d) => d.id === gate.id)).toEqual(gate); // key deleted, not `maxed: false`
+  });
+
+  it("keeps the running instance and ladder rank — retire is a flag flip, not a delete", () => {
+    const c = makeConfig();
+    const gate = rec(c).find((d) => d.kind === "gate")!;
+    const started = markRecurring(withProgress(makeConfig(), [{ defId: gate.id, position: 3 }]), gate.id, 1_000);
+    const after = setRecurringMaxed(started, gate.id, true);
+    expect(recRun(after)).toBe(recRun(started)); // instance kept (restore resumes mid-cycle)
+    expect(recProg(after)).toBe(recProg(started)); // rank kept
+  });
+
+  it("is a no-op (by reference) for an unknown def id", () => {
+    const c = makeConfig();
+    expect(setRecurringMaxed(c, "recurring-999", true)).toBe(c);
   });
 });
 
