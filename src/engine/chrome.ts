@@ -234,10 +234,206 @@ export type ChromeKey = keyof typeof EN;
 /** The English chrome table (the `en` locale's full record). */
 type ChromeTable = Record<ChromeKey, string>;
 
-/** Per-locale tables: `en` is complete; every other locale is `Partial` with English fallback. */
-const TABLES: Record<string, Record<string, string>> & { en: ChromeTable } = {
+// ---- German chrome table (slice #85) ----
+// Free-translated DE strings. Informal "du" register (Metin2 DE client convention).
+// German noun capitalisation is authored here — no runtime case transforms anywhere (see ~line 57).
+// Omitted keys fall back to English (see resolveChrome). Keys left untranslated are noted in the
+// PR body; any key the translator is unsure of should be omitted rather than guessed badly.
+//
+// Section comments mirror the EN table so a human reviewer can vet section by section.
+const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
+  // ---- DockBar ----
+  "dock.drag":            "verschieben",
+  "dock.skills":          "Skills",
+  "dock.cooldowns":       "Dungeon-Cooldowns",
+  "dock.expiring":        "Ablaufende Items",
+  "dock.routine":         "Routine",
+  "dock.settings":        "Einstellungen",
+  "dock.quit":            "Dragon's Aid beenden",
+
+  // ---- TimerScreen ----
+  "timer.noSkills":       "keine Skills — füge welche in ⚙ Einstellungen hinzu",
+  "timer.back":           "zurück zu Dungeons",
+  "timer.hintLeftClick":  "Linksklick",
+  "timer.hintStopStart":  "stop / start",
+  "timer.hintRightClick": "Rechtsklick",
+  "timer.hintReset":      "zurücksetzen",
+
+  // ---- BossSelect ----
+  "bossSelect.title":     "DUNGEON WÄHLEN",
+
+  // ---- SequenceScreen ----
+  "sequence.back":                  "zurück zur Dungeon-Auswahl",
+  "sequence.switchToColumns":       "Zu Spalten wechseln (Phase 2)",
+  "sequence.switchToElements":      "Zu Elemente wechseln (Phase 1)",
+  "sequence.switchToColumnsTitle":  "zu Spalten wechseln (Phase 2)",
+  "sequence.switchToElementsTitle": "zu Elemente wechseln (Phase 1)",
+  "sequence.columnsLabel":          "Spalten",
+  "sequence.elementsLabel":         "Elemente",
+  "sequence.undo":                  "rückgängig",
+  "sequence.clear":                 "leeren",
+  "sequence.queenShift":            "Queen-Verschiebung",
+  "sequence.queenShiftTitle":       "Queen: Reihenfolge um eine Position verschieben (1·2·3·4 → 4·1·2·3)",
+  "sequence.empty":                 "oben tippen, um die Reihenfolge aufzuzeichnen — Chip antippen zum Abhaken",
+  "sequence.chipTitle":             "antippen wenn zerstört / geöffnet",
+  "sequence.titleElements":         "TEMPLUM · ELEMENTE",
+  "sequence.titleColumns":          "TEMPLUM · SPALTEN",
+
+  // ---- BossSettings ----
+  "boss.bossNamePlaceholder": "Boss-Name",
+  "boss.deleteBoss":          "Boss löschen",
+  "boss.colSkill":            "SKILL",
+  "boss.colSec":              "SEK",
+  "boss.colSound":            "SOUND",
+  "boss.colHotkey":           "HOTKEY",
+  "boss.skillNamePlaceholder": "Name",
+  "boss.durationTitle":       "Dauer (Sekunden)",
+  "boss.soundTitle":          "Sound für die Hinweise dieses Skills",
+  "boss.previewSound":        "Sound vorhören",
+  "boss.hotkeyTitle":         "Hotkey zum Zurücksetzen — klicken, dann Taste drücken (Esc löscht)",
+  "boss.removeSkill":         "Skill entfernen",
+  "boss.noSkills":            "noch keine Skills",
+  "boss.addSkill":            "+ SKILL HINZUFÜGEN",
+
+  // ---- CooldownSettings ----
+  "cooldown.title":           "COOLDOWNS",
+  "cooldown.colName":         "NAME",
+  "cooldown.colTag":          "TAG",
+  "cooldown.colDuration":     "DAUER",
+  "cooldown.namePlaceholder": "Name",
+  "cooldown.tagPlaceholder":  "Tag",
+  "cooldown.tagTitle":        "Kurzbezeichnung im Strip (aus dem Namen abgeleitet; bearbeitbar)",
+  "cooldown.durationTitle":   "Dauer (Stunden / Minuten)",
+  "cooldown.removeCooldown":  "Cooldown entfernen",
+  "cooldown.noCooldowns":     "noch keine Cooldowns",
+  "cooldown.addCooldown":     "+ COOLDOWN HINZUFÜGEN",
+
+  // ---- RecurringSettings ----
+  "recurring.colName":        "NAME",
+  "recurring.colDuration":    "DAUER",
+  "recurring.namePlaceholder": "Name",
+  "recurring.durationTitle":  "Dauer (Tage / Stunden / Minuten)",
+  "recurring.removeItem":     "Item entfernen",
+  "recurring.titleItems":     "ABLAUFENDE ITEMS",
+  "recurring.titleRoutine":   "ROUTINE",
+  "recurring.addItem":        "+ ITEM HINZUFÜGEN",
+  "recurring.addRoutine":     "+ ROUTINE HINZUFÜGEN",
+  "recurring.noItems":        "noch keine ablaufenden Items",
+  "recurring.noRoutine":      "noch keine Routine-Items",
+
+  // ---- CooldownPicker ----
+  "picker.startCooldown":     "Cooldown starten",
+  "picker.hint":              "scrollen zum Ändern der Zeit",
+  "picker.itemTitle":         "klicken zum Starten · scrollen zum Anpassen",
+
+  // ---- CooldownStrip ----
+  "cooldownStrip.pillHint":   "Linksklick neu starten · Rechtsklick löschen",
+
+  // ---- ExpiringAccordion ----
+  "expiring.empty":           "noch keine ablaufenden Items",
+  "expiring.refresh":         "erneuern — neuen vollen Zyklus ab jetzt stempeln",
+  "expiring.start":           "starten — vollen Zyklus ab jetzt stempeln",
+
+  // ---- RoutineAccordion ----
+  "routine.empty":            "noch keine Routine-Items",
+  "routine.sectionBooks":     "Skillbücher",
+  "routine.sectionLanguages": "Sprachen",
+  "routine.sectionChores":    "Hilfsmittel",
+  "routine.readSuccessReady": "Lesen erfolgreich — Stufe erhöhen und 24h-Gate neu stempeln",
+  "routine.readSuccessEarly": "jetzt gelesen (Cooldown übersprungen) — Stufe erhöhen und ab jetzt neu stempeln",
+  "routine.readFailReady":    "Lesen fehlgeschlagen — Buch verbrannt, keine Stufenerhöhung; 24h-Gate neu stempeln",
+  "routine.readFailEarly":    "jetzt gelesen (Cooldown übersprungen) aber fehlgeschlagen — Buch verbrannt, keine Stufenerhöhung; ab jetzt neu stempeln",
+  "routine.markDoneReady":    "erledigt — vollen Zyklus ab jetzt neu stempeln",
+  "routine.markDoneEarly":    "früh erledigt — ab jetzt neu stempeln (Wartezeit verfällt)",
+
+  // ---- RungCurtain ----
+  "rung.triggerTitle":        "aktuelle Stufe festlegen",
+  "rung.filterPlaceholder":   "Stufen filtern…",
+  "rung.filterAriaLabel":     "Stufen filtern",
+  "rung.noMatch":             "kein Treffer",
+
+  // ---- CharacterSwitcher ----
+  "char.activeCharacterTitle":  "aktiver Charakter",
+  "char.frozenTitle":           "Eingefroren — abonniere erneut, um diesen Charakter zu nutzen",
+  "char.editTitle":             "bearbeiten / klassifizieren",
+  "char.editFrozenTitle":       "eingefroren — abonniere erneut zum Bearbeiten",
+  "char.deleteTitle":           "löschen",
+  "char.deleteFrozenTitle":     "eingefroren — abonniere erneut zum Verwalten",
+  "char.deleteOnlyTitle":       "der einzige Charakter kann nicht gelöscht werden",
+  "char.newCharacter":          "+ Neuer Charakter",
+  "char.addWithPro":            "✦ Charaktere mit Pro hinzufügen",
+
+  // ---- CharacterWizard ----
+  "wizard.newCharacter":    "NEUER CHARAKTER",
+  "wizard.editCharacter":   "CHARAKTER BEARBEITEN",
+  "wizard.cancel":          "Abbrechen",
+  "wizard.namePlaceholder": "Charaktername…",
+  "wizard.nameAriaLabel":   "Charaktername",
+  "wizard.back":            "← Zurück",
+  "wizard.next":            "Weiter →",
+  "wizard.save":            "Speichern",
+  "wizard.create":          "Erstellen",
+
+  // ---- SubscribeScreen ----
+  // Short UI labels translated; long prose lede strings omitted (English fallback).
+  "subscribe.title":         "DRAGONSAID PRO",
+  "subscribe.planAriaLabel": "Abonnement-Plan",
+  "subscribe.bestValue":     "BESTES ANGEBOT",
+  "subscribe.planAnnual":    "Jährlich",
+  "subscribe.planMonthly":   "Monatlich",
+  "subscribe.startTrial":    "7-tägige kostenlose Testversion starten",
+  "subscribe.done":          "Fertig",
+  "subscribe.notNow":        "Nicht jetzt",
+  "subscribe.resubscribe":   "Erneut abonnieren",
+  "subscribe.subscribe":     "Abonnieren",
+  "subscribe.orSubscribeNow": "oder jetzt abonnieren",
+
+  // ---- UpgradeBanner ----
+  "banner.trialLabel":   "✦ Pro-Testversion aktiv",
+  "banner.trialCta":     "Pro behalten",
+  "banner.lapsedLabel":  "✦ Pro pausiert — dein Stall ist eingefroren",
+  "banner.lapsedCta":    "Erneut abonnieren",
+  "banner.neverLabel":   "✦ Dragon's Aid Pro freischalten",
+  "banner.neverCta":     "Upgraden",
+
+  // ---- CapNudge ----
+  "cap.seePro":    "Pro ansehen",
+  "cap.dismiss":   "Schließen",
+
+  // ---- SettingsApp ----
+  "settings.title":           "EINSTELLUNGEN",
+  "settings.resetToDefaults": "auf Standardwerte zurücksetzen",
+  "settings.resetConfirm":    "Alle Bosse, Skills, Cooldowns und Items auf Standardwerte zurücksetzen?",
+  "settings.close":           "schließen",
+  "settings.tabDungeons":     "Dungeons",
+  "settings.tabCooldowns":    "Cooldowns",
+  "settings.tabItems":        "Items",
+  "settings.tabRoutine":      "Routine",
+  "settings.tabLanguage":     "Sprache",
+  "settings.addBoss":         "+ BOSS HINZUFÜGEN",
+  "settings.closeTitle":      "Einstellungen schließen",
+
+  // ---- LocaleSettings ----
+  "locale.title":  "SPRACHE",
+  "locale.hint":   "Inhaltsnamen werden in der gewählten Sprache angezeigt. Selbst eingetragene Freitextnamen werden nie geändert.",
+
+  // ---- BackupSection ----
+  "backup.export":   "⤓ BACKUP EXPORTIEREN",
+  "backup.import":   "⤒ BACKUP IMPORTIEREN",
+  "backup.exported": "Backup exportiert.",
+  "backup.imported": "Backup importiert.",
+  "backup.invalid":  "Diese Datei ist kein gültiges Backup — nichts wurde geändert.",
+};
+
+/**
+ * Per-locale tables: `en` is complete; every other locale is `Partial` with English fallback.
+ * Keyed by `Locale` (not `string`) so adding a locale to the union without a chrome table — or
+ * typo-ing its key here — is a compile error, matching the exhaustiveness `contentCatalog.ts`
+ * already gets from its own `Record<Locale, …>` TABLES.
+ */
+const TABLES: Record<Locale, Partial<ChromeTable>> & { en: ChromeTable } = {
   en: EN,
-  // Slice 5 adds: de: DE_PARTIAL, etc.
+  de: DE_PARTIAL,
 };
 
 /**
@@ -246,14 +442,15 @@ const TABLES: Record<string, Record<string, string>> & { en: ChromeTable } = {
  * any key present in the English table, which is every `ChromeKey`). Pure: exported so tests
  * can drive the fallback path with stub tables before a second locale ships.
  */
-export function resolveChrome(tables: Record<string, Record<string, string>>, key: string, locale: string): string {
+export function resolveChrome(tables: Record<string, Partial<Record<string, string>>>, key: string, locale: string): string {
   return tables[locale]?.[key] ?? tables["en"]?.[key] ?? key;
 }
 
 /**
  * Resolve a UI chrome string in `locale`. Falls back to English when the locale lacks the key
- * (so a partially-authored locale never renders blank). Only `en` ships until Slice 5; the
- * signature is intentionally two-arg (no default) so a new call site can't silently un-localize.
+ * (so a partially-authored locale never renders blank — `de` deliberately omits the long prose
+ * strings). The signature is intentionally two-arg (no default) so a new call site can't
+ * silently un-localize.
  *
  * For game content (boss/ability/item names) use `displayName(catalogKey, locale)` in
  * `contentCatalog.ts` — these are separate concerns and must NOT share a table.

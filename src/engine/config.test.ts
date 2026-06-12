@@ -97,8 +97,8 @@ describe("makeConfig", () => {
     // examples-not-gospel defaults: name, duration, kind (no tag — recurring items carry none).
     // Deadlines (♻ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
     expect(rec(c).map((r) => [r.name, r.durationMs, r.kind])).toEqual([
-      ["Snow Wolf", 3 * D, "deadline"],
-      ["Costume of Flame", 14 * D, "deadline"],
+      ["Alastor Pet", 3 * D, "deadline"],
+      ["White Navy Uniform Costume", 14 * D, "deadline"],
       ["Battle Horse", 18 * H, "deadline"],
       ["Skill Books", 24 * H, "gate"],
       ["Transformation", 24 * H, "gate"],
@@ -134,7 +134,7 @@ describe("makeConfig", () => {
     // ladderId is pure presentation (like `kind`): the deadlines have no rank; the thirteen gates
     // share the five structures — transformation across four defs, language across three.
     expect(rec(c).map((r) => r.ladderId)).toEqual([
-      undefined, undefined, undefined, // Snow Wolf, Costume of Flame, Battle Horse (deadlines)
+      undefined, undefined, undefined, // Alastor Pet, White Navy Uniform Costume, Battle Horse (deadlines)
       "class-skill", // Skill Books
       "transformation", "transformation", "transformation", "transformation", // Transformation/Inspiration/Charisma/Mining
       "leadership", // Leadership
@@ -635,7 +635,7 @@ describe("markRecurring (refresh / start gesture)", () => {
 
   it("refreshes a running def in place, clearing its alarm", () => {
     const c = makeConfig();
-    const def = rec(c)[0]; // Snow Wolf, 3 days
+    const def = rec(c)[0]; // Alastor Pet, 3 days
     const started = markRecurring(c, def.id, 0);
     // fast-forward into the alarm window by re-reading the running instance near its expiry
     const r = recRun(started)[0];
@@ -747,7 +747,7 @@ describe("setRung (set-rung curtain, #46)", () => {
   it("is a no-op for an unknown def, a plain gate, or a label not on the ladder", () => {
     const c = makeConfig();
     expect(setRung(c, "recurring-999", "M4")).toBe(c); // unknown def
-    expect(setRung(c, rec(c)[0].id, "M4")).toBe(c); // Snow Wolf — a deadline, no ladder
+    expect(setRung(c, rec(c)[0].id, "M4")).toBe(c); // Alastor Pet — a deadline, no ladder
     expect(setRung(c, books(c).id, "P")).toBe(c); // P isn't a rung on the class-skill ladder (caps at G1)
   });
 });
@@ -896,7 +896,7 @@ describe("classifyCharacter", () => {
     const gates = ch.recurring.filter((d) => d.kind === "gate");
     const deadlines = ch.recurring.filter((d) => d.kind === "deadline");
     expect(gates.map((d) => d.name)).toEqual(subsetFor("Jinno", "Warrior", ["Body"]).map((p) => p.name));
-    expect(deadlines.map((d) => d.name)).toEqual(["Snow Wolf", "Costume of Flame", "Battle Horse"]);
+    expect(deadlines.map((d) => d.name)).toEqual(["Alastor Pet", "White Navy Uniform Costume", "Battle Horse"]);
   });
 
   it("re-seeds the gates off recurringSeq while deadline ids stay stable", () => {

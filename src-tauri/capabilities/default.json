@@ -16,6 +16,7 @@
     "core:window:allow-outer-position",
     "core:window:allow-outer-size",
     "core:window:allow-current-monitor",
+    "os:allow-locale",
     "store:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",

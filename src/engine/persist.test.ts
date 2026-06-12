@@ -329,19 +329,19 @@ describe("v1 → v2 migration (default-character wrap)", () => {
   });
 
   it("drops a malformed recurring entry + legacy tag while migrating, without nuking the rest", () => {
-    // "Snow Wolf" is seeded, so the v3 migration backfills its catalogKey — include it in the expectation.
+    // "Alastor Pet" is seeded, so the v3 migration backfills its catalogKey — include it in the expectation.
     const expected = {
       id: "recurring-1",
-      name: "Snow Wolf",
+      name: "Alastor Pet",
       durationMs: 259_200_000,
       kind: "deadline",
-      catalogKey: recurringKey("Snow Wolf"),
+      catalogKey: recurringKey("Alastor Pet"),
     };
     const payload = {
       version: 1,
       bosses: serialize(makeConfig()).bosses,
       recurring: [
-        { id: "recurring-1", name: "Snow Wolf", tag: "Sno", durationMs: 259_200_000, kind: "deadline" }, // legacy tag stripped
+        { id: "recurring-1", name: "Alastor Pet", tag: "Ala", durationMs: 259_200_000, kind: "deadline" }, // legacy tag stripped
         { id: "recurring-2", name: "Bad kind", durationMs: 1000, kind: "weekly" }, // not gate|deadline → dropped
         { id: "recurring-3", name: "No duration", kind: "gate" }, // missing durationMs → dropped
       ],
@@ -468,7 +468,7 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
         builds: [],
         recurring: [
           // seeded recurring — no catalogKey on disk
-          { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+          { id: "recurring-1", name: "Alastor Pet", durationMs: 259_200_000, kind: "deadline" },
           { id: "recurring-4", name: "Skill Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill" },
           { id: "recurring-9", name: "Leadership", durationMs: 86_400_000, kind: "gate", ladderId: "leadership" },
         ],
@@ -490,10 +490,10 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
   it("backfills the correct catalogKey onto seeded recurring defs by name-match", () => {
     const restored = deserialize(v2BlobWithSeededDefs());
     const recs = rec(restored);
-    const snowWolf = recs.find((d) => d.name === "Snow Wolf")!;
+    const alastor = recs.find((d) => d.name === "Alastor Pet")!;
     const skillBooks = recs.find((d) => d.name === "Skill Books")!;
     const leadership = recs.find((d) => d.name === "Leadership")!;
-    expect(snowWolf.catalogKey).toBe(recurringKey("Snow Wolf")); // "recurring.snow-wolf"
+    expect(alastor.catalogKey).toBe(recurringKey("Alastor Pet")); // "recurring.alastor-pet"
     expect(skillBooks.catalogKey).toBe(recurringKey("Skill Books")); // "recurring.skill-books"
     expect(leadership.catalogKey).toBe(recurringKey("Leadership")); // "recurring.leadership"
   });
@@ -529,7 +529,7 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
           builds: [],
           recurring: [
             // seeded — gets a key
-            { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+            { id: "recurring-1", name: "Alastor Pet", durationMs: 259_200_000, kind: "deadline" },
             // user-created — NOT in seed, must stay as-is
             { id: "recurring-99", name: "My Custom Chore", durationMs: 86_400_000, kind: "gate" },
           ],
@@ -550,7 +550,7 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
 
     // seeded one still gets its key
     expect(restored.cooldowns.find((d) => d.name === "Hydra")!.catalogKey).toBe(cooldownKey("Hydra"));
-    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
+    expect(rec(restored).find((d) => d.name === "Alastor Pet")!.catalogKey).toBe(recurringKey("Alastor Pet"));
   });
 
   it("ladder progress (rung position) and Biologist stage counts survive the migration unchanged", () => {
@@ -593,8 +593,8 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
           name: DEFAULT_CHARACTER_NAME,
           builds: [],
           recurring: [
-            { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" }, // seeded
-            { id: "recurring-2", name: "Costume of Flame", durationMs: 1_209_600_000, kind: "deadline" }, // seeded
+            { id: "recurring-1", name: "Alastor Pet", durationMs: 259_200_000, kind: "deadline" }, // seeded
+            { id: "recurring-2", name: "White Navy Uniform Costume", durationMs: 1_209_600_000, kind: "deadline" }, // seeded
             { id: "recurring-3", name: "My Pet", durationMs: 86_400_000, kind: "deadline" }, // user
             { id: "recurring-4", name: "Skill Books", durationMs: 86_400_000, kind: "gate", ladderId: "class-skill" }, // seeded
             { id: "recurring-5", name: "Biologist", durationMs: 79_200_000, kind: "gate", ladderId: "biologist" }, // seeded
@@ -619,8 +619,8 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
     expect(userCd.name).toBe("Guild Dungeon");
 
     // seeded recurring defs gain keys
-    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
-    expect(rec(restored).find((d) => d.name === "Costume of Flame")!.catalogKey).toBe(recurringKey("Costume of Flame"));
+    expect(rec(restored).find((d) => d.name === "Alastor Pet")!.catalogKey).toBe(recurringKey("Alastor Pet"));
+    expect(rec(restored).find((d) => d.name === "White Navy Uniform Costume")!.catalogKey).toBe(recurringKey("White Navy Uniform Costume"));
     expect(rec(restored).find((d) => d.name === "Skill Books")!.catalogKey).toBe(recurringKey("Skill Books"));
     expect(rec(restored).find((d) => d.name === "Biologist")!.catalogKey).toBe(recurringKey("Biologist"));
 
@@ -644,7 +644,7 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
       cooldowns: [{ id: "cooldown-1", name: "Hydra", tag: "Hyd", durationMs: 900_000 }],
       running: [],
       recurring: [
-        { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline" },
+        { id: "recurring-1", name: "Alastor Pet", durationMs: 259_200_000, kind: "deadline" },
         { id: "recurring-99", name: "My Chore", durationMs: 86_400_000, kind: "gate" }, // user
       ],
       recurringRunning: [],
@@ -652,7 +652,7 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
     };
     const restored = deserialize(legacyV1WithSeeded);
     expect(restored.cooldowns.find((d) => d.name === "Hydra")!.catalogKey).toBe(cooldownKey("Hydra"));
-    expect(rec(restored).find((d) => d.name === "Snow Wolf")!.catalogKey).toBe(recurringKey("Snow Wolf"));
+    expect(rec(restored).find((d) => d.name === "Alastor Pet")!.catalogKey).toBe(recurringKey("Alastor Pet"));
     const userChore = rec(restored).find((d) => d.name === "My Chore")!;
     expect(userChore.catalogKey).toBeUndefined();
     expect(userChore.name).toBe("My Chore");
@@ -669,7 +669,42 @@ describe("v2 → v3 migration: backfill catalogKey by name-match (#82)", () => {
     const hydra = restored.cooldowns.find((d) => d.name === "Hydra")!;
     expect(hydra.catalogKey).toBe(cooldownKey("Hydra")); // correct key, set once
     // Seeded recurring keys too
-    const snowWolf = rec(restored).find((d) => d.name === "Snow Wolf")!;
-    expect(snowWolf.catalogKey).toBe(recurringKey("Snow Wolf"));
+    const alastor = rec(restored).find((d) => d.name === "Alastor Pet")!;
+    expect(alastor.catalogKey).toBe(recurringKey("Alastor Pet"));
+  });
+
+  it("drops a stale catalogKey from a since-replaced seed (never renders a raw key)", () => {
+    // "Snow Wolf" / "Costume of Flame" were seed EXAMPLES replaced by Alastor Pet / White Navy
+    // Uniform Costume (2026-06-11) — an item swap, not a respelling, so there is deliberately no
+    // legacy alias: the def keeps its frozen name as plain user content, and its dead key is
+    // stripped — otherwise resolveDisplayName would fall through both tables and render the raw
+    // "recurring.snow-wolf" string in the overlay.
+    const payload = {
+      version: 3,
+      bosses: serialize(makeConfig()).bosses,
+      cooldowns: [
+        { id: "cooldown-9", name: "Old Boss", tag: "Old", durationMs: 900_000, catalogKey: "cooldown.old-boss" },
+      ],
+      running: [],
+      characters: [
+        {
+          id: "character-1",
+          name: DEFAULT_CHARACTER_NAME,
+          builds: [],
+          recurring: [
+            { id: "recurring-1", name: "Snow Wolf", durationMs: 259_200_000, kind: "deadline", catalogKey: "recurring.snow-wolf" },
+          ],
+          recurringRunning: [],
+          recurringProgress: [],
+        },
+      ],
+      activeCharacterId: "character-1",
+    };
+    const restored = deserialize(payload);
+    const wolf = rec(restored).find((d) => d.name === "Snow Wolf")!;
+    expect(wolf.catalogKey).toBeUndefined(); // dead key stripped — now plain user content
+    expect(wolf.name).toBe("Snow Wolf"); // frozen name verbatim
+    const oldBoss = restored.cooldowns.find((d) => d.name === "Old Boss")!;
+    expect(oldBoss.catalogKey).toBeUndefined(); // same guard on the cooldown side
   });
 });

@@ -1,10 +1,8 @@
-// Tests for the UI chrome resolver (src/engine/chrome.ts, slice #84).
+// Tests for the UI chrome resolver (src/engine/chrome.ts, slice #84 / #85).
 //
-// The public API is `t(key, locale)`. Because `Locale = "en"` is a single-member union until
-// Slice 5, the fallback-to-English path must be exercised through the exported pure core
-// `resolveChrome(tables, key, locale)` — the same approach `locale.test.ts` used to test a
-// contract that couldn't be fully exercised with only one live locale. A comment marks where
-// the real cross-locale test lands in Slice 5.
+// The public API is `t(key, locale)`. Slice 5 ships the real `de` table, so cross-locale tests
+// now drive `t()` directly (rather than the pure-core stub approach used before "de" landed).
+// The fallback-to-English path is also exercised through `resolveChrome` with stub tables.
 
 import { describe, expect, it } from "vitest";
 import { t, resolveChrome } from "./chrome";
@@ -46,14 +44,54 @@ describe("t(key, locale)", () => {
   });
 });
 
+// ---- t() cross-locale — real de table (Slice 5) ----
+
+describe("t(key, 'de') — German chrome table", () => {
+  it("returns the German string for dock.settings when locale is 'de'", () => {
+    // "Einstellungen" is the German translation of "settings" in the DE table.
+    expect(t("dock.settings", "de")).toBe("Einstellungen");
+  });
+
+  it("returns the German string for dock.skills when locale is 'de'", () => {
+    expect(t("dock.skills", "de")).toBe("Skills");
+  });
+
+  it("returns the German string for dock.quit when locale is 'de'", () => {
+    expect(t("dock.quit", "de")).toBe("Dragon's Aid beenden");
+  });
+
+  it("falls back to the English string for a key not in the DE table", () => {
+    // subscribe.ledeTrial is a long prose string deliberately omitted from the DE partial table;
+    // t() must return the English string (not the raw key, not empty).
+    expect(t("subscribe.ledeTrial", "de")).toBe(t("subscribe.ledeTrial", "en"));
+  });
+
+  it("returns non-empty strings for all known keys when locale is 'de' (en fallback covers gaps)", () => {
+    // Every ChromeKey must resolve to a non-empty string under 'de' — either from the DE table
+    // or from the English fallback. The partial DE table must never leave a key blank.
+    const spot: ChromeKey[] = [
+      "dock.skills",
+      "dock.cooldowns",
+      "dock.expiring",
+      "dock.routine",
+      "dock.settings",
+      "dock.quit",
+      "settings.title",
+      "settings.resetToDefaults",
+      "wizard.newCharacter",
+      "wizard.cancel",
+    ];
+    for (const key of spot) {
+      expect(t(key, "de"), `key "${key}" should resolve to a non-empty string under de`).toBeTruthy();
+    }
+  });
+});
+
 // ---- resolveChrome() — the pure fallback core ----
-// HONEST SCOPE: `Locale = "en"` is a single-member union until Slice 5, so a real en→de
-// transition is unwritable through `t()` today. We drive `resolveChrome` directly with a
-// typed cast to simulate a partial locale table. When `de` lands (Slice 5), add a test that
-// `t(key, "de")` returns the German string when present, and falls back for missing keys.
 
 describe("resolveChrome() — pure fallback core", () => {
-  // Simulate what Slice 5 will add: a partial 'de' table with only one key translated.
+  // NOT pre-Slice-5 scaffolding — keep these: stub tables cover the paths the typed `t()` API
+  // can't reach (a locale with NO table at all, an unknown key), so they stay after `de` landed.
   const EN_STUB = { "foo.bar": "Hello", "foo.baz": "World" } as Record<string, string>;
   // A partial table: only "foo.bar" is translated in this stub locale.
   const PARTIAL_STUB = { "foo.bar": "Hallo" } as Record<string, string>;

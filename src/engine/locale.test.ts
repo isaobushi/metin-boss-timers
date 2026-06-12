@@ -36,9 +36,13 @@ describe("pickLocale", () => {
     expect(pickLocale("EN-AU")).toBe("en");
   });
 
-  it("falls back to English for an unsupported language (no German table yet)", () => {
-    expect(pickLocale("de")).toBe("en");
-    expect(pickLocale("de-DE")).toBe("en");
+  it('maps "de" to "de" (German is now a supported locale — Slice 5)', () => {
+    expect(pickLocale("de")).toBe("de");
+    expect(pickLocale("de-DE")).toBe("de");
+    expect(pickLocale("de-AT")).toBe("de");
+  });
+
+  it("falls back to English for an unsupported language", () => {
     expect(pickLocale("fr-FR")).toBe("en");
     expect(pickLocale("zh-CN")).toBe("en");
   });
@@ -93,22 +97,34 @@ describe("locale persist round-trip", () => {
 });
 
 // ---- locale is presentation-only: the resolver answers per-locale, stored data never moves ----
-// HONEST SCOPE: `Locale = "en"` is a single-member union until Slice 5, so a real en→de
-// transition is unwritable here — these tests pin the CONTRACT (locale lives beside, never
-// inside, user data; names resolve at render time through the catalog), not an observable
-// re-resolution. When a second locale lands, add the before/after test: resolveDisplayName
-// returns a different string for the same key under the new locale.
+// With Slice 5 ("de" lands) the cross-locale re-resolution test is now real: the same catalogKey
+// resolves to a DIFFERENT display string under "en" vs "de" (the DE content table carries the
+// transcribed official-client German names). The CONTRACT is that stored data (the `name`
+// fallback, running timers, ladder progress) is never touched — only the locale field changes,
+// and the resolver picks up the difference at render time.
 
 describe("locale is presentation-only — writing the locale field never touches stored data", () => {
-  it("resolveDisplayName returns the same English string for any supported locale (only en exists)", () => {
-    // Until Slice 5 all locales map to the same English strings — so "switching" is a no-op visually,
-    // but the wiring is tested: the locale argument flows through correctly.
+  it("resolveDisplayName returns the English string under 'en'", () => {
     const key = cooldownKey("Hydra");
     expect(resolveDisplayName({ catalogKey: key, name: "Hydra" }, "en")).toBe("Hydra");
   });
 
   it("a user-created def (no catalogKey) is always rendered verbatim regardless of locale", () => {
     expect(resolveDisplayName({ name: "My Custom Boss" }, "en")).toBe("My Custom Boss");
+    expect(resolveDisplayName({ name: "My Custom Boss" }, "de")).toBe("My Custom Boss");
+  });
+
+  it("cross-locale re-resolution: a seeded item's displayName changes when locale flips en→de and back", () => {
+    // "Battle Horse" has a genuinely divergent DE transcription, so this pins the real contract:
+    // the SAME stored def renders differently per locale, and flipping back restores English.
+    // (A same-in-both-tables key like Hydra would pass even if the locale argument were ignored.)
+    const key = recurringKey("Battle Horse");
+    const nameEn = resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "en");
+    const nameDe = resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "de");
+    expect(nameEn).toBe("Battle Horse");
+    expect(nameDe).not.toBe(nameEn); // the DE table answered, not the English fallback
+    // Flip back to English — same as before.
+    expect(resolveDisplayName({ catalogKey: key, name: "Battle Horse" }, "en")).toBe(nameEn);
   });
 
   it("recurring defs are read-only for localization (resolution happens at render, not in Config)", () => {
@@ -117,7 +133,6 @@ describe("locale is presentation-only — writing the locale field never touches
     const c = makeConfig();
     const defs = activeRecurring(c);
     const first = defs[0];
-    // Resolving in "en" for any locale returns the English name (only en exists now).
     expect(resolveDisplayName(first, "en")).toBe(first.name);
     // The def itself is unchanged — localization is presentation-only.
     expect(first.name).toBe(activeRecurring(c)[0].name);
@@ -131,8 +146,8 @@ describe("locale is presentation-only — writing the locale field never touches
     const progressBefore = activeRecurringProgress(c);
     expect(progressBefore.length).toBe(1); // one rung advancement recorded
 
-    // Rewrite the `locale` field on Config (en→en — the only writable value today).
-    const switched = { ...c, locale: "en" as const };
+    // Rewrite the `locale` field on Config (en→de).
+    const switched = { ...c, locale: "de" as const };
     // Progress map is unchanged.
     expect(activeRecurringProgress(switched)).toEqual(progressBefore);
   });
@@ -144,7 +159,7 @@ describe("locale is presentation-only — writing the locale field never touches
     const runningBefore = c.characters.find((ch) => ch.id === c.activeCharacterId)!.recurringRunning;
 
     // Rewriting the locale field does not disturb the running set.
-    const switched = { ...c, locale: "en" as const };
+    const switched = { ...c, locale: "de" as const };
     expect(switched.characters.find((ch) => ch.id === switched.activeCharacterId)!.recurringRunning)
       .toEqual(runningBefore);
   });
@@ -155,7 +170,7 @@ describe("locale is presentation-only — writing the locale field never touches
     const def = activeRecurring(c).find((d) => d.catalogKey === recurringKey("Skill Books"))!;
     const nameBefore = def.name;
 
-    const switched = { ...c, locale: "en" as const };
+    const switched = { ...c, locale: "de" as const };
     const defAfter = activeRecurring(switched).find((d) => d.id === def.id)!;
     expect(defAfter.name).toBe(nameBefore);
   });

@@ -5,6 +5,7 @@ import {
   SEEDED_RECURRING_KEY_BY_NAME,
   SUPPORTED_LOCALES,
   displayName,
+  localeContentKeys,
   resolveDisplayName,
   seededContentKeys,
 } from "./contentCatalog";
@@ -55,6 +56,16 @@ describe("completeness guard", () => {
       }
     }
   });
+
+  it("every shipped locale's table carries EXACTLY the seeded key set (no gaps, no orphans)", () => {
+    // The resolve-time English fallback makes a missing key invisible above (displayName still
+    // returns a truthy non-key string), so this is the assertion that actually pins completeness:
+    // a forgotten key after a seed addition, or a mis-slugged orphan, fails here — not on a player.
+    const expected = seededContentKeys().sort();
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(localeContentKeys(locale).sort(), `key set @ ${locale}`).toEqual(expected);
+    }
+  });
 });
 
 describe("rung-label scoping (#81 decision)", () => {
@@ -86,9 +97,9 @@ describe("frozen-name guard (#82)", () => {
 
   it("the seeded recurring names are exactly the frozen set", () => {
     expect([...SEEDED_RECURRING_KEY_BY_NAME.keys()].sort()).toEqual([
-      "Ambush", "Ambush Boost", "Arrow Shower", "Astral Light", "Attack Up", "Aura of the Sword",
-      "Bash", "Battle Horse", "Berserk", "Biologist", "Blessing", "Charisma", "Chunjo Language",
-      "Cicatrix", "Costume of Flame", "Crimson Wolf Soul", "Cure", "Dark Orb", "Dark Strike",
+      "Alastor Pet", "Ambush", "Ambush Boost", "Arrow Shower", "Astral Light", "Attack Up",
+      "Aura of the Sword", "Bash", "Battle Horse", "Berserk", "Biologist", "Blessing", "Charisma",
+      "Chunjo Language", "Cicatrix", "Crimson Wolf Soul", "Cure", "Dark Orb", "Dark Strike",
       "Dark Strike Boost", "Dash", "Death Wave", "Dispel", "Dragon Swirl", "Dragon's Aid",
       "Dragon's Roar", "Earthquake", "Enchanted Blade", "Ethereal Shield", "Fast Attack", "Fear",
       "Feather Walk", "Finger Strike", "Finger Strike Boost", "Fire Arrow", "Fire Arrow Boost",
@@ -96,11 +107,11 @@ describe("frozen-name guard (#82)", () => {
       "Infernus", "Insidious Poison", "Inspiration", "Jinno Language", "Leadership", "Lethal Wave",
       "Life Force", "Lightning Claw", "Lightning Throw", "Meteor", "Mining", "Poison Arrow",
       "Poisonous Cloud", "Reflect", "Repetitive Shot", "Rolling Dagger", "Shinsoo Language",
-      "Shooting Dragon", "Shooting Dragon Boost", "Shred", "Skill Books", "Snow Wolf", "Spark",
+      "Shooting Dragon", "Shooting Dragon Boost", "Shred", "Skill Books", "Spark",
       "Spirit Strike", "Spirit Strike Boost", "Stealth", "Strong Body", "Stump", "Summon Lightning",
       "Summon Lightning Boost", "Swiftness", "Sword Orb", "Sword Spin", "Sword Spin Boost",
-      "Sword Strike", "Tempestus", "Three-Way Cut", "Transformation", "Ward Skill", "Wolf Pounce",
-      "Wolf's Breath", "Wolf's Breath Boost", "Wolf's Claw",
+      "Sword Strike", "Tempestus", "Three-Way Cut", "Transformation", "Ward Skill",
+      "White Navy Uniform Costume", "Wolf Pounce", "Wolf's Breath", "Wolf's Breath Boost", "Wolf's Claw",
     ]);
   });
 });

@@ -14,9 +14,9 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "./localeTypes";
  * Matching strategy (most-specific first):
  *   1. Exact match on the full tag (`"en"` → `"en"`).
  *   2. Language-only prefix match: strip the region subtag and retry
- *      (`"en-AU"` → `"en"`, `"de-DE"` → `"de"` once German lands).
+ *      (`"en-AU"` → `"en"`, `"de-DE"` → `"de"`).
  *
- * Only `en` is supported until Slice 5, so any non-English OS locale falls back to English.
+ * An OS locale outside `SUPPORTED_LOCALES` (currently `en` + `de`) falls back to English.
  * The pick function is written generically so it extends automatically as more locale tables
  * are added to `SUPPORTED_LOCALES`.
  */

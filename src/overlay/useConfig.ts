@@ -92,8 +92,12 @@ export function useConfig() {
       // never waits on the (slice 5) Tauri IPC round-trip, and as a functional updater so an edit or
       // cross-window broadcast landing during the await is preserved: only the locale field is written.
       // The seeded value persists via the normal change effect, so this runs at most once per install.
-      // Today `readOsLocale` is a stub returning "en" (deserialize's own default) — inert scaffolding
-      // until the real plugin-os call lands in slice 5.
+      // `readOsLocale` (real plugin-os since slice #85) never throws: it maps IPC failure — e.g.
+      // the web demo, which has no Tauri backend — to the English default inside the seam.
+      // KNOWN CAVEAT (accepted): a blob written by a #83/#84 dev build carries the stub-seeded
+      // locale "en", indistinguishable from a user choice, so the OS is never re-asked — those
+      // pre-release installs (dev machines only; nothing shipped) switch manually in Settings.
+      // Every post-#85 install hits the real OS read on first run.
       if (!raw || !(raw as Record<string, unknown>).locale) {
         const osLocale = await readOsLocale();
         if (!alive) return; // unmounted during the await — don't write into a dead instance

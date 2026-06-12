@@ -65,7 +65,7 @@ export type Config = {
   /**
    * The active content locale (PRD #77, slice #83). Persisted and switchable at runtime; the overlay
    * reads this to resolve seeded item display names through the content catalog. Defaults to `"en"`
-   * (the only locale with a content table until Slice 5); first-run is seeded from the OS language via
+   * (the guaranteed-complete fallback table); first-run is seeded from the OS language via
    * `overlay/osLocale.ts` with a clean English fallback.
    */
   locale: Locale;
@@ -130,8 +130,8 @@ export const COOLDOWN_SEED: ReadonlyArray<{ name: string; durationMs: number }> 
 // seeded ladder *structures* in `recurring.ts` (the rung table + caps), shared — transformation by
 // four defs, language by three. `ladderId` is pure presentation (like `kind`); the deadlines carry none.
 export const RECURRING_SEED: ReadonlyArray<{ name: string; durationMs: number; kind: RecurringKind; ladderId?: string }> = [
-  { name: "Snow Wolf", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
-  { name: "Costume of Flame", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
+  { name: "Alastor Pet", durationMs: 3 * MS_PER_DAY, kind: "deadline" }, // pet
+  { name: "White Navy Uniform Costume", durationMs: 14 * MS_PER_DAY, kind: "deadline" }, // costume
   { name: "Battle Horse", durationMs: 18 * MS_PER_HOUR, kind: "deadline" }, // mount
   { name: "Skill Books", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "class-skill" }, // 55 reads M1→G1; 20k EXP/read
   { name: "Transformation", durationMs: 24 * MS_PER_HOUR, kind: "gate", ladderId: "transformation" }, // 0→P = 40 (20 to M1)

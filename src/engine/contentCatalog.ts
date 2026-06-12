@@ -44,8 +44,173 @@ function buildEnglish(): Record<string, string> {
 
 const EN = buildEnglish();
 
+// ---- German content table (slice #85) ----
+// TRANSCRIBED, not translated: values come from the user's official-German-client worksheet
+// (de-transcription.md), cross-checked row by row against the Gameforge DE wiki — where the two
+// disagreed the user picked the wiki spelling. Every key from seededContentKeys() is listed
+// explicitly — the strict key-set guard in contentCatalog.test.ts fails CI on a missing or
+// orphaned key — and a human can vet each row.
+// TODO(#85): two values still await client transcription and are EXPLICIT entries carrying the
+// English spelling for now (not omitted-with-fallback — the strict guard requires every key):
+// recurring.alastor-pet and recurring.white-navy-uniform-costume (seed swap of 2026-06-11).
+const DE: Record<string, string> = {
+  // ---- Cooldowns (bosses) ----
+  "cooldown.hydra":             "Hydra",
+  "cooldown.razador":           "Razador",
+  "cooldown.nemere":            "Nemere",
+  "cooldown.meley":             "Meley",
+  "cooldown.balathor":          "Balathor",
+  "cooldown.northwind-war-chief": "Nordwind-Kriegshäuptling",
+
+  // ---- Recurring seed (deadline items) ----
+  "recurring.alastor-pet":      "Alastor Pet",
+  "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
+  "recurring.battle-horse":     "Kampfgaul",
+
+  // ---- Recurring seed (gate chores — universals) ----
+  "recurring.skill-books":      "Fertigkeitsbücher",
+  "recurring.transformation":   "Verwandlung",
+  "recurring.inspiration":      "Inspiration",
+  "recurring.charisma":         "Charisma",
+  "recurring.mining":           "Bergbau",
+  "recurring.leadership":       "Führung",
+  "recurring.jinno-language":   "Jinno-Sprache",
+  "recurring.chunjo-language":  "Chunjo-Sprache",
+  "recurring.shinsoo-language": "Shinsoo-Sprache",
+  "recurring.biologist":        "Biologe",
+
+  // ---- Catalog universals ----
+  "recurring.ward-skill":       "Bannkreis",
+
+  // ---- Warrior / Body ----
+  "recurring.aura-of-the-sword":  "Aura des Schwertes",
+  "recurring.berserk":            "Kampfrausch",
+  "recurring.dash":               "Sausen",
+  "recurring.sword-spin":         "Schwertwirbel",
+  "recurring.three-way-cut":      "Dreiwege-Schnitt",
+  "recurring.life-force":         "Lebenswille",
+  "recurring.sword-spin-boost":   "Schwertwirbel-Boost",
+  "recurring.earthquake":         "Erdbeben",
+
+  // ---- Warrior / Mental ----
+  "recurring.bash":               "Heftiges Schlagen",
+  "recurring.stump":              "Stampfer",
+  "recurring.sword-strike":       "Schwertschlag",
+  "recurring.sword-orb":          "Schwertzirkel",
+  "recurring.spirit-strike":      "Durchschlag",
+  "recurring.strong-body":        "Starker Körper",
+  "recurring.spirit-strike-boost": "Durchschlag-Boost",
+  // recurring.earthquake shared with Body — keyed once above
+
+  // ---- Ninja / Blade-Fight ----
+  "recurring.ambush":             "Hinterhalt",
+  "recurring.fast-attack":        "Blitzangriff",
+  "recurring.rolling-dagger":     "Degenwirbel",
+  "recurring.poisonous-cloud":    "Giftwolke",
+  "recurring.insidious-poison":   "Schleichendes Gift",
+  "recurring.stealth":            "Tarnung",
+  "recurring.ambush-boost":       "Hinterhalt-Boost",
+  "recurring.astral-light":       "Lichtsterne",
+
+  // ---- Ninja / Archery ----
+  "recurring.repetitive-shot":    "Wiederholter Schuss",
+  "recurring.arrow-shower":       "Pfeilregen",
+  "recurring.fire-arrow":         "Feuerpfeil",
+  "recurring.poison-arrow":       "Giftpfeil",
+  "recurring.spark":              "Funkenschlag",
+  "recurring.feather-walk":       "Federschreiten",
+  "recurring.fire-arrow-boost":   "Feuerpfeil-Boost",
+  "recurring.tempestus":          "Sturmschuss",
+
+  // ---- Sura / Weaponry ----
+  "recurring.finger-strike":      "Fingerschlag",
+  "recurring.hell-strike":        "Höllenstoß",
+  "recurring.dragon-swirl":       "Drachenwirbel",
+  "recurring.enchanted-blade":    "Verzauberte Klinge",
+  "recurring.fear":               "Furcht",
+  "recurring.dispel":             "Zauber aufheben",
+  "recurring.finger-strike-boost": "Fingerschlag-Boost",
+  "recurring.infernus":           "Feuergeist",
+
+  // ---- Sura / Black Magic ----
+  "recurring.dark-orb":           "Dunkler Stein",
+  "recurring.dark-strike":        "Dunkler Schlag",
+  "recurring.flame-strike":       "Flammenschlag",
+  "recurring.flame-spirit":       "Geist der Flamme",
+  // recurring.spirit-strike shared with Warrior Mental — keyed once above
+  "recurring.death-wave":         "Todeswelle",
+  "recurring.dark-strike-boost":  "Dunkler Schlag-Boost",
+  "recurring.lethal-wave":        "Dunkle Welle",
+
+  // ---- Shaman / Dragon ----
+  "recurring.dragon-s-roar":      "Drachengebrüll",
+  "recurring.shooting-dragon":    "Drachenschießen",
+  "recurring.flying-talisman":    "Fliegender Talisman",
+  "recurring.dragon-s-aid":       "Hilfe des Drachen",
+  "recurring.blessing":           "Segen",
+  "recurring.reflect":            "Reflektieren",
+  "recurring.shooting-dragon-boost": "Drachenschießen-Boost",
+  "recurring.meteor":             "Meteor",
+
+  // ---- Shaman / Healing ----
+  "recurring.cure":               "Kurieren",
+  "recurring.swiftness":          "Schnelligkeit",
+  "recurring.attack-up":          "Angriff+",
+  "recurring.lightning-claw":     "Blitzkralle",
+  "recurring.lightning-throw":    "Blitzwurf",
+  "recurring.summon-lightning":   "Blitz heraufbeschwören",
+  "recurring.summon-lightning-boost": "Blitz heraufbeschwören-Boost",
+  "recurring.ethereal-shield":    "Ätherschild",
+
+  // ---- Lycan / Instinct ----
+  "recurring.crimson-wolf-soul":  "Purpurwolfseele",
+  "recurring.indigo-wolf-soul":   "Indigowolfseele",
+  "recurring.shred":              "Zerreißen",
+  "recurring.wolf-s-breath":      "Atem des Wolfes",
+  "recurring.wolf-s-claw":        "Wolfsklaue",
+  "recurring.wolf-pounce":        "Wolfssprung",
+  "recurring.wolf-s-breath-boost": "Atem des Wolfes-Boost",
+  "recurring.cicatrix":           "Cicatrix",
+
+  // ---- Empires ----
+  "empire.shinsoo": "Shinsoo",
+  "empire.chunjo":  "Chunjo",
+  "empire.jinno":   "Jinno",
+
+  // ---- Races ----
+  "race.warrior": "Krieger",
+  "race.ninja":   "Ninja",
+  "race.sura":    "Sura",
+  "race.shaman":  "Schamane",
+  "race.lycan":   "Lykaner",
+
+  // ---- Builds (schools) ----
+  "build.body":        "Körper",
+  "build.mental":      "Mental",
+  "build.blade-fight": "Klinge",
+  "build.archery":     "Bogenschießen",
+  "build.weaponry":    "Waffen",
+  "build.black-magic": "Schwarze Magie",
+  "build.dragon":      "Drachen",
+  "build.healing":     "Heilung",
+  "build.instinct":    "Instinkt",
+
+  // ---- Biologist consignment items ----
+  "biologist.orc-tooth":            "Orkzahn",
+  "biologist.curse-book":           "Fluchsammlung",
+  "biologist.demon-s-keepsake":     "Dämonenandenken",
+  "biologist.ice-marble":           "Eisige Murmel",
+  "biologist.zelkova-branch":       "Zelkowazweig",
+  "biologist.tugyi-s-tablet":       "Tugyis Tafel",
+  "biologist.red-ghost-tree-branch": "Roter Geisterbaumzweig",
+  "biologist.leaders-notes":        "Anführer-Notizen",
+  "biologist.malevolence-jewel":    "Bosheitsjuwel",
+  "biologist.wisdom-jewel":         "Weisheitsjuwel",
+};
+
 const TABLES: Record<Locale, Record<string, string>> = {
   en: EN,
+  de: DE,
 };
 
 /**
@@ -70,6 +235,16 @@ export function resolveDisplayName(item: { catalogKey?: string; name: string }, 
 /** Every seeded content key (the keys of the English table) — the set the completeness guard checks. */
 export function seededContentKeys(): string[] {
   return Object.keys(EN);
+}
+
+/**
+ * The raw key set of one locale's content table — guard support only. The resolve-time English
+ * fallback in `displayName` means a missing key is INVISIBLE at runtime (the user silently gets
+ * English), so the strict guard in contentCatalog.test.ts compares each table's keys against
+ * `seededContentKeys()` directly: a gap or an orphaned (mis-slugged) key fails CI, not a player.
+ */
+export function localeContentKeys(locale: Locale): string[] {
+  return Object.keys(TABLES[locale]);
 }
 
 /**
