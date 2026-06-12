@@ -5,6 +5,7 @@
 // (per-locale) — a step carries only the keys, so the card resolves them like any other chrome.
 
 import type { ChromeKey } from "./chrome";
+import type { SettingsTab } from "./settingsLink";
 
 /**
  * The dock glyph a beat talks about — the slice-3 (#71) spotlight target. A superset of the
@@ -34,8 +35,12 @@ export type TourStep = {
    */
   panelToOpen: "skills" | "items" | "routine" | null;
   copy: { title: ChromeKey; body: ChromeKey };
-  /** The settings section the beat points at — slice 4 (#72) wires the real deep link. */
-  settingsDeepLink: string | null;
+  /**
+   * The settings tab the beat's "make it yours" nudge opens (slice 4, #72); null = no nudge
+   * (the framing beats have nothing to customize). The ⚙ beat lands on the default tab — its
+   * nudge IS the generic "go see settings", pointed without the tour entering the window.
+   */
+  settingsDeepLink: SettingsTab | null;
 };
 
 /**
@@ -46,10 +51,10 @@ export type TourStep = {
 export const TOUR_STEPS: readonly TourStep[] = [
   { id: "welcome",   dockSegment: null,        panelToOpen: null,      copy: { title: "tour.welcomeTitle",   body: "tour.welcomeBody" },   settingsDeepLink: null },
   { id: "dock",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.dockTitle",      body: "tour.dockBody" },      settingsDeepLink: null },
-  { id: "skills",    dockSegment: "skills",    panelToOpen: "skills",  copy: { title: "tour.skillsTitle",    body: "tour.skillsBody" },    settingsDeepLink: null },
-  { id: "cooldowns", dockSegment: "cooldowns", panelToOpen: null,      copy: { title: "tour.cooldownsTitle", body: "tour.cooldownsBody" }, settingsDeepLink: null },
-  { id: "items",     dockSegment: "items",     panelToOpen: "items",   copy: { title: "tour.itemsTitle",     body: "tour.itemsBody" },     settingsDeepLink: null },
-  { id: "routine",   dockSegment: "routine",   panelToOpen: "routine", copy: { title: "tour.routineTitle",   body: "tour.routineBody" },   settingsDeepLink: null },
-  { id: "settings",  dockSegment: "settings",  panelToOpen: null,      copy: { title: "tour.settingsTitle",  body: "tour.settingsBody" },  settingsDeepLink: null },
+  { id: "skills",    dockSegment: "skills",    panelToOpen: "skills",  copy: { title: "tour.skillsTitle",    body: "tour.skillsBody" },    settingsDeepLink: "dungeons" },
+  { id: "cooldowns", dockSegment: "cooldowns", panelToOpen: null,      copy: { title: "tour.cooldownsTitle", body: "tour.cooldownsBody" }, settingsDeepLink: "cooldowns" },
+  { id: "items",     dockSegment: "items",     panelToOpen: "items",   copy: { title: "tour.itemsTitle",     body: "tour.itemsBody" },     settingsDeepLink: "items" },
+  { id: "routine",   dockSegment: "routine",   panelToOpen: "routine", copy: { title: "tour.routineTitle",   body: "tour.routineBody" },   settingsDeepLink: "routine" },
+  { id: "settings",  dockSegment: "settings",  panelToOpen: null,      copy: { title: "tour.settingsTitle",  body: "tour.settingsBody" },  settingsDeepLink: "dungeons" },
   { id: "done",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.doneTitle",      body: "tour.doneBody" },      settingsDeepLink: null },
 ];

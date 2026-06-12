@@ -13,7 +13,9 @@ import { RecurringSettings } from "../overlay/RecurringSettings";
 import { activeRecurring } from "../engine/config";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
-import { closeSettingsWindow } from "../overlay/settingsWindow";
+import { closeSettingsWindow, initialSettingsTab } from "../overlay/settingsWindow";
+import { subscribeTransient } from "../overlay/transientSync";
+import type { SettingsTab } from "../engine/settingsLink";
 import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
@@ -25,15 +27,28 @@ import { t } from "../engine/chrome";
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
 // skills tool), ⏱ the dungeon cooldowns, ♻ the expiring items, ✓ the routine gates.
-type TabId = "dungeons" | "cooldowns" | "items" | "routine" | "language";
+// The union lives in the engine (settingsLink) so tour deep links (#72) stay in lock-step.
+type TabId = SettingsTab;
 
 // `onClose` is supplied when the settings render inline in the browser (App's modal): Esc
 // and the ✕ button dismiss the modal. In the Tauri settings window it's absent, so closing
 // falls back to closing the real OS window (which also has its own titlebar close button).
-export default function SettingsApp({ onClose }: { onClose?: () => void }) {
+// `initialTab` is the inline modal's deep-link seed (#72); the Tauri window carries its seed
+// in the URL hash instead (initialSettingsTab) — either way, later re-tabs arrive transient.
+export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
   const cfg = useConfig();
   const close = onClose ?? closeSettingsWindow;
-  const [tab, setTab] = useState<TabId>("dungeons");
+  const [tab, setTab] = useState<TabId>(() => initialTab ?? initialSettingsTab() ?? "dungeons");
+
+  // Deep links aimed at an ALREADY-open settings surface (#72) — the URL hash is long consumed,
+  // so the tour's nudge re-tabs this window live over the transient bus.
+  useEffect(
+    () =>
+      subscribeTransient((msg) => {
+        if (msg.kind === "settings-navigate") setTab(msg.tab);
+      }),
+    [],
+  );
   // The subscribe screen, opened by a cap-hit nudge here in the settings window (#56/#58).
   const [showSubscribe, setShowSubscribe] = useState(false);
 
@@ -81,6 +96,16 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
     { id: "language", icon: "🌐", label: t("settings.tabLanguage", locale) },
   ];
 
+  // The per-tab explainer (#72) — a persistent one-liner in glossary language that teaches what
+  // the tab edits on EVERY visit (the tour points here; the header keeps teaching after it's gone).
+  // The language tab needs none: LocaleSettings carries its own hint.
+  const EXPLAINERS: Partial<Record<TabId, string>> = {
+    dungeons: t("settings.explainDungeons", locale),
+    cooldowns: t("settings.explainCooldowns", locale),
+    items: t("settings.explainItems", locale),
+    routine: t("settings.explainRoutine", locale),
+  };
+
   return (
     <div className="settings-app">
       <div className="settings-app__head">
@@ -116,6 +141,8 @@ export default function SettingsApp({ onClose }: { onClose?: () => void }) {
           </button>
         ))}
       </div>
+
+      {EXPLAINERS[tab] && <p className="settings-explainer">{EXPLAINERS[tab]}</p>}
 
       {tab === "dungeons" && (
         <>

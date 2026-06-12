@@ -10,23 +10,31 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { parseSettingsHash, settingsHash, type SettingsTab } from "../engine/settingsLink";
+import { emitTransient } from "./transientSync";
 
 const LABEL = "settings";
 
-/** Open (or focus, if already open) the settings window/tab. */
-export function openSettingsWindow(): void {
+/**
+ * Open (or focus, if already open) the settings window/tab, optionally landed on `tab` — the
+ * deep-link adapter behind the tour's "make it yours" nudge (#72). The tab rides the URL hash
+ * into a fresh window (read once on mount); an ALREADY-open window has long since consumed its
+ * URL, so the tab goes over the transient bus instead and the window re-tabs live.
+ */
+export function openSettingsWindow(tab?: SettingsTab): void {
   try {
     if (isTauri()) {
       void (async () => {
         const existing = await WebviewWindow.getByLabel(LABEL);
         if (existing) {
+          if (tab) emitTransient({ kind: "settings-navigate", tab });
           await existing.setFocus();
           return;
         }
         // The overlay is always-on-top, so a plain window opens *behind* it. Open centred
         // (the overlay sits in a corner), focused, and also on-top so it lands in front.
         new WebviewWindow(LABEL, {
-          url: "index.html#settings",
+          url: `index.html#${settingsHash(tab)}`,
           title: "Settings — Dragon's Aid",
           width: 460,
           height: 520,
@@ -41,7 +49,7 @@ export function openSettingsWindow(): void {
       return;
     }
     // browser-dev: a named target reuses the same tab on a second click rather than stacking
-    window.open(`${location.pathname}#settings`, LABEL);
+    window.open(`${location.pathname}#${settingsHash(tab)}`, LABEL);
   } catch {
     /* couldn't open the settings surface — overlay keeps working */
   }
@@ -62,5 +70,10 @@ export function closeSettingsWindow(): void {
 
 /** True when this document is the settings surface (vs the overlay). */
 export function isSettingsWindow(): boolean {
-  return location.hash.replace(/^#/, "") === "settings";
+  return parseSettingsHash(location.hash).isSettings;
+}
+
+/** The deep-linked tab a freshly-loaded settings document should land on; null = default. */
+export function initialSettingsTab(): SettingsTab | null {
+  return parseSettingsHash(location.hash).tab;
 }
