@@ -69,6 +69,7 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
 
       <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills} title={t("dock.skills", locale)}>
         <span className="dock-seg__icon">⚔</span>
+        <span className="dock-seg__label">{t("settings.tabDungeons", locale)}</span>
         {activeBossName && <span className="dock-seg__val dock-seg__name">{activeBossName.toUpperCase()}</span>}
       </button>
 
@@ -78,10 +79,12 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
         title={t("dock.cooldowns", locale)}
       >
         <span className="dock-seg__icon">⏱</span>
+        <span className="dock-seg__label">{t("settings.tabCooldowns", locale)}</span>
       </button>
 
       <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems} title={t("dock.expiring", locale)}>
         <span className="dock-seg__icon"><HourglassIcon /></span>
+        <span className="dock-seg__label">{t("settings.tabItems", locale)}</span>
         {itemsDatum ? (
           <span className={`dock-seg__val${itemsDatum.alarm ? " dock-alarm" : itemsDatum.due ? " dock-due" : ""}`}>
             {itemsDatum.text}
@@ -93,6 +96,7 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
 
       <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine} title={t("dock.routine", locale)}>
         <span className="dock-seg__icon"><CheckboxIcon /></span>
+        <span className="dock-seg__label">{t("settings.tabRoutine", locale)}</span>
         {routineToDo > 0 && <span className="dock-seg__val dock-ready">{routineToDo}</span>}
       </button>
 

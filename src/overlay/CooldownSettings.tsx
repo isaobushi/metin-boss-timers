@@ -1,4 +1,5 @@
 import type { CooldownDef } from "../engine/cooldown";
+import { readNum } from "./numberInput";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 
@@ -68,7 +69,7 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
                 min={0}
                 max={12}
                 value={h}
-                onChange={(e) => setHM(Number(e.target.value), m)}
+                onChange={(e) => setHM(readNum(e.target), m)}
               />
               <span className="cd-dur__u">h</span>
               <input
@@ -77,7 +78,7 @@ export function CooldownSettings({ cooldowns, onAdd, onRename, onRetag, onSetDur
                 min={0}
                 max={59}
                 value={m}
-                onChange={(e) => setHM(h, Number(e.target.value))}
+                onChange={(e) => setHM(h, readNum(e.target))}
               />
               <span className="cd-dur__u">m</span>
             </div>

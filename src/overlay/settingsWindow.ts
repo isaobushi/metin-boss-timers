@@ -36,7 +36,7 @@ export function openSettingsWindow(tab?: SettingsTab): void {
         new WebviewWindow(LABEL, {
           url: `index.html#${settingsHash(tab)}`,
           title: "Settings — Dragon's Aid",
-          width: 460,
+          width: 540,
           height: 520,
           resizable: true,
           decorations: true,

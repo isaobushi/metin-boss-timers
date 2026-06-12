@@ -7,6 +7,8 @@ type Props = {
   bosses: Boss[];
   onPick: (id: string) => void;
   onOpenSequence: () => void;
+  /** Deep-link to the Dungeons settings tab — the in-card ⚙ at the title's right (design walk). */
+  onOpenSettings?: () => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
@@ -22,13 +24,18 @@ const TEMPLUM_ACCENT = { accent: "#48d597", accent2: "#2bb6c4" } as const;
  * read distinctly. The overlay stays compact during play — all editing (add/rename/delete
  * bosses & skills, pitches, hotkeys, reset) lives behind ⚙, the separate settings window.
  */
-export function BossSelect({ bosses, onPick, onOpenSequence, locale }: Props) {
+export function BossSelect({ bosses, onPick, onOpenSequence, onOpenSettings, locale }: Props) {
   return (
     <div className="panel boss-select">
-      {/* title doubles as the window's drag handle; the dock bar carries settings (⚙) + quit (✕) */}
+      {/* title doubles as the window's drag handle; the in-card ⚙ deep-links to the Dungeons tab */}
       <div className="panel__title" data-tauri-drag-region>
         {t("bossSelect.title", locale)}
       </div>
+      {onOpenSettings && (
+        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+          ⚙
+        </button>
+      )}
       {bosses.map((b) => (
         <div className="boss-row" key={b.id} style={{ "--accent": b.accent, "--accent2": b.accent2 } as CSSProperties}>
           <button className="boss-row__pick" onClick={() => onPick(b.id)}>

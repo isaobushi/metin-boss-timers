@@ -255,6 +255,7 @@ export default function App() {
       open={addOpen}
       onOpenChange={setAddOpen}
       locale={cfg.config.locale}
+      onOpenSettings={() => openSettingsTo("cooldowns")}
     />
   );
 
@@ -339,12 +340,22 @@ export default function App() {
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
-    belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} locale={cfg.config.locale} />;
+    belowPanel = (
+      <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} locale={cfg.config.locale} onOpenSettings={() => openSettingsTo("items")} />
+    );
   } else if (panel === "routine") {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
     belowPanel = (
-      <RoutineAccordion rows={rec.routineRows} race={rec.activeRace} locale={cfg.config.locale} onDone={rec.markDone} onRead={rec.markRead} onSetRung={rec.setRung} />
+      <RoutineAccordion
+        rows={rec.routineRows}
+        race={rec.activeRace}
+        locale={cfg.config.locale}
+        onDone={rec.markDone}
+        onRead={rec.markRead}
+        onSetRung={rec.setRung}
+        onOpenSettings={() => openSettingsTo("routine")}
+      />
     );
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).
@@ -362,6 +373,7 @@ export default function App() {
           setPanel("timers");
         }}
         onOpenSequence={() => setPanel("sequence")}
+        onOpenSettings={() => openSettingsTo("dungeons")}
       />
     );
   }
@@ -375,7 +387,10 @@ export default function App() {
         // `tourSpot` set — the ring must not keep pulsing under the wizard. It returns when the
         // wizard closes and the card re-mounts (the gate is unseen until finished/skipped).
         spotlight={tourActive ? tourSpot : null}
-        activeBossName={cfg.activeBoss?.name}
+        // The ⚔ segment names what's open: the sequence helper reads as TEMPLUM while it's up
+        // (design walk), otherwise the active boss as before. "Templum" is the in-game proper
+        // name — content, not chrome, so it isn't routed through t().
+        activeBossName={panel === "sequence" ? "Templum" : cfg.activeBoss?.name}
         itemsDatum={rec.datum}
         routineDatum={rec.routineDatum}
         locale={cfg.config.locale}

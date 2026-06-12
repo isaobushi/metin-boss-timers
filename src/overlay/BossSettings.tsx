@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { readNum } from "./numberInput";
 import type { Boss } from "../engine/config";
 import { SOUND_IDS, soundLabel, type SoundId } from "../engine/sounds";
 import { eventToCombo, prettyCombo } from "../engine/hotkey";
@@ -99,7 +100,7 @@ export function BossSettings({
             min={1}
             max={999}
             value={Math.round(s.durationMs / 1000)}
-            onChange={(e) => onSetDuration(s.id, Number(e.target.value) * 1000)}
+            onChange={(e) => onSetDuration(s.id, readNum(e.target) * 1000)}
             title={t("boss.durationTitle", locale)}
           />
           <div className="skill-sound">

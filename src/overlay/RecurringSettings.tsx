@@ -1,4 +1,5 @@
 import type { RecurringDef, RecurringKind } from "../engine/recurring";
+import { readNum } from "./numberInput";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 
@@ -38,7 +39,7 @@ const MS_PER_DAY = 86_400_000;
  * day-scale [1m, 365d] band (overlay/useConfig → setRecurringDuration), so an empty/zero entry
  * snaps back to 1 minute.
  *
- * The ROUTINE call site also passes `onSetMaxed` (#69): a 🏆 toggle per row retires a perfected
+ * The ROUTINE call site also passes `onSetMaxed` (#69): a "P" (Perfect-Master) toggle per row retires a perfected
  * task done-forever — the row stays listed here (dimmed, struck) so it can be restored, while the
  * ✓ accordion and the `x/n` nudge drop it. Distinct from ✕, which discards the definition.
  */
@@ -57,7 +58,7 @@ export function RecurringSettings({
   const addLabel = kind === "deadline" ? t("recurring.addItem", locale) : t("recurring.addRoutine", locale);
   const emptyLabel = kind === "deadline" ? t("recurring.noItems", locale) : t("recurring.noRoutine", locale);
   return (
-    <div className="panel cooldown-settings">
+    <div className="panel cooldown-settings cooldown-settings--dhm">
       <div className="settings-head">
         <span className="cooldown-settings__title">{title}</span>
       </div>
@@ -90,7 +91,7 @@ export function RecurringSettings({
                 min={0}
                 max={365}
                 value={days}
-                onChange={(e) => setDHM(Number(e.target.value), h, m)}
+                onChange={(e) => setDHM(readNum(e.target), h, m)}
               />
               <span className="cd-dur__u">d</span>
               <input
@@ -99,7 +100,7 @@ export function RecurringSettings({
                 min={0}
                 max={23}
                 value={h}
-                onChange={(e) => setDHM(days, Number(e.target.value), m)}
+                onChange={(e) => setDHM(days, readNum(e.target), m)}
               />
               <span className="cd-dur__u">h</span>
               <input
@@ -108,17 +109,17 @@ export function RecurringSettings({
                 min={0}
                 max={59}
                 value={m}
-                onChange={(e) => setDHM(days, h, Number(e.target.value))}
+                onChange={(e) => setDHM(days, h, readNum(e.target))}
               />
               <span className="cd-dur__u">m</span>
             </div>
             {onSetMaxed && (
               <button
-                className={`icon-btn icon-btn--trophy${d.maxed ? " icon-btn--trophy-on" : ""}`}
+                className={`icon-btn icon-btn--maxed${d.maxed ? " icon-btn--maxed-on" : ""}`}
                 onClick={() => onSetMaxed(d.id, !d.maxed)}
                 title={t(d.maxed ? "recurring.restoreMaxed" : "recurring.markMaxed", locale)}
               >
-                🏆
+                P
               </button>
             )}
             <button className="icon-btn icon-btn--danger" onClick={() => onRemove(d.id)} title={t("recurring.removeItem", locale)}>

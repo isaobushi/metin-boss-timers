@@ -20,7 +20,7 @@ import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
 import { type PurchasePhase, SubscribeScreen } from "../overlay/SubscribeScreen";
-import { CheckboxIcon, HourglassIcon } from "../overlay/icons";
+import { CheckboxIcon, CloseIcon, HourglassIcon, ResetIcon, TourIcon } from "../overlay/icons";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
 import type { Entitlement } from "../engine/entitlement";
 import { t } from "../engine/chrome";
@@ -121,18 +121,41 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
     <div className="settings-app">
       <div className="settings-app__head">
         <span className="settings-app__title">{t("settings.title", locale)}</span>
+        {/* The global actions live as one icon strip up here (design walk): tour replay,
+            backup export/import, reset — with close set apart and heavier at the end. */}
         <div className="settings-app__actions">
           <button
-            className="btn-link"
+            className="settings-icon-btn"
+            onClick={() => {
+              // Rides the transient bus to the overlay (reverse of settings-navigate) and closes
+              // this surface so the tour is actually visible (#73).
+              emitTransient({ kind: "tour-replay" });
+              close();
+            }}
+            title={`${t("settings.showAround", locale)} — ${t("settings.showAroundHint", locale)}`}
+            aria-label={t("settings.showAround", locale)}
+          >
+            <TourIcon />
+          </button>
+          <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />
+          <button
+            className="settings-icon-btn"
             onClick={() => {
               if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetConfig();
             }}
+            title={t("settings.resetToDefaults", locale)}
+            aria-label={t("settings.resetToDefaults", locale)}
           >
-            {t("settings.resetToDefaults", locale)}
+            <ResetIcon />
           </button>
           {onClose && (
-            <button className="btn-link" onClick={onClose} title={t("settings.closeTitle", locale)}>
-              ✕ {t("settings.close", locale)}
+            <button
+              className="settings-icon-btn settings-icon-btn--close"
+              onClick={onClose}
+              title={t("settings.closeTitle", locale)}
+              aria-label={t("settings.closeTitle", locale)}
+            >
+              <CloseIcon />
             </button>
           )}
         </div>
@@ -175,7 +198,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
             ))}
           </div>
 
-          <button className="btn-dashed" onClick={() => cfg.createBoss()}>
+          <button className="btn-dashed btn-dashed--glow" onClick={() => cfg.createBoss()}>
             {t("settings.addBoss", locale)}
           </button>
         </>
@@ -224,27 +247,6 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           onChange={(locale) => cfg.changeLocale(locale)}
         />
       )}
-
-      {/* The tour-replay row (#73) — the app's permanent home for re-running the onboarding tour
-          (the Done beat's copy points here; the dense dock deliberately carries no ? glyph).
-          Global like backup, not tab-scoped. The request rides the transient bus to the overlay —
-          the reverse direction of settings-navigate — and the settings surface closes so the tour
-          is actually visible (in the browser the inline modal would otherwise cover it). */}
-      <div className="tour-replay">
-        <button
-          className="btn-dashed"
-          onClick={() => {
-            emitTransient({ kind: "tour-replay" });
-            close();
-          }}
-        >
-          {t("settings.showAround", locale)}
-        </button>
-        <p className="tour-replay__hint">{t("settings.showAroundHint", locale)}</p>
-      </div>
-
-      {/* Global backup/trust feature (#56) — export/import a portable copy of the whole config. */}
-      <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />
 
       {/* Cap-hit nudge (#56): a capped add (boss / reminder) was just refused here. */}
       {cfg.capNudge && (

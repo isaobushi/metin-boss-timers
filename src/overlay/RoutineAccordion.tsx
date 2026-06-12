@@ -25,6 +25,8 @@ type Props = {
   onRead: (defId: string, success: boolean) => void;
   /** Snap a ladder def's rank to a chosen rung (the set-rung curtain, #46) — writes progress only. */
   onSetRung: (defId: string, rungLabel: string) => void;
+  /** Deep-link to the Training settings tab — the ⚙ in the panel's header row (design walk). */
+  onOpenSettings?: () => void;
 };
 
 /**
@@ -52,10 +54,23 @@ type Props = {
  * each under a "Race - School" header (e.g. "Sura - Black Magic") — the only band that sub-groups.
  * Row rendering is identical across sections.
  */
-export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung }: Props) {
+export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung, onOpenSettings }: Props) {
+  // Header row: the panel's name + the in-card ⚙ — present on the empty state too, since that's
+  // exactly when you'd head to settings to add training.
+  const head = (
+    <div className="dock-acc__head">
+      <span className="dock-acc__head-title">{t("recurring.titleRoutine", locale)}</span>
+      {onOpenSettings && (
+        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+          ⚙
+        </button>
+      )}
+    </div>
+  );
   if (rows.length === 0) {
     return (
       <div className="dock-acc">
+        {head}
         <div className="dock-acc__empty">{t("routine.empty", locale)}</div>
       </div>
     );
@@ -158,6 +173,7 @@ export function RoutineAccordion({ rows, race, locale, onDone, onRead, onSetRung
   const showHeaders = banded.length > 1;
   return (
     <div className="dock-acc">
+      {head}
       {banded.map((band) => (
         <div className={`dock-acc__section dock-acc__section--${band.key}`} key={band.key}>
           {showHeaders && <div className="dock-acc__section-head">{t(band.labelKey, locale)}</div>}

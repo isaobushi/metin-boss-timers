@@ -7,6 +7,8 @@ type Props = {
   rows: RecurringRow[];
   /** Refresh ("feed" / re-project) an item — restamps a full cycle from now, or starts it if unstarted. */
   onRefresh: (defId: string) => void;
+  /** Deep-link to the Items settings tab — the ⚙ in the panel's header row (design walk). */
+  onOpenSettings?: () => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
@@ -16,17 +18,31 @@ type Props = {
  * its live day-scale countdown draining toward the moment it elapses, and a ↻ refresh that restamps
  * a fresh cycle ("feed" the pet / re-project the costume) — which also starts an unstarted item.
  * A `due` item reads the sticky `overdue` loss colour; an item under 24h reads the red/blink alarm.
+ * A header row names the panel and carries the in-card ⚙ — present on the empty state too, since
+ * that's exactly when you'd head to settings to add items.
  */
-export function ExpiringAccordion({ rows, onRefresh, locale }: Props) {
+export function ExpiringAccordion({ rows, onRefresh, onOpenSettings, locale }: Props) {
+  const head = (
+    <div className="dock-acc__head">
+      <span className="dock-acc__head-title">{t("recurring.titleItems", locale)}</span>
+      {onOpenSettings && (
+        <button className="card-gear" onClick={onOpenSettings} title={t("dock.settings", locale)}>
+          ⚙
+        </button>
+      )}
+    </div>
+  );
   if (rows.length === 0) {
     return (
       <div className="dock-acc">
+        {head}
         <div className="dock-acc__empty">{t("expiring.empty", locale)}</div>
       </div>
     );
   }
   return (
     <div className="dock-acc">
+      {head}
       {rows.map((row) => (
         <div className="dock-acc__row" key={row.defId}>
           {/* name flexes (via __main, like the routine rows) so the readout + ↻ sit at the right edge */}

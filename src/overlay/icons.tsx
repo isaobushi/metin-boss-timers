@@ -103,6 +103,66 @@ export function CheckboxIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Circled question mark — the "show me around" tour replay. */
+export function TourIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <circle cx="12" cy="12" r="8.6" strokeWidth="1.7" />
+        <path d="M9.7 9.6a2.4 2.4 0 113.3 2.2c-.8.34-1 .85-1 1.8" strokeWidth="1.7" />
+      </g>
+      <circle cx="12" cy="16.7" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Arrow down into a tray — export a backup to file. */
+export function DownloadIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M12 4v10M8 10.5l4 4 4-4" />
+        <path d="M4.5 19.5h15" />
+      </g>
+    </svg>
+  );
+}
+
+/** Arrow up from a tray — import a backup from file. */
+export function UploadIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M12 14.5V4.5M8 8l4-4 4 4" />
+        <path d="M4.5 19.5h15" />
+      </g>
+    </svg>
+  );
+}
+
+/** Counterclockwise arrow — reset to defaults. */
+export function ResetIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M4.5 4.5v5h5" />
+        <path d="M5.2 9.3a7.4 7.4 0 116.8 10.2 7.4 7.4 0 01-6.9-4.7" />
+      </g>
+    </svg>
+  );
+}
+
+/** Plain cross — close the surface (heavier than the text ✕ so it reads at a glance). */
+export function CloseIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </g>
+    </svg>
+  );
+}
+
 /** Two-way swap arrows — flips between the Phase 1 / Phase 2 tools. */
 export function SwapIcon(p: SVGProps<SVGSVGElement>) {
   return (

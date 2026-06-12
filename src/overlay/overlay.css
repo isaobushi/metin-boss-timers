@@ -169,6 +169,21 @@ body {
 .btn-dashed:hover {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
+/* The glowing add CTA (design walk) — a slow ember pulse that marks the tab's primary action. */
+.btn-dashed--glow {
+  border-color: #ffa14a99;
+  animation: btn-glow-pulse 2.4s ease-in-out infinite;
+}
+@keyframes btn-glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px #ff6b2c2e;
+  }
+  50% {
+    box-shadow: 0 0 16px #ff6b2c80;
+    border-color: #ffa14a;
+  }
+}
 .btn-link {
   align-self: center;
   margin-top: 2px;
@@ -478,7 +493,9 @@ body[data-window="settings"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 432px;
+  /* Wide enough that all five tabs (incl. LANGUAGE) sit on the strip's tracking line and the
+     content below spans the full strip width (window opens at 540 — settingsWindow.ts). */
+  max-width: 512px;
   margin: 0 auto;
   padding: 14px;
 }
@@ -495,6 +512,7 @@ body[data-window="settings"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative; /* anchors the floating backup-note chip */
 }
 .settings-app__actions {
   display: flex;
@@ -518,21 +536,23 @@ body[data-window="settings"] {
 /* ---- settings tabs (one per dock tool; see SettingsApp) ---- */
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap; /* safety: a long-label locale wraps to a second row instead of jutting past the line */
   gap: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
+  gap: 5px;
+  padding: 7px 9px; /* trimmed so all five tabs share one row of the strip */
   border: none;
   background: none;
   cursor: pointer;
   color: inherit;
   font-size: 12px;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
   font-weight: 600;
+  white-space: nowrap;
   opacity: 0.55;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px; /* overlap the strip's border so the active underline sits on it */
@@ -775,6 +795,13 @@ body[data-window="settings"] {
   font-size: 10px;
   opacity: 0.5;
 }
+/* Recurring (items/routine) rows carry THREE duration inputs (d/h/m) where cooldowns carry two —
+   the shared 132px cell clipped their digits, so the d/h/m variant gets a wider cell (and the
+   matching header column stays aligned). */
+.cooldown-settings--dhm .cd-head__dur,
+.cooldown-settings--dhm .cd-dur {
+  width: 184px;
+}
 /* a maxed (done-forever, #69) routine reads as retired-but-kept: dimmed, struck, restorable */
 .cd-row--maxed .cd-name,
 .cd-row--maxed .cd-dur {
@@ -783,15 +810,21 @@ body[data-window="settings"] {
 .cd-row--maxed .cd-name {
   text-decoration: line-through;
 }
-/* the 🏆 toggle: greyscale while the routine is active, full colour once retired */
-.icon-btn--trophy {
-  filter: grayscale(1);
-  opacity: 0.6;
+/* The done-forever toggle (#69) — a "P" after Metin2's Perfect-Master grade: quiet while the
+   routine is active, lit ember with a glow once retired. */
+.icon-btn--maxed {
+  font-weight: 800;
+  font-style: italic;
+  font-size: 13px;
+  opacity: 0.5;
 }
-.icon-btn--trophy-on {
-  filter: none;
+.icon-btn--maxed-on {
   opacity: 1;
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: #ffa14a;
+  border-color: #ffa14a88;
+  text-shadow:
+    0 0 6px #ff6b2ccc,
+    0 0 14px #ff6b2c66;
 }
 
 /* ---- chip ---- */
@@ -972,6 +1005,16 @@ body[data-window="settings"] {
   height: 0.85em;
   vertical-align: -0.07em;
 }
+/* Tool name beside the icon — quiet, uppercase, never wraps. The named dock replaced the
+   icon-only line in the design walk; labels reuse the settings-tab strings so they localize. */
+.dock-seg__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  white-space: nowrap;
+}
 .dock-seg__val {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1013,6 +1056,54 @@ body[data-window="settings"] {
   opacity: 0.5;
   text-align: center;
 }
+/* The in-card ⚙ shortcut (design walk) — sits inside each section's card top-right and
+   deep-links to its settings tab: dungeons in the SELECT DUNGEON title, cooldowns in the
+   selection menu's top row, items/training in their accordion header rows. */
+.card-gear {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.card-gear:hover {
+  opacity: 1;
+}
+.boss-select {
+  position: relative;
+}
+.boss-select .card-gear {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2; /* over the title's drag region, so the click wins */
+}
+/* The accordions' header row: panel name left, ⚙ right. */
+.dock-acc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dock-acc__head-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+/* The cooldown selection menu's top row: hint left, ⚙ right. */
+.cooldown-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* A Routine band header (#57: Skill Books / Languages / Chores) — a quiet uppercase label that
    separates the race Abilities from the universal chores. Shown only when >1 band is present. */
 .dock-acc__section-head {
@@ -1268,6 +1359,44 @@ body[data-window="settings"] {
   color: #b9aee6;
   opacity: 0.6;
   font: 500 10px/1.2 inherit;
+}
+/* ---- language curtain (design walk) — LocaleSettings' RungCurtain sibling. The trigger reads
+   as a select control; the menu reuses the rung-menu skin but lists full-width rows instead of
+   the chip grid (language names, not rung labels). Always opens downward: settings scrolls. ---- */
+.locale-curtain__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ffffff22;
+  border-radius: 8px;
+  background: #ffffff0d;
+  color: #e9e5f5;
+  font: 600 12px/1 inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.locale-curtain__trigger:hover {
+  border-color: #ffffff44;
+  color: #fff;
+}
+.locale-curtain__chev {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.locale-curtain__menu {
+  top: calc(100% + 4px);
+  min-width: 180px;
+}
+.locale-curtain__menu .rung-menu__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: 240px;
+}
+.locale-curtain__menu .rung-menu__item {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */
@@ -2091,38 +2220,49 @@ body[data-window="settings"] {
   cursor: default;
 }
 
-/* ---- settings footer blocks: backup section (#56) + tour-replay row (#73) ----
-   The two share one separated-block shape (divider, column, hint); grouped selectors keep a
-   future divider/hint tweak from silently drifting between them. */
-.backup-section,
-.tour-replay {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #2a2540;
+/* ---- settings header icon strip (design walk; was footer blocks #56/#73) ----
+   Tour replay, backup export/import and reset live as quiet icons beside the title; the long
+   explainers ride each button's tooltip. Close sits last, bigger and set apart. */
+.settings-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font-size: 16px; /* drives the 1em-sized SVG */
+  cursor: pointer;
+  opacity: 0.6;
 }
-.backup-section__row {
-  display: flex;
-  gap: 8px;
+.settings-icon-btn:hover {
+  opacity: 1;
+  background: #ffffff12;
 }
-.backup-section__row .btn-dashed {
-  flex: 1;
-}
-.tour-replay .btn-dashed {
-  width: 100%;
-}
-.backup-section__hint,
-.tour-replay__hint {
-  margin: 0;
-  font-size: 10.5px;
-  line-height: 1.4;
-  opacity: 0.5;
-}
-.backup-section__note {
-  margin: 0;
-  font-size: 11px;
+/* Close — heavier and unmissable, tints danger on hover like the dock's quit. */
+.settings-icon-btn--close {
+  font-size: 21px;
+  margin-left: 6px;
   opacity: 0.85;
+}
+.settings-icon-btn--close:hover {
+  color: #ff7b96;
+  background: #ff7b9618;
+}
+/* The backup result note — a transient chip floating under the strip (the head is relative). */
+.backup-note {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #1b1529;
+  font-size: 11px;
   color: #9fe0b4;
+  z-index: 2;
+  white-space: nowrap;
 }

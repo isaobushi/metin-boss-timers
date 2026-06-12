@@ -31,11 +31,13 @@ type Props = {
    *  self-managed (the cooldowns-only HUD just clicks the + itself). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Deep-link to the Cooldowns settings tab — the ⚙ at the selection menu's top right (design walk). */
+  onOpenSettings?: () => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
 
-export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange, locale }: Props) {
+export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange, onOpenSettings, locale }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
@@ -130,7 +132,21 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
           }`}
           ref={menuRef}
         >
-          <div className="cooldown-menu__hint">{t("picker.hint", locale)}</div>
+          <div className="cooldown-menu__head">
+            <div className="cooldown-menu__hint">{t("picker.hint", locale)}</div>
+            {onOpenSettings && (
+              <button
+                className="card-gear"
+                onClick={() => {
+                  setOpen(false); // settings is a separate surface — don't leave the menu hanging open
+                  onOpenSettings();
+                }}
+                title={t("dock.settings", locale)}
+              >
+                ⚙
+              </button>
+            )}
+          </div>
           {catalog.map((d) => (
             // data-defid on the row so scroll-to-tune works across the whole row, including over the
             // duplicate button; the start and duplicate actions are separate buttons.
