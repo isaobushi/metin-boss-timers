@@ -138,12 +138,23 @@ export default function App() {
   // items/routine share the single exclusive panel, so they toggle it; cooldowns toggles its pin.
   const toggle = (seg: Panel) => setPanel((p) => (p === seg ? null : seg));
 
+  // The cooldown strip + its add-picker float above the panel; opening another tool should dismiss
+  // them so they don't sit over (and block) the panel being opened.
+  const closeCooldownStrip = () => {
+    setCooldownsPinned(false);
+    setAddOpen(false);
+  };
+
   // The card reports each beat (#71); drive the real shell to match — ring on the beat's glyph, its
   // live panel open under the card, the strip pinned on the ⏱ beat. The ⚔ beat shows the real chips
   // surface: adopt the seeded landing boss if none is active yet (bosses can never be empty — config
   // re-seeds on last delete). Fires before paint (the card's layout effect), so mount over lingering
-  // pre-tour panel state resets it without a flash.
-  const { activeBoss, selectBoss, completeTour } = cfg;
+  // pre-tour panel state resets it without a flash. Deps are primitives on purpose (#96 review):
+  // `activeBoss` itself is re-derived from a fresh `bosses` array on every config write, so the
+  // object would hand this callback — and the card's layout effect keyed on it — a new identity per
+  // write, re-driving the same beat for nothing.
+  const { selectBoss } = cfg;
+  const hasActiveBoss = cfg.activeBoss != null;
   const firstBossId = cfg.config.bosses[0]?.id;
   const onTourStep = useCallback(
     (step: TourStep) => {
@@ -151,34 +162,22 @@ export default function App() {
       setTourSpot(drive.spotlight);
       setCooldownsPinned(drive.pinCooldowns);
       setAddOpen(false);
-      if (drive.panel === "timers" && !activeBoss) selectBoss(firstBossId ?? null);
+      if (drive.panel === "timers" && !hasActiveBoss) selectBoss(firstBossId ?? null);
       setPanel(drive.panel);
     },
-    [activeBoss, selectBoss, firstBossId],
+    [hasActiveBoss, selectBoss, firstBossId],
   );
-  // Finishing or skipping the tour: mark it seen and put the shell back to rest. The done beat
-  // already drives everything closed, but Skip can fire mid-beat with a tour-opened panel showing,
-  // so the reset is unconditional.
-  const endTour = useCallback(() => {
-    completeTour();
+  // The ONE teardown for every tour exit (#96 review: the reset must not fragment across exit
+  // paths): mark it seen, kill the ring, close the tour-pinned strip, and land on `to` — null for
+  // Finish/Skip (back to rest; Skip can fire mid-beat with a tour-opened panel showing, so the
+  // reset is unconditional), or the clicked tool for the dock escape hatches. Force-OPEN, no
+  // toggle: even when the tour has that very panel open (its glyph lit + ringed), clicking the
+  // glyph the card just pointed at must keep the tool open, not snap it shut as the card leaves.
+  const endTour = (to: Panel = null) => {
+    cfg.completeTour();
     setTourSpot(null);
-    setPanel(null);
-    setCooldownsPinned(false);
-    setAddOpen(false);
-  }, [completeTour]);
-  // Exiting the tour by clicking a tool: mark it seen and force-OPEN the tool — no toggle: even when
-  // the tour has that very panel open (its glyph lit + ringed), clicking the glyph the card just
-  // pointed at must keep the tool open, not snap it shut as the card disappears.
-  const exitTourTo = (seg: Panel) => {
-    completeTour();
-    setTourSpot(null);
-    setPanel(seg);
-  };
-  // The cooldown strip + its add-picker float above the panel; opening another tool should dismiss
-  // them so they don't sit over (and block) the panel being opened.
-  const closeCooldownStrip = () => {
-    setCooldownsPinned(false);
-    setAddOpen(false);
+    closeCooldownStrip();
+    setPanel(to);
   };
 
   // One controlled add-picker instance. `addOpen` lets the ⏱ segment jump straight to the menu. It
@@ -319,10 +318,20 @@ export default function App() {
         locale={cfg.config.locale}
         onSkills={() => {
           const target = cfg.activeBoss ? "timers" : "skills";
-          if (tourActive) exitTourTo(target);
+          if (tourActive) endTour(target);
           else setPanel(skillsOpen ? null : target);
         }}
         onCooldowns={() => {
+          // Mid-tour, ⏱ exits like the other tools (#96 review): the tour drives the pin now, so
+          // the plain toggle would collapse the strip the ⏱ beat just opened while the ring kept
+          // pulsing on it. Force-OPEN the strip (re-pin after the teardown unpins; + menu when
+          // nothing runs, as the normal empty-strip path does).
+          if (tourActive) {
+            endTour();
+            setCooldownsPinned(true);
+            setAddOpen(cd.pills.length === 0);
+            return;
+          }
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
           if (cd.pills.length > 0) {
             setCooldownsPinned((p) => !p);
@@ -335,14 +344,20 @@ export default function App() {
           setAddOpen(!showing);
         }}
         onItems={() => {
+          if (tourActive) {
+            endTour("items");
+            return;
+          }
           closeCooldownStrip();
-          if (tourActive) exitTourTo("items");
-          else toggle("items");
+          toggle("items");
         }}
         onRoutine={() => {
+          if (tourActive) {
+            endTour("routine");
+            return;
+          }
           closeCooldownStrip();
-          if (tourActive) exitTourTo("routine");
-          else toggle("routine");
+          toggle("routine");
         }}
         onSettings={openSettings}
         onQuit={quitApp}
