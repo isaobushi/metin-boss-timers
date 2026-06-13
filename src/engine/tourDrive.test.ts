@@ -7,10 +7,11 @@ import { TOUR_STEPS } from "./tourSteps";
 describe("tourDrive (#71)", () => {
   const drives = Object.fromEntries(TOUR_STEPS.map((s) => [s.id, driveForStep(s)]));
 
-  it("spotlights each tool beat's own glyph; framing beats (welcome/dock/done) ring nothing", () => {
+  it("spotlights each tool beat's own glyph; framing beats (welcome/dock/character/done) ring nothing", () => {
     expect(Object.fromEntries(Object.entries(drives).map(([id, d]) => [id, d.spotlight]))).toEqual({
       welcome: null,
       dock: null,
+      character: null,
       skills: "skills",
       cooldowns: "cooldowns",
       items: "items",
@@ -24,6 +25,7 @@ describe("tourDrive (#71)", () => {
     expect(Object.fromEntries(Object.entries(drives).map(([id, d]) => [id, d.panel]))).toEqual({
       welcome: null,
       dock: null,
+      character: null, // its wizard lives IN the card, not in the exclusive slot
       skills: "timers",
       cooldowns: null,
       items: "items",

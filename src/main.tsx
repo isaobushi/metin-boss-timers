@@ -4,6 +4,7 @@ import './overlay/overlay.css'
 import App from './App.tsx'
 import SettingsApp from './settings/SettingsApp.tsx'
 import { isSettingsWindow, initialSettingsTab } from './overlay/settingsWindow'
+import { TooltipLayer } from './overlay/Tooltip.tsx'
 
 // One bundle, two windows: the #settings hash selects the settings surface; everything
 // else is the overlay. The body attribute lets CSS give settings an opaque background
@@ -17,5 +18,6 @@ document.body.dataset.window = settings ? 'settings' : 'overlay'
 root.render(
   <StrictMode>
     {settings ? <SettingsApp initialTab={initialSettingsTab() ?? undefined} /> : <App />}
+    <TooltipLayer />
   </StrictMode>,
 )

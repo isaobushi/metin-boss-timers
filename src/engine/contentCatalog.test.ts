@@ -110,7 +110,7 @@ describe("frozen-name guard (#82)", () => {
       "Shooting Dragon", "Shooting Dragon Boost", "Shred", "Skill Books", "Spark",
       "Spirit Strike", "Spirit Strike Boost", "Stealth", "Strong Body", "Stump", "Summon Lightning",
       "Summon Lightning Boost", "Swiftness", "Sword Orb", "Sword Spin", "Sword Spin Boost",
-      "Sword Strike", "Tempestus", "Three-Way Cut", "Transformation", "Ward Skill",
+      "Sword Strike", "Tempestus", "Three-Way Cut", "Transformation", "Ward",
       "White Navy Uniform Costume", "Wolf Pounce", "Wolf's Breath", "Wolf's Breath Boost", "Wolf's Claw",
     ]);
   });

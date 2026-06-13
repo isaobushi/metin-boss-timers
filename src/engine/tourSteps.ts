@@ -17,6 +17,7 @@ export type TourSegment = "skills" | "cooldowns" | "items" | "routine" | "settin
 export type TourStepId =
   | "welcome"
   | "dock"
+  | "character"
   | "skills"
   | "cooldowns"
   | "items"
@@ -44,13 +45,15 @@ export type TourStep = {
 };
 
 /**
- * The 8 beats: Welcome → the dock itself → then the tools in dock order (⚔ ⏱ ♻ ✓ ⚙) → Done.
- * The ⚙ beat points at settings without entering it; the Done beat tells the user the tour can
- * be replayed from settings (the replay row itself is slice 5, #73).
+ * The 9 beats: Welcome → the dock itself → your character (the wizard, embedded — see
+ * `tourStepsFor`) → then the tools in dock order (⚔ ⏱ ⧗ ✓ ⚙) → Done. The ⚙ beat points at
+ * settings without entering it; the Done beat tells the user the tour can be replayed from
+ * settings (the replay row itself is slice 5, #73).
  */
 export const TOUR_STEPS: readonly TourStep[] = [
   { id: "welcome",   dockSegment: null,        panelToOpen: null,      copy: { title: "tour.welcomeTitle",   body: "tour.welcomeBody" },   settingsDeepLink: null },
   { id: "dock",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.dockTitle",      body: "tour.dockBody" },      settingsDeepLink: null },
+  { id: "character", dockSegment: null,        panelToOpen: null,      copy: { title: "tour.characterTitle", body: "tour.characterBody" }, settingsDeepLink: null },
   { id: "skills",    dockSegment: "skills",    panelToOpen: "skills",  copy: { title: "tour.skillsTitle",    body: "tour.skillsBody" },    settingsDeepLink: "dungeons" },
   { id: "cooldowns", dockSegment: "cooldowns", panelToOpen: null,      copy: { title: "tour.cooldownsTitle", body: "tour.cooldownsBody" }, settingsDeepLink: "cooldowns" },
   { id: "items",     dockSegment: "items",     panelToOpen: "items",   copy: { title: "tour.itemsTitle",     body: "tour.itemsBody" },     settingsDeepLink: "items" },
@@ -58,3 +61,16 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: "settings",  dockSegment: "settings",  panelToOpen: null,      copy: { title: "tour.settingsTitle",  body: "tour.settingsBody" },  settingsDeepLink: "dungeons" },
   { id: "done",      dockSegment: null,        panelToOpen: null,      copy: { title: "tour.doneTitle",      body: "tour.doneBody" },      settingsDeepLink: null },
 ];
+
+/**
+ * The beats a given run actually plays. The character beat exists to get the character DETAILS
+ * in — on first run that means classifying the seeded "Main" (rename + empire/race/build; the
+ * card embeds the ✎ wizard and gates Next on the save), or minting the first character outright
+ * when the roster is somehow empty. A run that starts with the active character already
+ * classified (a #73 replay, typically) drops the beat: the tour must never re-ask for details
+ * it already has. Callers freeze the result at card mount: the beat saving its details mid-run
+ * flips `characterClassified`, and a live re-filter would yank the beat out from under the card.
+ */
+export function tourStepsFor(characterClassified: boolean): readonly TourStep[] {
+  return characterClassified ? TOUR_STEPS.filter((s) => s.id !== "character") : TOUR_STEPS;
+}

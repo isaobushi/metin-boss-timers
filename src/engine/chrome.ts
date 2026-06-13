@@ -31,7 +31,7 @@ const EN = {
   "dock.skills":          "skills",
   "dock.cooldowns":       "dungeon cooldowns",
   "dock.expiring":        "expiring items",
-  "dock.routine":         "routine",
+  "dock.routine":         "training",
   "dock.settings":        "settings",
   "dock.quit":            "quit Dragon's Aid",
 
@@ -100,17 +100,21 @@ const EN = {
   // ---- RecurringSettings ----
   "recurring.colName":        "NAME",
   "recurring.colDuration":    "DURATION",
+  "recurring.colRank":        "RANK",
   "recurring.namePlaceholder": "name",
   "recurring.durationTitle":  "duration (days / hours / minutes)",
   "recurring.removeItem":     "remove item",
   "recurring.titleItems":     "EXPIRING ITEMS",
-  "recurring.titleRoutine":   "ROUTINE",
+  "recurring.titleRoutine":   "TRAINING",
   "recurring.addItem":        "+ ADD ITEM",
-  "recurring.addRoutine":     "+ ADD ROUTINE",
+  "recurring.addRoutine":     "+ ADD TRAINING",
   "recurring.noItems":        "no expiring items yet",
-  "recurring.noRoutine":      "no routine items yet",
-  "recurring.markMaxed":      "maxed — retire from the routine (reversible)",
-  "recurring.restoreMaxed":   "maxed — click to restore to the routine",
+  "recurring.noRoutine":      "no training items yet",
+  "recurring.markMaxed":      "maxed — retire from training (reversible)",
+  "recurring.restoreMaxed":   "maxed — click to restore to training",
+  "recurring.customTraining": "+ CUSTOM TRAINING",
+  "recurring.pickerFilter":   "filter training…",
+  "recurring.alreadyAdded":   "already added",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "start a cooldown",
@@ -127,7 +131,7 @@ const EN = {
   "expiring.start":           "start — stamp a full cycle from now",
 
   // ---- RoutineAccordion ----
-  "routine.empty":            "no routine items yet",
+  "routine.empty":            "no training items yet",
   // Section-band headers (#57). These name UI groupings, not game terms — chrome, not catalog.
   "routine.sectionBooks":     "Skill Books",
   "routine.sectionLanguages": "Languages",
@@ -138,6 +142,7 @@ const EN = {
   "routine.readFailEarly":    "read now (skipped the cooldown) but failed — book burned, no advance; restamp from now",
   "routine.markDoneReady":    "mark done — restamp a full cycle from now",
   "routine.markDoneEarly":    "done early — restamp from now (forfeits the wait)",
+  "routine.skipCooldown":     "use the scroll to skip the cooldown for an early read (used an item)",
 
   // ---- RungCurtain ----
   "rung.triggerTitle":        "set current rung",
@@ -167,7 +172,7 @@ const EN = {
   "wizard.save":            "Save",
   "wizard.create":          "Create",
 
-  // ---- TourCard (#70 — the 8-beat first-run tour; keys are referenced from tourSteps.ts) ----
+  // ---- TourCard (#70 — the 9-beat first-run tour; keys are referenced from tourSteps.ts) ----
   // Glossary note: the domain term is "Elapsable item" (CONTEXT.md), whose established user-facing
   // surface form is "expiring items" (dock.expiring, recurring.titleItems) — the tour matches the
   // labels the user actually sees. Avoid-words hold everywhere: no reminder/daily/quest/alarm.
@@ -175,13 +180,15 @@ const EN = {
   "tour.welcomeBody":    "This dock floats on top of your game — each glyph below is a tool. A quick tour of every section follows; skip any time.",
   "tour.dockTitle":      "THE DOCK",
   "tour.dockBody":       "The bar stays on top of the game window. Drag the grip to park it anywhere; every tool opens right below it.",
-  "tour.skillsTitle":    "BOSS TIMERS",
-  "tour.skillsBody":     "⚔ opens your Bosses: each Skill is a draining chip with sound cues in its final seconds, reset by global hotkeys mid-fight.",
+  "tour.characterTitle": "YOUR CHARACTER",
+  "tour.characterBody":  "Who do you play? Name, empire, class — Training tailors its menu of chores to exactly that. More characters can join later from the chip at the dock's left.",
+  "tour.skillsTitle":    "DUNGEONS",
+  "tour.skillsBody":     "⚔ opens your Dungeons: pick the boss you're fighting and each skill becomes a draining chip with sound cues in its final seconds, reset by global hotkeys mid-fight.",
   "tour.cooldownsTitle": "COOLDOWNS",
   "tour.cooldownsBody":  "⏱ starts one-shot countdowns to a fixed moment — dungeon re-entry, a spawn you're waiting out. They follow the clock and survive restarts.",
   "tour.itemsTitle":     "EXPIRING ITEMS",
-  "tour.itemsBody":      "♻ watches what runs out — pet, costume, mount. Each shows the days left; ↻ restamps a fresh cycle when you feed or renew.",
-  "tour.routineTitle":   "ROUTINE",
+  "tour.itemsBody":      "⧗ watches what runs out — pet, costume, mount. Each shows the days left; ↻ restamps a fresh cycle when you feed or renew.",
+  "tour.routineTitle":   "TRAINING",
   "tour.routineBody":    "✓ is a menu of rolling chores — skill-book reads, Biologist hand-ins. You're not behind: pick what fits your character, and ✓ restamps it to its next window.",
   "tour.settingsTitle":  "SETTINGS",
   "tour.settingsBody":   "⚙ opens the settings window — bosses, hotkeys, sounds, language and backups live there. No need to go in now.",
@@ -190,7 +197,7 @@ const EN = {
   "tour.next":           "Next →",
   "tour.back":           "← Back",
   "tour.finish":         "Got it",
-  "tour.skip":           "Skip tour →",
+  "tour.skip":           "✕ Skip tour",
   "tour.makeItYours":    "⚙ Make it yours →",
 
   // ---- SubscribeScreen ----
@@ -239,7 +246,7 @@ const EN = {
   "settings.tabDungeons":       "Dungeons",
   "settings.tabCooldowns":      "Cooldowns",
   "settings.tabItems":          "Items",
-  "settings.tabRoutine":        "Routine",
+  "settings.tabRoutine":        "Training",
   "settings.tabLanguage":       "Language",
   "settings.addBoss":           "+ ADD BOSS",
   "settings.closeTitle":        "close settings",
@@ -248,19 +255,21 @@ const EN = {
   "settings.explainDungeons":   "Dungeons — your bosses and their skill chips: names, durations, sounds and global hotkeys.",
   "settings.explainCooldowns":  "Cooldowns — one-shot dungeon respawns; set each one's duration here.",
   "settings.explainItems":      "Expiring items — pet, costume, mount; set how long each cycle runs.",
-  "settings.explainRoutine":    "Routine — the menu of rolling chores; add entries and tune each one's window.",
+  "settings.explainRoutine":    "Training — the menu of rolling chores; add entries and tune each one's window.",
   // The tour-replay row (#73) — the permanent home the Done beat points at (tour.doneBody).
-  "settings.showAround":        "↻ SHOW ME AROUND",
+  "settings.showAround":        "SHOW ME AROUND",
   "settings.showAroundHint":    "Replay the quick tour of the dock and its tools.",
 
   // ---- LocaleSettings ----
   "locale.title":   "LANGUAGE",
   "locale.hint":    "Content names are shown in the selected language. Free-text names you typed yourself are never changed.",
+  "locale.filterPlaceholder": "filter languages…",
+  "locale.filterAriaLabel":   "filter languages",
 
   // ---- BackupSection ----
-  "backup.export":    "⤓ EXPORT BACKUP",
-  "backup.import":    "⤒ IMPORT BACKUP",
-  "backup.hint":      "A portable copy of all your dungeons, cooldowns, characters and routines. Importing a Pro backup into Lite keeps everything — anything over the caps stays frozen until you resubscribe.",
+  "backup.export":    "EXPORT BACKUP",
+  "backup.import":    "IMPORT BACKUP",
+  "backup.hint":      "A portable copy of all your dungeons, cooldowns, characters and training. Importing a Pro backup into Lite keeps everything — anything over the caps stays frozen until you resubscribe.",
   "backup.exported":  "Backup exported.",
   "backup.imported":  "Backup imported.",
   "backup.invalid":   "That file isn't a valid backup — nothing was changed.",
@@ -285,7 +294,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "dock.skills":          "Skills",
   "dock.cooldowns":       "Dungeon-Cooldowns",
   "dock.expiring":        "Ablaufende Items",
-  "dock.routine":         "Routine",
+  "dock.routine":         "Training",
   "dock.settings":        "Einstellungen",
   "dock.quit":            "Dragon's Aid beenden",
 
@@ -349,17 +358,21 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   // ---- RecurringSettings ----
   "recurring.colName":        "NAME",
   "recurring.colDuration":    "DAUER",
+  "recurring.colRank":        "RANG",
   "recurring.namePlaceholder": "Name",
   "recurring.durationTitle":  "Dauer (Tage / Stunden / Minuten)",
   "recurring.removeItem":     "Item entfernen",
   "recurring.titleItems":     "ABLAUFENDE ITEMS",
-  "recurring.titleRoutine":   "ROUTINE",
+  "recurring.titleRoutine":   "TRAINING",
   "recurring.addItem":        "+ ITEM HINZUFÜGEN",
-  "recurring.addRoutine":     "+ ROUTINE HINZUFÜGEN",
+  "recurring.addRoutine":     "+ TRAINING HINZUFÜGEN",
   "recurring.noItems":        "noch keine ablaufenden Items",
-  "recurring.noRoutine":      "noch keine Routine-Items",
-  "recurring.markMaxed":      "gemaxt — aus der Routine zurückziehen (umkehrbar)",
-  "recurring.restoreMaxed":   "gemaxt — klicken, um in die Routine zurückzuholen",
+  "recurring.noRoutine":      "noch keine Trainings-Items",
+  "recurring.markMaxed":      "gemaxt — aus dem Training zurückziehen (umkehrbar)",
+  "recurring.restoreMaxed":   "gemaxt — klicken, um ins Training zurückzuholen",
+  "recurring.customTraining": "+ EIGENES TRAINING",
+  "recurring.pickerFilter":   "Training filtern…",
+  "recurring.alreadyAdded":   "bereits hinzugefügt",
 
   // ---- CooldownPicker ----
   "picker.startCooldown":     "Cooldown starten",
@@ -375,7 +388,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "expiring.start":           "starten — vollen Zyklus ab jetzt stempeln",
 
   // ---- RoutineAccordion ----
-  "routine.empty":            "noch keine Routine-Items",
+  "routine.empty":            "noch keine Trainings-Items",
   "routine.sectionBooks":     "Skillbücher",
   "routine.sectionLanguages": "Sprachen",
   "routine.sectionChores":    "Hilfsmittel",
@@ -385,6 +398,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "routine.readFailEarly":    "jetzt gelesen (Cooldown übersprungen) aber fehlgeschlagen — Buch verbrannt, keine Stufenerhöhung; ab jetzt neu stempeln",
   "routine.markDoneReady":    "erledigt — vollen Zyklus ab jetzt neu stempeln",
   "routine.markDoneEarly":    "früh erledigt — ab jetzt neu stempeln (Wartezeit verfällt)",
+  "routine.skipCooldown":     "Schriftrolle benutzen, um den Cooldown für ein frühes Lesen zu überspringen (Item benutzt)",
 
   // ---- RungCurtain ----
   "rung.triggerTitle":        "aktuelle Stufe festlegen",
@@ -419,13 +433,15 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "tour.welcomeBody":    "Diese Leiste schwebt über deinem Spiel — jedes Symbol darunter ist ein Werkzeug. Eine kurze Tour durch alle Bereiche folgt; überspringen geht jederzeit.",
   "tour.dockTitle":      "DIE LEISTE",
   "tour.dockBody":       "Die Leiste bleibt über dem Spielfenster. Zieh sie am Griff, wohin du willst; jedes Werkzeug öffnet sich direkt darunter.",
-  "tour.skillsTitle":    "BOSS-TIMER",
-  "tour.skillsBody":     "⚔ öffnet deine Bosse: jeder Skill ist ein ablaufender Chip mit Tonsignalen in den letzten Sekunden — mitten im Kampf per globalem Hotkey zurücksetzbar.",
+  "tour.characterTitle": "DEIN CHARAKTER",
+  "tour.characterBody":  "Wen spielst du? Name, Reich, Klasse — Training stimmt sein Aufgaben-Menü genau darauf ab. Weitere Charaktere kommen später über den Chip links in der Leiste dazu.",
+  "tour.skillsTitle":    "DUNGEONS",
+  "tour.skillsBody":     "⚔ öffnet deine Dungeons: wähl den Boss, gegen den du kämpfst — jeder Skill wird zum ablaufenden Chip mit Tonsignalen in den letzten Sekunden, mitten im Kampf per globalem Hotkey zurücksetzbar.",
   "tour.cooldownsTitle": "COOLDOWNS",
   "tour.cooldownsBody":  "⏱ startet einmalige Countdowns auf einen festen Zeitpunkt — Dungeon-Wiedereintritt oder ein Spawn, auf den du wartest. Sie folgen der Uhr und überleben Neustarts.",
   "tour.itemsTitle":     "ABLAUFENDE ITEMS",
-  "tour.itemsBody":      "♻ behält im Blick, was abläuft — Pet, Kostüm, Mount. Jedes zeigt die Resttage; ↻ stempelt einen frischen Zyklus, wenn du fütterst oder erneuerst.",
-  "tour.routineTitle":   "ROUTINE",
+  "tour.itemsBody":      "⧗ behält im Blick, was abläuft — Pet, Kostüm, Mount. Jedes zeigt die Resttage; ↻ stempelt einen frischen Zyklus, wenn du fütterst oder erneuerst.",
+  "tour.routineTitle":   "TRAINING",
   "tour.routineBody":    "✓ ist ein Menü wiederkehrender Aufgaben — Skillbuch-Lesen, Biologen-Abgaben. Du bist nicht im Rückstand: wähl, was zu deinem Charakter passt, und ✓ stempelt es aufs nächste Fenster.",
   "tour.settingsTitle":  "EINSTELLUNGEN",
   "tour.settingsBody":   "⚙ öffnet das Einstellungsfenster — Bosse, Hotkeys, Sounds, Sprache und Backups wohnen dort. Da müssen wir jetzt nicht rein.",
@@ -434,7 +450,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "tour.next":           "Weiter →",
   "tour.back":           "← Zurück",
   "tour.finish":         "Verstanden",
-  "tour.skip":           "Tour überspringen →",
+  "tour.skip":           "✕ Tour überspringen",
   "tour.makeItYours":    "⚙ Pass es an →",
 
   // ---- SubscribeScreen ----
@@ -472,24 +488,26 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "settings.tabDungeons":     "Dungeons",
   "settings.tabCooldowns":    "Cooldowns",
   "settings.tabItems":        "Items",
-  "settings.tabRoutine":      "Routine",
+  "settings.tabRoutine":      "Training",
   "settings.tabLanguage":     "Sprache",
   "settings.addBoss":         "+ BOSS HINZUFÜGEN",
   "settings.closeTitle":      "Einstellungen schließen",
   "settings.explainDungeons":  "Dungeons — deine Bosse und ihre Skill-Chips: Namen, Dauern, Sounds und globale Hotkeys.",
   "settings.explainCooldowns": "Cooldowns — einmalige Dungeon-Respawns; stell hier die Dauer für jeden ein.",
   "settings.explainItems":     "Ablaufende Items — Pet, Kostüm, Mount; stell ein, wie lange jeder Zyklus läuft.",
-  "settings.explainRoutine":   "Routine — das Menü wiederkehrender Aufgaben; füge Einträge hinzu und stimm ihre Fenster ab.",
-  "settings.showAround":       "↻ FÜHR MICH HERUM",
+  "settings.explainRoutine":   "Training — das Menü wiederkehrender Aufgaben; füge Einträge hinzu und stimm ihre Fenster ab.",
+  "settings.showAround":       "FÜHR MICH HERUM",
   "settings.showAroundHint":   "Die kurze Tour durch die Leiste und ihre Werkzeuge erneut abspielen.",
 
   // ---- LocaleSettings ----
   "locale.title":  "SPRACHE",
   "locale.hint":   "Inhaltsnamen werden in der gewählten Sprache angezeigt. Selbst eingetragene Freitextnamen werden nie geändert.",
+  "locale.filterPlaceholder": "Sprachen filtern…",
+  "locale.filterAriaLabel":   "Sprachen filtern",
 
   // ---- BackupSection ----
-  "backup.export":   "⤓ BACKUP EXPORTIEREN",
-  "backup.import":   "⤒ BACKUP IMPORTIEREN",
+  "backup.export":   "BACKUP EXPORTIEREN",
+  "backup.import":   "BACKUP IMPORTIEREN",
   "backup.exported": "Backup exportiert.",
   "backup.imported": "Backup importiert.",
   "backup.invalid":  "Diese Datei ist kein gültiges Backup — nichts wurde geändert.",

@@ -72,6 +72,129 @@ function WindIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Mid-drain hourglass — the expiring-items glyph (replaces the too-basic ⧗ char):
+ *  a little sand left up top, a falling stream, a settled mound below. */
+export function HourglassIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M6 3h12M6 21h12" />
+        <path d="M7.5 3c0 4.2 1.9 5.7 4.5 9-2.6 3.3-4.5 4.8-4.5 9" />
+        <path d="M16.5 3c0 4.2-1.9 5.7-4.5 9 2.6 3.3 4.5 4.8 4.5 9" />
+      </g>
+      {/* sand: remaining wedge above the waist, the stream, the mound below */}
+      <path d="M9.6 8.8h4.8L12 11.8 9.6 8.8z" fill="currentColor" />
+      <path d="M12 12.5v3.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M12 15.8l3.3 3.6c.4.4.1 1.1-.5 1.1H9.2c-.6 0-.9-.7-.5-1.1l3.3-3.6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Ticked checkbox — the routine glyph (replaces the bare ✓ char): a rounded box with the
+ *  tick inside, so it reads as a checklist item rather than a loose check mark. */
+export function CheckboxIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" strokeWidth="1.7" />
+        <path d="M8 12.4l2.9 2.9 5.4-6" strokeWidth="1.9" />
+      </g>
+    </svg>
+  );
+}
+
+/** Rolled scroll/parchment — the "used an item to skip the cooldown" early-read unlock (design walk):
+ *  a sheet hanging from a curled top, rolled at the foot, with two lines of writing. */
+export function ScrollIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        {/* curled top */}
+        <path d="M8 3.5h9a1.8 1.8 0 011.8 1.8c0 1-.8 1.7-1.8 1.7" />
+        {/* left edge falling from the curl, and the right edge */}
+        <path d="M8 3.5C6.9 3.5 6 4.4 6 5.5V18" />
+        <path d="M17 7v9.5" />
+        {/* rolled foot */}
+        <path d="M6 18a2 2 0 002 2h7.2c1 0 1.8-.8 1.8-1.8s-.8-1.7-1.8-1.7H8" />
+        {/* writing */}
+        <path d="M9 9.5h5M9 12.5h5" />
+      </g>
+    </svg>
+  );
+}
+
+/** Circled question mark — the "show me around" tour replay. */
+export function TourIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <circle cx="12" cy="12" r="8.6" strokeWidth="1.7" />
+        <path d="M9.7 9.6a2.4 2.4 0 113.3 2.2c-.8.34-1 .85-1 1.8" strokeWidth="1.7" />
+      </g>
+      <circle cx="12" cy="16.7" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Arrow down into a tray — export a backup to file. */
+export function DownloadIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M12 4v10M8 10.5l4 4 4-4" />
+        <path d="M4.5 19.5h15" />
+      </g>
+    </svg>
+  );
+}
+
+/** Arrow up from a tray — import a backup from file. */
+export function UploadIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M12 14.5V4.5M8 8l4-4 4 4" />
+        <path d="M4.5 19.5h15" />
+      </g>
+    </svg>
+  );
+}
+
+/** Counterclockwise arrow — reset to defaults. */
+export function ResetIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M4.5 4.5v5h5" />
+        <path d="M5.2 9.3a7.4 7.4 0 116.8 10.2 7.4 7.4 0 01-6.9-4.7" />
+      </g>
+    </svg>
+  );
+}
+
+/** Plain cross — close the surface (heavier than the text ✕ so it reads at a glance). */
+export function CloseIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </g>
+    </svg>
+  );
+}
+
+/** Straight left arrow — back to the previous screen (replaces the ← text glyph, whose
+ *  baseline sat it off-center in the 24px icon buttons). */
+export function BackIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 12H4.5M10.5 6l-6 6 6 6" />
+      </g>
+    </svg>
+  );
+}
+
 /** Two-way swap arrows — flips between the Phase 1 / Phase 2 tools. */
 export function SwapIcon(p: SVGProps<SVGSVGElement>) {
   return (

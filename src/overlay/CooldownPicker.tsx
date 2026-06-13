@@ -19,6 +19,7 @@ import { type Anchor } from "./anchor";
 import { measureAnchor } from "./measureOverlay";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
+import { tip, tipHint } from "./Tooltip";
 
 const DEFAULT_ANCHOR: Anchor = { horizontal: "left", vertical: "down" };
 
@@ -31,11 +32,13 @@ type Props = {
    *  self-managed (the cooldowns-only HUD just clicks the + itself). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Deep-link to the Cooldowns settings tab — the ⚙ at the selection menu's top right (design walk). */
+  onOpenSettings?: () => void;
   /** The active content locale — resolves chrome strings per-locale. Required so a new call site can't silently un-localize. */
   locale: Locale;
 };
 
-export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange, locale }: Props) {
+export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: controlledOpen, onOpenChange, onOpenSettings, locale }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor>(DEFAULT_ANCHOR);
@@ -118,8 +121,7 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
       <button
         className="cooldown-add"
         onClick={() => setOpen(!open)}
-        title={t("picker.startCooldown", locale)}
-        aria-label={t("picker.startCooldown", locale)}
+        {...tip(t("picker.startCooldown", locale))}
       >
         +
       </button>
@@ -130,7 +132,21 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
           }`}
           ref={menuRef}
         >
-          <div className="cooldown-menu__hint">{t("picker.hint", locale)}</div>
+          <div className="cooldown-menu__head">
+            <div className="cooldown-menu__hint">{t("picker.hint", locale)}</div>
+            {onOpenSettings && (
+              <button
+                className="card-gear"
+                onClick={() => {
+                  setOpen(false); // settings is a separate surface — don't leave the menu hanging open
+                  onOpenSettings();
+                }}
+                {...tip(t("dock.settings", locale))}
+              >
+                ⚙
+              </button>
+            )}
+          </div>
           {catalog.map((d) => (
             // data-defid on the row so scroll-to-tune works across the whole row, including over the
             // duplicate button; the start and duplicate actions are separate buttons.
@@ -141,7 +157,7 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
                   onStart(d.id);
                   setOpen(false);
                 }}
-                title={t("picker.itemTitle", locale)}
+                {...tipHint(t("picker.itemTitle", locale))}
               >
                 <span className="cooldown-menu__tag">{d.tag}</span>
                 <span className="cooldown-menu__name">{d.name}</span>
@@ -150,8 +166,7 @@ export function CooldownPicker({ catalog, onStart, onTune, onDuplicate, open: co
               <button
                 className="cooldown-menu__dupe"
                 onClick={() => onDuplicate(d.id)}
-                title={`add another ${d.name}`}
-                aria-label={`add another ${d.name}`}
+                {...tip(`add another ${d.name}`)}
               >
                 +
               </button>

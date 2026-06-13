@@ -1,0 +1,27 @@
+/* DragonsAid brand tokens — single source of truth.
+   Extracted from the design-canvas exports in brand/reference/. */
+:root {
+  /* surfaces */
+  --da-bg: #0a0810;
+  --da-panel: #14101f;
+  --da-panel-2: #1b1529;
+  --da-line: #2c2440;
+
+  /* text */
+  --da-text: #ece8f4;
+  --da-text-dim: #8d86a3;
+
+  /* ember (primary accent) */
+  --da-ember: #ff6b2c;
+  --da-ember-hot: #ffa14a;
+  --da-ember-deep: #c2440e;
+
+  /* blue (secondary accent) */
+  --da-blue: #3fc1ff;
+  --da-blue-mid: #2fa8ff;
+  --da-blue-deep: #1c5d8f;
+
+  /* type */
+  --da-font-display: 'Chakra Petch', sans-serif; /* display / wordmark */
+  --da-font-mono: 'Share Tech Mono', monospace;  /* HUD labels, timers */
+}

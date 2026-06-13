@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { CheckboxIcon, HourglassIcon } from "./icons";
+import { tip, tipHint } from "./Tooltip";
 import type { RecurringDatum, RoutineDatum } from "./useRecurring";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
@@ -21,7 +23,7 @@ type Props = {
   spotlight?: DockSpotlight;
   /** Active boss's name, shown on the ⚔ segment when a boss is selected. */
   activeBossName?: string;
-  /** ♻ — the soonest expiring item's compact datum, shown inline on the bar (null = none running). */
+  /** ⧗ — the soonest expiring item's compact datum, shown inline on the bar (null = none running). */
   itemsDatum: RecurringDatum;
   /** ✓ — the routine to-do nudge: the count of routines that need doing now (calm when none). */
   routineDatum: RoutineDatum;
@@ -29,7 +31,7 @@ type Props = {
   onSkills: () => void;
   /** ⏱ — toggle the cooldown strip (pinned above the panel). */
   onCooldowns: () => void;
-  /** ♻ — toggle the expiring-items panel (live: countdowns + alarm + refresh, #37). */
+  /** ⧗ — toggle the expiring-items panel (live: countdowns + alarm + refresh, #37). */
   onItems: () => void;
   /** ✓ — toggle the routine panel (live: gate checklist + x/n counter, #38). */
   onRoutine: () => void;
@@ -44,7 +46,7 @@ type Props = {
 /**
  * The overlay's home shell (ADR-0003): one dense status line that stays pinned on top. Clicking a
  * tool segment toggles that tool open — ⚔ surfaces the active boss's timers (or the dungeon
- * picker), ⏱ pins the cooldown strip above the panel, ♻/✓ the two new tools; ⚙ opens the settings
+ * picker), ⏱ pins the cooldown strip above the panel, ⧗/✓ the two new tools; ⚙ opens the settings
  * window and ✕ quits (the frameless overlay has no OS titlebar, so this is the only way out). The
  * cooldown strip coexists with the boss timers, so more than one segment can read open
  * at once. ⏱ is icon-only — multiple cooldowns can run, so no single inline readout would be
@@ -60,27 +62,29 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
   return (
     <div className="dock-bar">
       {/* drag handle — grab the grip to move the frameless overlay */}
-      <span className="dock-grip" data-tauri-drag-region title={t("dock.drag", locale)}>
+      <span className="dock-grip" data-tauri-drag-region {...tipHint(t("dock.drag", locale))}>
         ⠿
       </span>
 
       {leading}
 
-      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills} title={t("dock.skills", locale)}>
+      <button className={`dock-seg${open.has("skills") ? " is-open" : ""}${spot("skills")}`} onClick={onSkills}>
         <span className="dock-seg__icon">⚔</span>
+        <span className="dock-seg__label">{t("settings.tabDungeons", locale)}</span>
         {activeBossName && <span className="dock-seg__val dock-seg__name">{activeBossName.toUpperCase()}</span>}
       </button>
 
       <button
         className={`dock-seg${open.has("cooldowns") ? " is-open" : ""}${spot("cooldowns")}`}
         onClick={onCooldowns}
-        title={t("dock.cooldowns", locale)}
       >
         <span className="dock-seg__icon">⏱</span>
+        <span className="dock-seg__label">{t("settings.tabCooldowns", locale)}</span>
       </button>
 
-      <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems} title={t("dock.expiring", locale)}>
-        <span className="dock-seg__icon">♻</span>
+      <button className={`dock-seg${open.has("items") ? " is-open" : ""}${spot("items")}`} onClick={onItems}>
+        <span className="dock-seg__icon"><HourglassIcon /></span>
+        <span className="dock-seg__label">{t("settings.tabItems", locale)}</span>
         {itemsDatum ? (
           <span className={`dock-seg__val${itemsDatum.alarm ? " dock-alarm" : itemsDatum.due ? " dock-due" : ""}`}>
             {itemsDatum.text}
@@ -90,16 +94,17 @@ export function DockBar({ leading, open, spotlight = null, activeBossName, items
         )}
       </button>
 
-      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine} title={t("dock.routine", locale)}>
-        <span className="dock-seg__icon">✓</span>
+      <button className={`dock-seg${open.has("routine") ? " is-open" : ""}${spot("routine")}`} onClick={onRoutine}>
+        <span className="dock-seg__icon"><CheckboxIcon /></span>
+        <span className="dock-seg__label">{t("settings.tabRoutine", locale)}</span>
         {routineToDo > 0 && <span className="dock-seg__val dock-ready">{routineToDo}</span>}
       </button>
 
-      <button className={`dock-seg${spot("settings")}`} onClick={onSettings} title={t("dock.settings", locale)}>
+      <button className={`dock-seg${spot("settings")}`} onClick={onSettings} {...tip(t("dock.settings", locale))}>
         <span className="dock-seg__icon">⚙</span>
       </button>
 
-      <button className="dock-seg dock-seg--danger" onClick={onQuit} title={t("dock.quit", locale)}>
+      <button className="dock-seg dock-seg--danger" onClick={onQuit} {...tip(t("dock.quit", locale))}>
         <span className="dock-seg__icon">✕</span>
       </button>
     </div>

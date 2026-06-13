@@ -25,6 +25,7 @@ import {
   markRecurring,
   markRead,
   setRung,
+  addCatalogRoutine,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -98,7 +99,7 @@ describe("makeConfig", () => {
     const D = 86_400_000;
     const c = makeConfig();
     // examples-not-gospel defaults: name, duration, kind (no tag — recurring items carry none).
-    // Deadlines (♻ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
+    // Deadlines (⧗ items) seed first, then the gate routines (✓) — both flavours ship non-empty.
     expect(rec(c).map((r) => [r.name, r.durationMs, r.kind])).toEqual([
       ["Alastor Pet", 3 * D, "deadline"],
       ["White Navy Uniform Costume", 14 * D, "deadline"],
@@ -467,6 +468,15 @@ describe("renameCooldown", () => {
     const c = makeConfig();
     expect(renameCooldown(c, "cooldown-999", "X")).toBe(c);
   });
+
+  it("drops the catalogKey so a renamed seeded cooldown shows the new name verbatim (not the catalog spelling)", () => {
+    const c = makeConfig();
+    const id = c.cooldowns[0].id;
+    expect(c.cooldowns[0].catalogKey).toBeDefined(); // seeded cooldowns localize through their key — the dock would show that, not the rename
+    const after = renameCooldown(c, id, "My Boss");
+    expect(after.cooldowns[0].name).toBe("My Boss");
+    expect(after.cooldowns[0].catalogKey).toBeUndefined(); // now user content — rendered exactly as typed, in every locale
+  });
 });
 
 describe("retagCooldown", () => {
@@ -565,6 +575,40 @@ describe("addRecurring", () => {
   });
 });
 
+describe("addCatalogRoutine", () => {
+  // The curated + ADD TRAINING picker's transform: one preform, minted exactly like the seeding
+  // paths — catalogKey/ladderId/school intact, a fresh non-colliding id, the def landing in the
+  // active character's bag.
+  const PREFORM = {
+    name: "Dark Orb",
+    durationMs: 24 * HOUR,
+    kind: "gate" as const,
+    ladderId: "class-skill",
+    category: "class-ability" as const,
+    race: "Sura" as const,
+    build: "Black Magic" as const,
+  };
+
+  it("appends the preform as a catalog-faithful gate def on the active character", () => {
+    const c = makeConfig();
+    const after = addCatalogRoutine(c, PREFORM);
+    const def = rec(after)[rec(after).length - 1];
+    expect(rec(after).length).toBe(rec(c).length + 1);
+    expect([def.id, def.name, def.durationMs, def.kind]).toEqual(["recurring-14", "Dark Orb", 24 * HOUR, "gate"]);
+    expect(def.catalogKey).toBe("recurring.dark-orb");
+    expect(def.ladderId).toBe("class-skill");
+    expect(def.school).toBe("Black Magic"); // the dock bands Skill Books by school (#57)
+    expect(after.recurringSeq).toBe(14); // seq advanced past the new id
+  });
+
+  it("leaves the existing catalog and bosses untouched", () => {
+    const c = makeConfig();
+    const after = addCatalogRoutine(c, PREFORM);
+    expect(rec(after).slice(0, rec(c).length)).toEqual(rec(c));
+    expect(after.bosses).toBe(c.bosses);
+  });
+});
+
 describe("renameRecurring", () => {
   it("renames a definition, leaving its siblings alone", () => {
     const c = makeConfig();
@@ -577,6 +621,15 @@ describe("renameRecurring", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
+  });
+
+  it("drops the catalogKey so a renamed seeded def shows the new name verbatim (not the catalog spelling)", () => {
+    const c = makeConfig();
+    const [a] = rec(c);
+    expect(a.catalogKey).toBeDefined(); // seeded defs localize through their key — the dock would show that, not the rename
+    const after = renameRecurring(c, a.id, "My Ward");
+    expect(rec(after)[0].name).toBe("My Ward");
+    expect(rec(after)[0].catalogKey).toBeUndefined(); // now user content — rendered exactly as typed, in every locale
   });
 });
 
@@ -644,13 +697,28 @@ describe("setRecurringMaxed (done-forever state, #69)", () => {
     expect(rec(restored).find((d) => d.id === gate.id)).toEqual(gate); // key deleted, not `maxed: false`
   });
 
-  it("keeps the running instance and ladder rank — retire is a flag flip, not a delete", () => {
+  it("keeps the running instance but GRANTS the rank — maxing snaps the ladder to its cap", () => {
     const c = makeConfig();
-    const gate = rec(c).find((d) => d.kind === "gate")!;
+    const gate = rec(c).find((d) => d.kind === "gate")!; // Skill Books — class-skill ladder, cap 65
     const started = markRecurring(withProgress(makeConfig(), [{ defId: gate.id, position: 3 }]), gate.id, 1_000);
     const after = setRecurringMaxed(started, gate.id, true);
     expect(recRun(after)).toBe(recRun(started)); // instance kept (restore resumes mid-cycle)
-    expect(recProg(after)).toBe(recProg(started)); // rank kept
+    expect(recProg(after)).toEqual([{ defId: gate.id, position: 65 }]); // "this skill is P now"
+  });
+
+  it("restore keeps the granted rank — the rung curtain is the correction path", () => {
+    const c = makeConfig();
+    const gate = rec(c).find((d) => d.kind === "gate")!;
+    const restored = setRecurringMaxed(setRecurringMaxed(c, gate.id, true), gate.id, false);
+    expect(recProg(restored)).toEqual([{ defId: gate.id, position: 65 }]); // rank survives the un-max
+  });
+
+  it("maxing a plain (ladder-less) gate flips the flag only — no progress entry appears", () => {
+    const base = addRecurring(makeConfig(), "gate"); // a custom routine, no ladderId
+    const custom = rec(base)[rec(base).length - 1];
+    const after = setRecurringMaxed(base, custom.id, true);
+    expect(rec(after).find((d) => d.id === custom.id)?.maxed).toBe(true);
+    expect(recProg(after)).toEqual(recProg(base)); // untouched
   });
 
   it("is a no-op (by reference) for an unknown def id", () => {
@@ -724,9 +792,38 @@ describe("markRead (ladder read-outcome gesture, #45)", () => {
   it("✓ at the cap is a no-op on position (clamped to the book-relevant cap)", () => {
     const base = makeConfig();
     const def = books(base);
-    const c = withProgress(base, [{ defId: def.id, position: 55 }]); // already at G1, the cap
+    const c = withProgress(base, [{ defId: def.id, position: 65 }]); // already at P, the cap
     const after = markRead(c, def.id, 1_000, true);
-    expect(recProg(after)).toEqual([{ defId: def.id, position: 55 }]); // clamped, no overshoot
+    expect(recProg(after)).toEqual([{ defId: def.id, position: 65 }]); // clamped, no overshoot
+  });
+
+  it("the ✓ that REACHES the cap retires the def done-forever (maxed) — the settings 'P' state", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = withProgress(base, [{ defId: def.id, position: 64 }]); // G10 — one read short of P
+    const after = markRead(c, def.id, 1_000, true);
+    expect(recProg(after)).toEqual([{ defId: def.id, position: 65 }]); // advanced onto the P cap
+    expect(rec(after).find((d) => d.id === def.id)?.maxed).toBe(true); // and auto-retired, not capped-but-live
+  });
+
+  it("a ✓ that does NOT reach the cap leaves the def live (not maxed)", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = withProgress(base, [{ defId: def.id, position: 10 }]);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(rec(after).find((d) => d.id === def.id)?.maxed).toBeUndefined();
+  });
+
+  it("restamps the gate with the 12h Soul Stone duration once past G1 (late tier)", () => {
+    const base = makeConfig();
+    const def = books(base); // seeded Skill Books — durationMs 24h, class-skill ladder
+    const HOUR = 3_600_000;
+    // Last book read (position 54): the 24h book cooldown still rules.
+    const early = markRead(withProgress(base, [{ defId: def.id, position: 54 }]), def.id, 0, true);
+    expect(recRun(early).find((r) => r.defId === def.id)?.expiry).toBe(24 * HOUR);
+    // On G1 (position 55): the item read is a stone — 12h, whatever the def's own duration says.
+    const late = markRead(withProgress(base, [{ defId: def.id, position: 55 }]), def.id, 0, true);
+    expect(recRun(late).find((r) => r.defId === def.id)?.expiry).toBe(12 * HOUR);
   });
 
   it("is a no-op for an unknown def id", () => {
@@ -789,7 +886,7 @@ describe("setRung (set-rung curtain, #46)", () => {
     const c = makeConfig();
     expect(setRung(c, "recurring-999", "M4")).toBe(c); // unknown def
     expect(setRung(c, rec(c)[0].id, "M4")).toBe(c); // Alastor Pet — a deadline, no ladder
-    expect(setRung(c, books(c).id, "P")).toBe(c); // P isn't a rung on the class-skill ladder (caps at G1)
+    expect(setRung(c, books(c).id, "X9")).toBe(c); // not a rung on the class-skill ladder
   });
 });
 

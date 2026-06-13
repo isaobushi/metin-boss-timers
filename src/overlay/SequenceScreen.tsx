@@ -1,9 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
-import { ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
+import { BackIcon, ElementIcon, SwapIcon, UndoIcon, TrashIcon } from "./icons";
 import { COLUMNS, ELEMENTS, findToken, type Token } from "./sequenceTokens";
 import { useSequence, type SequenceController } from "./useSequence";
 import { playSelect } from "./audio";
+import { tip, tipHint } from "./Tooltip";
 import { t } from "../engine/chrome";
 import type { Locale } from "../engine/localeTypes";
 
@@ -35,8 +36,8 @@ export function SequenceScreen({ onBack, locale }: Props) {
   return (
     <div className="panel sequence">
       <div className="seq-head">
-        <button className="icon-btn" onClick={onBack} title={t("sequence.back", locale)}>
-          ←
+        <button className="icon-btn" onClick={onBack} {...tip(t("sequence.back", locale))}>
+          <BackIcon />
         </button>
         {/* Labeled destination toggle: the text is where you'll land, so the control says
             what tapping does — not just "swap". Accent-filled to read as the primary action. */}
@@ -44,7 +45,7 @@ export function SequenceScreen({ onBack, locale }: Props) {
           className="seq-swap"
           onClick={swap}
           aria-label={isElements ? t("sequence.switchToColumns", locale) : t("sequence.switchToElements", locale)}
-          title={isElements ? t("sequence.switchToColumnsTitle", locale) : t("sequence.switchToElementsTitle", locale)}
+          {...tipHint(isElements ? t("sequence.switchToColumnsTitle", locale) : t("sequence.switchToElementsTitle", locale))}
         >
           <SwapIcon />
           <span className="seq-swap__label">{isElements ? t("sequence.columnsLabel", locale) : t("sequence.elementsLabel", locale)}</span>
@@ -54,14 +55,14 @@ export function SequenceScreen({ onBack, locale }: Props) {
           {isElements ? t("sequence.titleElements", locale) : t("sequence.titleColumns", locale)}
         </span>
         <span className="seq-count">{c.state.steps.length}</span>
-        <button className="icon-btn" onClick={c.undo} disabled={!c.state.steps.length} title={t("sequence.undo", locale)}>
+        <button className="icon-btn" onClick={c.undo} disabled={!c.state.steps.length} {...tip(t("sequence.undo", locale))}>
           <UndoIcon />
         </button>
         <button
           className="icon-btn icon-btn--danger"
           onClick={c.clear}
           disabled={!c.state.steps.length}
-          title={t("sequence.clear", locale)}
+          {...tip(t("sequence.clear", locale))}
         >
           <TrashIcon />
         </button>
@@ -80,7 +81,7 @@ export function SequenceScreen({ onBack, locale }: Props) {
               onClick={elements.rotate}
               disabled={elements.state.steps.length < 2}
               aria-label={t("sequence.queenShift", locale)}
-              title={t("sequence.queenShiftTitle", locale)}
+              {...tipHint(t("sequence.queenShiftTitle", locale))}
             />
           ) : undefined
         }
@@ -179,7 +180,7 @@ function RecallTrack({
             className={`track-chip${done ? " is-done" : ""}${current ? " is-current" : ""}`}
             style={{ "--c": tok.color } as CSSProperties}
             onClick={() => c.toggleDone(i)}
-            title={t("sequence.chipTitle", locale)}
+            {...tipHint(t("sequence.chipTitle", locale))}
           >
             <b>{i + 1}</b>
             {tok.icon ? <ElementIcon name={tok.icon} /> : tok.label}

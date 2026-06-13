@@ -11,6 +11,7 @@ import { displayName, type Locale } from "../engine/contentCatalog";
 import { buildKey, empireKey, raceKey } from "../engine/contentKeys";
 import type { CharacterDraft } from "../engine/config";
 import { t } from "../engine/chrome";
+import { tip } from "./Tooltip";
 
 const EMPIRES: Empire[] = ["Shinsoo", "Chunjo", "Jinno"];
 const RACES: Race[] = ["Warrior", "Ninja", "Sura", "Shaman", "Lycan"];
@@ -74,7 +75,7 @@ export function CharacterWizard({ mode = "new", initial, locale, onCreate, onCan
           ))}
         </span>
         {onCancel && (
-          <button className="char-wizard__x" onClick={onCancel} title={t("wizard.cancel", locale)}>
+          <button className="char-wizard__x" onClick={onCancel} {...tip(t("wizard.cancel", locale))}>
             ✕
           </button>
         )}

@@ -169,6 +169,21 @@ body {
 .btn-dashed:hover {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
+/* The glowing add CTA (design walk) — a slow ember pulse that marks the tab's primary action. */
+.btn-dashed--glow {
+  border-color: #ffa14a99;
+  animation: btn-glow-pulse 2.4s ease-in-out infinite;
+}
+@keyframes btn-glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px #ff6b2c2e;
+  }
+  50% {
+    box-shadow: 0 0 16px #ff6b2c80;
+    border-color: #ffa14a;
+  }
+}
 .btn-link {
   align-self: center;
   margin-top: 2px;
@@ -478,7 +493,9 @@ body[data-window="settings"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 432px;
+  /* Wide enough that all five tabs (incl. LANGUAGE) sit on the strip's tracking line and the
+     content below spans the full strip width (window opens at 540 — settingsWindow.ts). */
+  max-width: 512px;
   margin: 0 auto;
   padding: 14px;
 }
@@ -495,6 +512,7 @@ body[data-window="settings"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative; /* anchors the floating backup-note chip */
 }
 .settings-app__actions {
   display: flex;
@@ -518,21 +536,23 @@ body[data-window="settings"] {
 /* ---- settings tabs (one per dock tool; see SettingsApp) ---- */
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap; /* safety: a long-label locale wraps to a second row instead of jutting past the line */
   gap: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
+  gap: 5px;
+  padding: 7px 9px; /* trimmed so all five tabs share one row of the strip */
   border: none;
   background: none;
   cursor: pointer;
   color: inherit;
   font-size: 12px;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
   font-weight: 600;
+  white-space: nowrap;
   opacity: 0.55;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px; /* overlap the strip's border so the active underline sits on it */
@@ -775,23 +795,63 @@ body[data-window="settings"] {
   font-size: 10px;
   opacity: 0.5;
 }
-/* a maxed (done-forever, #69) routine reads as retired-but-kept: dimmed, struck, restorable */
-.cd-row--maxed .cd-name,
-.cd-row--maxed .cd-dur {
-  opacity: 0.45;
+/* Recurring (items/routine) rows carry THREE duration inputs (d/h/m) where cooldowns carry two —
+   the shared 132px cell clipped their digits, so the d/h/m variant gets a wider cell (and the
+   matching header column stays aligned). */
+.cooldown-settings--dhm .cd-head__dur,
+.cooldown-settings--dhm .cd-dur {
+  width: 184px;
+}
+/* The TRAINING rows' RANK column (design walk) — the set-rung curtain in place of the duration
+   editor, sized to the same slot so the name/🏆/✕ columns stay aligned across both sections. The
+   trigger reuses the dock-acc__ladder skin (small muted readout); a ladder-less custom row shows
+   a quiet dash (its cadence is fixed daily, nothing to edit). */
+.cd-rank {
+  width: 184px;
+  flex-shrink: 0;
+  /* breathing room from the NAME column, and aligns the rung readout under the RANK header */
+  padding-left: 8px;
+  font-size: 11px;
+  color: #b9aee6;
+}
+.cd-rank--none {
+  opacity: 0.35;
+  text-align: left;
+}
+.cd-rank .dock-acc__ladder {
+  font-size: 11px;
+}
+/* RANK header sits left-aligned over the (left-aligned) rung readout, with the same indent — the
+   inherited centered DURATION header would float mid-cell, off the column it labels. */
+.cd-head__dur--rank {
+  text-align: left;
+  padding-left: 8px;
+}
+/* a maxed (perfected, #69) routine reads as achieved, not retired (design walk): lit ember band,
+   sorted to the bottom — no dim, no strike. The P/M/✓ toggle restores it. */
+.cd-row--maxed {
+  background: color-mix(in srgb, #ff6b2c 9%, transparent);
+  border-radius: 6px;
 }
 .cd-row--maxed .cd-name {
-  text-decoration: line-through;
+  color: #ffd9b0;
+  border-color: #ffa14a55;
 }
-/* the 🏆 toggle: greyscale while the routine is active, full colour once retired */
-.icon-btn--trophy {
-  filter: grayscale(1);
-  opacity: 0.6;
+/* The done-forever toggle (#69) — a "P" after Metin2's Perfect-Master grade: quiet while the
+   routine is active, lit ember with a glow once retired. */
+.icon-btn--maxed {
+  font-weight: 800;
+  font-style: italic;
+  font-size: 13px;
+  opacity: 0.5;
 }
-.icon-btn--trophy-on {
-  filter: none;
+.icon-btn--maxed-on {
   opacity: 1;
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: #ffa14a;
+  border-color: #ffa14a88;
+  text-shadow:
+    0 0 6px #ff6b2ccc,
+    0 0 14px #ff6b2c66;
 }
 
 /* ---- chip ---- */
@@ -963,6 +1023,25 @@ body[data-window="settings"] {
   font-size: 15px;
   line-height: 1;
 }
+/* Bespoke SVG glyphs (icons.tsx) draw edge-to-edge of their em box while text glyphs leave
+   side bearings — shrink slightly and re-seat on the baseline so they match optically. */
+.dock-seg__icon svg,
+.settings-tab__icon svg,
+.tour-card__glyph svg {
+  width: 0.85em;
+  height: 0.85em;
+  vertical-align: -0.07em;
+}
+/* Tool name beside the icon — quiet, uppercase, never wraps. The named dock replaced the
+   icon-only line in the design walk; labels reuse the settings-tab strings so they localize. */
+.dock-seg__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  white-space: nowrap;
+}
 .dock-seg__val {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1004,6 +1083,54 @@ body[data-window="settings"] {
   opacity: 0.5;
   text-align: center;
 }
+/* The in-card ⚙ shortcut (design walk) — sits inside each section's card top-right and
+   deep-links to its settings tab: dungeons in the SELECT DUNGEON title, cooldowns in the
+   selection menu's top row, items/training in their accordion header rows. */
+.card-gear {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.card-gear:hover {
+  opacity: 1;
+}
+.boss-select {
+  position: relative;
+}
+.boss-select .card-gear {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2; /* over the title's drag region, so the click wins */
+}
+/* The accordions' header row: panel name left, ⚙ right. */
+.dock-acc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dock-acc__head-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+/* The cooldown selection menu's top row: hint left, ⚙ right. */
+.cooldown-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* A Routine band header (#57: Skill Books / Languages / Chores) — a quiet uppercase label that
    separates the race Abilities from the universal chores. Shown only when >1 band is present. */
 .dock-acc__section-head {
@@ -1014,6 +1141,17 @@ body[data-window="settings"] {
   color: #9b8cff;
   opacity: 0.7;
   padding: 2px 0;
+}
+/* Per-band header tint — each Routine category gets its own hue so the bands scan apart at a
+   glance. Hues lean on the brand palette (ember / blue) ahead of the full reskin. */
+.dock-acc__section--books .dock-acc__section-head {
+  color: #ffa14a; /* ember-hot — brand primary family */
+}
+.dock-acc__section--languages .dock-acc__section-head {
+  color: #3fc1ff; /* brand blue */
+}
+.dock-acc__section--chores .dock-acc__section-head {
+  color: #39ff88; /* the app's ready-green */
 }
 /* A band's header sits clear of the prior band's last row (the first band needs no extra gap). */
 .dock-acc__section + .dock-acc__section .dock-acc__section-head {
@@ -1090,10 +1228,13 @@ body[data-window="settings"] {
   background: #ffffff12;
   color: #fff;
 }
-/* The ✓ mark-done at a routine row's end — the refresh glyph's sibling. Green at rest when the
-   item is do-able now (the row carries `is-ready`), so the actionable tick pulls the eye; quiet
-   and muted once the chore is satisfied (`is-done`). */
-.dock-acc__done {
+/* The ✓/✗ read buttons at a routine row's end. Two states only — and the ✓ and ✗ share one calm
+   panel violet, so the win/loss outcome reads from the glyph (✓ vs ✗), not from colour:
+     • active   — live (the row is ready, or the scroll unlocked an early read): solid violet.
+     • disabled — locked while counting down (a read happened, awaiting ready or the scroll): faint.
+   No third "ready"/"early" shade, and no white — hover just lifts a faint background. */
+.dock-acc__done,
+.dock-acc__fail {
   flex: none;
   padding: 2px 5px;
   border: 0;
@@ -1104,42 +1245,54 @@ body[data-window="settings"] {
   line-height: 1;
   cursor: pointer;
 }
-.dock-acc__done:hover {
+.dock-acc__done:hover,
+.dock-acc__fail:hover {
   background: #ffffff12;
-  color: #fff;
 }
-.dock-acc__row.is-ready .dock-acc__done {
-  color: #39ff88;
-}
-.dock-acc__row.is-done .dock-acc__done {
-  opacity: 0.5;
-}
-/* The ladder read-outcome pair (#45): ✓ success + ✗ fail, shown only on a ready ladder row. The ✗
-   is the ✓'s sibling glyph button, tinted toward the loss accent so the two outcomes read apart. */
 .dock-acc__reads {
   flex: none;
   display: flex;
   gap: 2px;
 }
-.dock-acc__fail {
+/* The locked (disabled) state — unclickable and faint until the gate reads ready or the scroll
+   unlocks an early read. */
+.dock-acc__done:disabled,
+.dock-acc__fail:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+.dock-acc__done:disabled:hover,
+.dock-acc__fail:disabled:hover {
+  background: transparent;
+}
+/* The scroll — early-read unlock (design walk): the third glyph beside ✓/✗, and their exact mirror.
+   Two states only — enabled gold while the read buttons are locked (tap to skip the cooldown), faint
+   and disabled whenever they're live (nothing to unlock). */
+.dock-acc__skip {
   flex: none;
-  padding: 2px 5px;
+  padding: 2px 4px;
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #ff6b8b;
+  color: #ffd166;
   font-size: 13px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
+  opacity: 0.9;
 }
-.dock-acc__fail:hover {
+.dock-acc__skip:hover {
   background: #ffffff12;
-  color: #fff;
+  opacity: 1;
 }
-/* While the gate counts down, both read-outcome buttons dim — a tapped read here is the deliberate
-   "skipped the cooldown" early read, mirroring the plain gate's muted done-early ✓. */
-.dock-acc__row.is-done .dock-acc__fail {
-  opacity: 0.5;
+.dock-acc__skip:disabled {
+  opacity: 0.16;
+  cursor: default;
+}
+.dock-acc__skip:disabled:hover {
+  background: transparent;
+  color: #ffd166;
 }
 /* A capped ladder row — the inert trophy. No gesture, no gate countdown; the rung readout under
    the name reads `… ✓ max`. Dimmed and gold-tinted so a maxed ladder reads as done-and-proud. */
@@ -1248,6 +1401,109 @@ body[data-window="settings"] {
   color: #b9aee6;
   opacity: 0.6;
   font: 500 10px/1.2 inherit;
+}
+/* ---- language curtain (design walk) — LocaleSettings' RungCurtain sibling. The trigger reads
+   as a select control; the menu reuses the rung-menu skin but lists full-width rows instead of
+   the chip grid (language names, not rung labels). Always opens downward: settings scrolls. ---- */
+.locale-curtain__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ffffff22;
+  border-radius: 8px;
+  background: #ffffff0d;
+  color: #e9e5f5;
+  font: 600 12px/1 inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.locale-curtain__trigger:hover {
+  border-color: #ffffff44;
+  color: #fff;
+}
+.locale-curtain__chev {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.locale-curtain__menu {
+  top: calc(100% + 4px);
+  min-width: 180px;
+}
+.locale-curtain__menu .rung-menu__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: 240px;
+}
+.locale-curtain__menu .rung-menu__item {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+}
+
+/* ---- training curtain (design walk) — the curated + ADD TRAINING picker, LocaleSettings'
+   curtain sibling on the routine tab. The trigger is the section's dashed add button; the menu
+   opens UPWARD (the trigger sits at the tab's bottom, so downward would land out of view) and
+   lists the active character's catalog subset banded like the ✓ accordion (#57). Already-added
+   rows stay listed but dim behind a ✓ — the list doubles as "what exists for my class". ---- */
+.training-curtain {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.training-curtain__menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-width: none;
+}
+.training-curtain__menu .rung-menu__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: 280px;
+}
+.training-curtain__school {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.training-curtain__menu .rung-menu__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 8px;
+}
+.training-curtain__band-head {
+  padding: 6px 4px 2px;
+  font: 700 9px/1 inherit;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #b9aee6;
+  opacity: 0.7;
+}
+.training-curtain__school-head {
+  padding: 4px 4px 1px;
+  font: 600 9px/1 inherit;
+  letter-spacing: 0.6px;
+  color: #b9aee6;
+  opacity: 0.55;
+}
+.training-curtain__menu .rung-menu__item.is-added {
+  opacity: 0.4;
+  cursor: default;
+}
+.training-curtain__menu .rung-menu__item.is-added:hover {
+  background: #ffffff10;
+  color: #e9e5f5;
+}
+/* The escape hatch sits below the scroll list, set apart by a dashed rule (the old blank-add). */
+.training-curtain__custom {
+  border-top: 1px dashed #ffffff22;
+  border-radius: 0 0 6px 6px;
+  padding-top: 8px;
 }
 
 /* ---- cooldown strip (Variant A "whisper row") ---- */
@@ -1748,6 +2004,13 @@ body[data-window="settings"] {
   line-height: 1.45;
   opacity: 0.85;
 }
+/* Tool glyphs embedded in the copy (wrapped by TourCard's renderBody) — bumped above the body
+   size so they read as the dock icons they reference, without pushing the line height. */
+.tour-card__glyph {
+  font-size: 24px;
+  line-height: 1;
+  vertical-align: -4px;
+}
 /* The "make it yours" nudge (#72) — a quiet inline link to the beat's settings tab; it must read
    secondary to Next (the tour's main path), so it styles as a link, not a button. */
 .tour-card__nudge {
@@ -1764,6 +2027,23 @@ body[data-window="settings"] {
 .tour-card__nudge:hover {
   opacity: 1;
   text-decoration: underline;
+}
+/* The character beat's embedded wizard (design walk 4): the wizard component ships its own
+   .dock-acc frame for the standalone (below-dock) entry points — nested inside the card that
+   would read as a panel-in-a-panel and overflow the card's padding, so flatten it to a plain
+   section divided from the copy by a hairline. The card's title carries the beat, so the
+   wizard's own head title yields (its step dots stay — they read the sub-flow). */
+.tour-card .char-wizard {
+  width: auto;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid #ffffff14;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.tour-card .char-wizard__title {
+  display: none;
 }
 .tour-card__actions {
   display: flex;
@@ -2064,38 +2344,80 @@ body[data-window="settings"] {
   cursor: default;
 }
 
-/* ---- settings footer blocks: backup section (#56) + tour-replay row (#73) ----
-   The two share one separated-block shape (divider, column, hint); grouped selectors keep a
-   future divider/hint tweak from silently drifting between them. */
-.backup-section,
-.tour-replay {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #2a2540;
+/* ---- settings header icon strip (design walk; was footer blocks #56/#73) ----
+   Tour replay, backup export/import and reset live as quiet icons beside the title; the long
+   explainers ride each button's tooltip. Close sits last, bigger and set apart. */
+.settings-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font-size: 16px; /* drives the 1em-sized SVG */
+  cursor: pointer;
+  opacity: 0.6;
 }
-.backup-section__row {
-  display: flex;
-  gap: 8px;
+.settings-icon-btn:hover {
+  opacity: 1;
+  background: #ffffff12;
 }
-.backup-section__row .btn-dashed {
-  flex: 1;
-}
-.tour-replay .btn-dashed {
-  width: 100%;
-}
-.backup-section__hint,
-.tour-replay__hint {
-  margin: 0;
-  font-size: 10.5px;
-  line-height: 1.4;
-  opacity: 0.5;
-}
-.backup-section__note {
-  margin: 0;
-  font-size: 11px;
+/* Close — heavier and unmissable, tints danger on hover like the dock's quit. */
+.settings-icon-btn--close {
+  font-size: 21px;
+  margin-left: 6px;
   opacity: 0.85;
+}
+.settings-icon-btn--close:hover {
+  color: #ff7b96;
+  background: #ff7b9618;
+}
+/* The backup result note — a transient chip floating under the strip (the head is relative). */
+.backup-note {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #1b1529;
+  font-size: 11px;
   color: #9fe0b4;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+/* ---- instant tooltip layer (Tooltip.tsx) ---- */
+/* One fixed, pointer-events-none box per window, positioned by tooltipPlace.ts. It must never
+   affect layout: the Tauri window is sized to its content (useOverlayAutosize), so a tooltip
+   that grew the content would resize the window on hover. Above every panel/curtain z-index. */
+.tip-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  max-width: 240px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.4px;
+  color: #e9e4f7;
+  background: rgba(10, 8, 18, 0.96);
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 4px 14px #000c;
+  animation: tip-in 70ms ease-out;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

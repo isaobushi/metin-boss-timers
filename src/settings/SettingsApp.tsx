@@ -1,16 +1,28 @@
-// The settings window's root — the full config-editing surface that lives *outside* the
-// compact overlay (slice #6). It runs its own `useConfig()`; every edit persists and
-// broadcasts, so the overlay window reflects changes live (configSync). One BossSettings
-// block per boss, plus add-boss and reset-to-defaults that used to crowd the overlay.
+// The settings surface — the full config-editing UI that lives *outside* the compact overlay
+// (slice #6). One BossSettings block per boss, plus add-boss and reset-to-defaults that used to
+// crowd the overlay.
+//
+// It comes in two shells over the SAME body (`SettingsView`), differing only in where the config
+// comes from:
+//   • Tauri: a separate OS settings WINDOW (main.tsx → the default-export `SettingsApp` wrapper)
+//     runs its OWN `useConfig()`, kept in step with the overlay window over configSync (emit/listen).
+//   • Browser: App renders `<SettingsView cfg={...}>` INLINE as a modal and hands it the overlay's
+//     own `cfg`, so the dock and settings are literally one `useConfig` — edits reflect instantly,
+//     with no cross-instance BroadcastChannel sync to drop (two in-document instances never agreed
+//     reliably: a rung set in the dock, or a rename, wouldn't reach the other surface).
 //
 // The surface grew a section per dock tool (bosses, cooldowns, items, routine); once the
 // routine seed filled out it was too tall to scan, so the four sections live behind tabs
-// keyed to the same icons the dock uses (⚔ ⏱ ♻ ✓). Reset/close stay global in the head.
-import { useCallback, useEffect, useState } from "react";
+// keyed to the same icons the dock uses (⚔ ⏱ ⧗ ✓). Reset/close stay global in the head.
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
 import { RecurringSettings } from "../overlay/RecurringSettings";
 import { activeRecurring } from "../engine/config";
+import { activeCharacter } from "../engine/character";
+import { recurringKey } from "../engine/contentKeys";
+import { positionOf } from "../engine/recurring";
+import { subsetFor } from "../engine/skillCatalog";
 import { useConfig } from "../overlay/useConfig";
 import { unlockAudio } from "../overlay/audio";
 import { closeSettingsWindow } from "../overlay/settingsWindow";
@@ -20,13 +32,15 @@ import { BackupSection } from "./BackupSection";
 import { LocaleSettings } from "./LocaleSettings";
 import { CapNudge } from "../overlay/CapNudge";
 import { type PurchasePhase, SubscribeScreen } from "../overlay/SubscribeScreen";
+import { CheckboxIcon, CloseIcon, HourglassIcon, ResetIcon, TourIcon } from "../overlay/icons";
 import { startTrial, subscribe, type Plan } from "../overlay/purchaseFlow";
+import { tip, tipHint } from "../overlay/Tooltip";
 import type { Entitlement } from "../engine/entitlement";
 import { t } from "../engine/chrome";
 
 // One tab per dock tool, in dock order. The icon mirrors the dock segment so the two
 // surfaces read as the same vocabulary; ⚔ "Dungeons" is the boss/skill editor (the dock's
-// skills tool), ⏱ the dungeon cooldowns, ♻ the expiring items, ✓ the routine gates.
+// skills tool), ⏱ the dungeon cooldowns, ⧗ the expiring items, ✓ the routine gates.
 // The union lives in the engine (settingsLink) so tour deep links (#72) stay in lock-step.
 type TabId = SettingsTab;
 
@@ -36,8 +50,15 @@ type TabId = SettingsTab;
 // `initialTab` is the deep-link seed (#72) — the SINGLE seeding seam: App's inline modal passes
 // the nudge's tab, main.tsx passes the Tauri window's URL-hash tab (initialSettingsTab). The
 // component never reads location itself; later re-tabs arrive over the transient bus.
-export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
-  const cfg = useConfig();
+export function SettingsView({
+  cfg,
+  onClose,
+  initialTab,
+}: {
+  cfg: ReturnType<typeof useConfig>;
+  onClose?: () => void;
+  initialTab?: SettingsTab;
+}) {
   const close = onClose ?? closeSettingsWindow;
   const [tab, setTab] = useState<TabId>(initialTab ?? "dungeons");
 
@@ -98,11 +119,11 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
   }, [close]);
 
   const locale = cfg.config.locale;
-  const TABS: ReadonlyArray<{ id: TabId; icon: string; label: string }> = [
+  const TABS: ReadonlyArray<{ id: TabId; icon: ReactNode; label: string }> = [
     { id: "dungeons", icon: "⚔", label: t("settings.tabDungeons", locale) },
     { id: "cooldowns", icon: "⏱", label: t("settings.tabCooldowns", locale) },
-    { id: "items", icon: "♻", label: t("settings.tabItems", locale) },
-    { id: "routine", icon: "✓", label: t("settings.tabRoutine", locale) },
+    { id: "items", icon: <HourglassIcon />, label: t("settings.tabItems", locale) },
+    { id: "routine", icon: <CheckboxIcon />, label: t("settings.tabRoutine", locale) },
     { id: "language", icon: "🌐", label: t("settings.tabLanguage", locale) },
   ];
 
@@ -120,18 +141,39 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
     <div className="settings-app">
       <div className="settings-app__head">
         <span className="settings-app__title">{t("settings.title", locale)}</span>
+        {/* The global actions live as one icon strip up here (design walk): tour replay,
+            backup export/import, reset — with close set apart and heavier at the end. */}
         <div className="settings-app__actions">
           <button
-            className="btn-link"
+            className="settings-icon-btn"
+            onClick={() => {
+              // Rides the transient bus to the overlay (reverse of settings-navigate) and closes
+              // this surface so the tour is actually visible (#73).
+              emitTransient({ kind: "tour-replay" });
+              close();
+            }}
+            {...tipHint(`${t("settings.showAround", locale)} — ${t("settings.showAroundHint", locale)}`)}
+            aria-label={t("settings.showAround", locale)}
+          >
+            <TourIcon />
+          </button>
+          <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />
+          <button
+            className="settings-icon-btn"
             onClick={() => {
               if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetConfig();
             }}
+            {...tip(t("settings.resetToDefaults", locale))}
           >
-            {t("settings.resetToDefaults", locale)}
+            <ResetIcon />
           </button>
           {onClose && (
-            <button className="btn-link" onClick={onClose} title={t("settings.closeTitle", locale)}>
-              ✕ {t("settings.close", locale)}
+            <button
+              className="settings-icon-btn settings-icon-btn--close"
+              onClick={onClose}
+              {...tip(t("settings.closeTitle", locale))}
+            >
+              <CloseIcon />
             </button>
           )}
         </div>
@@ -174,7 +216,7 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
             ))}
           </div>
 
-          <button className="btn-dashed" onClick={() => cfg.createBoss()}>
+          <button className="btn-dashed btn-dashed--glow" onClick={() => cfg.createBoss()}>
             {t("settings.addBoss", locale)}
           </button>
         </>
@@ -210,6 +252,29 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           kind="gate"
           locale={cfg.config.locale}
           onAdd={() => cfg.createRoutine()}
+          // The curated picker (design walk): + ADD TRAINING drops the active character's catalog
+          // subset; already-present chores (matched by catalogKey — a hand-added namesake counts,
+          // and a renamed catalog def still does) dim behind a ✓ rather than vanish.
+          picker={{
+            entries: subsetFor(
+              activeCharacter(cfg.config)?.empire,
+              activeCharacter(cfg.config)?.race,
+              activeCharacter(cfg.config)?.builds ?? [],
+            ),
+            present: new Set(
+              activeRecurring(cfg.config)
+                .filter((d) => d.kind === "gate")
+                .map((d) => d.catalogKey ?? recurringKey(d.name)),
+            ),
+            onPick: cfg.createRoutineFromCatalog,
+          }}
+          // The RANK column (design walk): readables have fixed cadences, so instead of a duration
+          // editor each ladder row carries the set-rung curtain (#46) — settable here too, not just
+          // on the dock accordion.
+          rank={{
+            position: (defId) => positionOf(activeCharacter(cfg.config)?.recurringProgress ?? [], defId),
+            onSetRung: cfg.setLadderRung,
+          }}
           onRename={(defId, name) => cfg.editRecurringName(defId, name)}
           onSetDuration={(defId, durationMs) => cfg.editRecurringDuration(defId, durationMs)}
           onRemove={(defId) => cfg.deleteRecurring(defId)}
@@ -223,27 +288,6 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
           onChange={(locale) => cfg.changeLocale(locale)}
         />
       )}
-
-      {/* The tour-replay row (#73) — the app's permanent home for re-running the onboarding tour
-          (the Done beat's copy points here; the dense dock deliberately carries no ? glyph).
-          Global like backup, not tab-scoped. The request rides the transient bus to the overlay —
-          the reverse direction of settings-navigate — and the settings surface closes so the tour
-          is actually visible (in the browser the inline modal would otherwise cover it). */}
-      <div className="tour-replay">
-        <button
-          className="btn-dashed"
-          onClick={() => {
-            emitTransient({ kind: "tour-replay" });
-            close();
-          }}
-        >
-          {t("settings.showAround", locale)}
-        </button>
-        <p className="tour-replay__hint">{t("settings.showAroundHint", locale)}</p>
-      </div>
-
-      {/* Global backup/trust feature (#56) — export/import a portable copy of the whole config. */}
-      <BackupSection onExport={cfg.exportBackup} onImport={cfg.applyImport} locale={locale} />
 
       {/* Cap-hit nudge (#56): a capped add (boss / reminder) was just refused here. */}
       {cfg.capNudge && (
@@ -268,4 +312,12 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
       )}
     </div>
   );
+}
+
+// The Tauri settings WINDOW root (main.tsx): a standalone surface that owns its config, kept in
+// step with the overlay window over configSync (emit/listen). In the browser App renders
+// `<SettingsView>` inline with the overlay's own cfg instead, so this wrapper isn't used there.
+export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
+  const cfg = useConfig();
+  return <SettingsView cfg={cfg} onClose={onClose} initialTab={initialTab} />;
 }

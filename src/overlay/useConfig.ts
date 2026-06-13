@@ -23,6 +23,7 @@ import {
   markRecurring,
   markRead,
   setRung,
+  addCatalogRoutine,
   addRecurring,
   renameRecurring,
   setRecurringDuration,
@@ -38,6 +39,7 @@ import {
   type CharacterDraft,
   type Config,
 } from "../engine/config";
+import type { ChorePreform } from "../engine/skillCatalog";
 import type { SoundId } from "../engine/sounds";
 import { allows, DEV_ENTITLEMENT, type Entitlement, type Mutation } from "../engine/entitlement";
 import { deserialize, serialize } from "../engine/persist";
@@ -269,6 +271,15 @@ export function useConfig() {
     if (!allows(entitlement, config, "addReminder")) return setCapNudge("addReminder");
     setConfig((c) => addRecurring(c, "gate"));
   }, [config, entitlement]);
+  // The curated + ADD TRAINING picker's add — same cap seam as the blank add, but minting a
+  // catalog preform (catalogKey/ladderId/school intact), so a re-added chore matches a seeded one.
+  const createRoutineFromCatalog = useCallback(
+    (preform: ChorePreform) => {
+      if (!allows(entitlement, config, "addReminder")) return setCapNudge("addReminder");
+      setConfig((c) => addCatalogRoutine(c, preform));
+    },
+    [config, entitlement],
+  );
   const editRecurringName = useCallback(
     (defId: string, name: string) => setConfig((c) => renameRecurring(c, defId, name)),
     [],
@@ -381,6 +392,7 @@ export function useConfig() {
     setLadderRung,
     createRecurring,
     createRoutine,
+    createRoutineFromCatalog,
     editRecurringName,
     editRecurringDuration,
     editRecurringMaxed,

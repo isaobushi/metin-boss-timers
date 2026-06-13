@@ -288,7 +288,7 @@ function readRecurringDef(r: unknown): RecurringDef | null {
   // marks it retired; anything else (false, junk, a deadline def — or, every pre-#69 payload,
   // absent) hydrates to active with the key absent, matching `setRecurringMaxed` (which refuses
   // deadlines and deletes the key on restore). A hand-edited maxed deadline would otherwise render
-  // dimmed in the items tab with no restore affordance — only the routine section has the 🏆.
+  // dimmed in the items tab with no restore affordance — only the routine section has the "P" toggle.
   if (r.maxed === true && def.kind === "gate") def.maxed = true;
   return def;
 }

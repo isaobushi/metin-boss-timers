@@ -1,7 +1,7 @@
 // v1 overlay — the compact, always-on-top play surface. Its home is the DOCK shell (ADR-0003):
 // one dense status line whose segments route to the existing surfaces. ⚔ opens the active boss's
 // TIMERS (or the SKILLS picker if none is active), ⏱ opens the COOLDOWNS strip, ⚙ the settings
-// window; ♻/✓ expand inline accordions (inert until #36+). All config editing lives in a separate
+// window; ⧗/✓ expand inline accordions (inert until #36+). All config editing lives in a separate
 // settings window (overlay/settingsWindow.ts → settings/SettingsApp.tsx); edits there reflect here
 // live via configSync. Config flows through useConfig, persisted to disk; per-skill global hotkeys
 // are registered while a boss's timer screen is active.
@@ -14,7 +14,7 @@ import { TourCard } from "./overlay/TourCard";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
-import SettingsApp from "./settings/SettingsApp";
+import { SettingsView } from "./settings/SettingsApp";
 import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
 import { useCooldowns } from "./overlay/useCooldowns";
@@ -29,6 +29,7 @@ import { CapNudge } from "./overlay/CapNudge";
 import { startTrial, subscribe, type Plan } from "./overlay/purchaseFlow";
 import { allows, partition, type Entitlement } from "./engine/entitlement";
 import { shouldRunTour } from "./engine/config";
+import { activeCharacter } from "./engine/character";
 import { driveForStep } from "./engine/tourDrive";
 import type { TourStep } from "./engine/tourSteps";
 import type { SettingsTab } from "./engine/settingsLink";
@@ -166,20 +167,30 @@ export default function App() {
     [setEntitlement],
   );
 
-  // First-run / empty-roster: no character exists (e.g. the only one was deleted). The create wizard
-  // takes over the panel and can't be dismissed — there's nothing to fall back to until one exists.
+  // Character details now enter INSIDE the tour (design walk 4): its character beat embeds the
+  // wizard — classifying the seeded "Main" on first run (rename + empire/race/build; the save
+  // re-seeds Training class-filtered via classifyCharacter), or creating outright when the
+  // roster is somehow empty — and gates Next on the save, so a pending tour takes the slot even
+  // over an empty roster. The BLOCKING wizard remains the fallback for an empty roster with no
+  // tour to run — the last character deleted post-tour, or the tour skipped/escaped before the
+  // character beat saved (both terminal exits mark the tour seen) — and it can't be dismissed:
+  // there's nothing to fall back to until a character exists.
+  // A replay request (#73) is OR-ed in as a second, independent way into the same tour. Both ways
+  // wait for hydration: a replay landing in the boot window (settings stayed open across an
+  // overlay reload) would otherwise run the tour over the default config, and an exit there is
+  // clobbered by the hydrating setConfig. Slice-5 review.
   const firstRun = cfg.hydrated && cfg.config.characters.length === 0;
-  const showWizard = firstRun || charEdit != null;
-  // The first-run tour (#68) holds the same exclusive slot right after the wizard. While either gate
-  // holds it, the tool panels are shadowed — so their glyphs must not read open, and a tool click
-  // during the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
-  // A replay request (#73) is OR-ed in as a second, independent way into the same tour — it still
-  // defers to the wizard, and the wizard's close re-admits a pending replay just like first-run.
-  // Both ways wait for hydration: a replay landing in the boot window (settings stayed open
-  // across an overlay reload) would otherwise run the tour over the default config, and an exit
-  // there is clobbered by the hydrating setConfig. Slice-5 review.
-  const tourActive =
-    !showWizard && (shouldRunTour(cfg.hydrated, cfg.config) || (cfg.hydrated && replayNonce > 0));
+  // The character beat's subject + its gate: classified = a race was saved (the wizard can't save
+  // without one). Undefined active character reads unclassified — the beat then creates instead.
+  const tourChar = activeCharacter(cfg.config);
+  const tourCharClassified = tourChar?.race != null;
+  const tourPending = shouldRunTour(cfg.hydrated, cfg.config) || (cfg.hydrated && replayNonce > 0);
+  const showWizard = (firstRun && !tourPending) || charEdit != null;
+  // The tour holds the same exclusive slot, yielding only to the charEdit wizard (✎ / + New
+  // shadows the card; its close re-admits the pending tour). While either gate holds the slot,
+  // the tool panels are shadowed — so their glyphs must not read open, and a tool click during
+  // the tour doubles as an exit (the card invites "click around and explore"). Review of #94.
+  const tourActive = tourPending && charEdit == null;
 
   // Which dock segments read as open. The skills tool spans three sub-views; the cooldown strip is
   // pinned independently, so it can be open alongside one of the panels. While the WIZARD shadows
@@ -202,6 +213,14 @@ export default function App() {
   const closeCooldownStrip = () => {
     setCooldownsPinned(false);
     setAddOpen(false);
+  };
+  // Switching tools must NOT hide running pills (design walk 3): the strip is a status line, not a
+  // tool panel — a counting Hydra chip stays visible over ITEMS/TRAINING just like over the boss
+  // timers. Only the add-picker menu closes (its dropdown would sit over the incoming panel), and
+  // an EMPTY pinned strip (just the +, nothing counting) unpins — there's no status to keep.
+  const yieldCooldownChrome = () => {
+    setAddOpen(false);
+    if (cd.pills.length === 0) setCooldownsPinned(false);
   };
 
   // The card reports each beat (#71); drive the real shell to match — ring on the beat's glyph, its
@@ -255,6 +274,7 @@ export default function App() {
       open={addOpen}
       onOpenChange={setAddOpen}
       locale={cfg.config.locale}
+      onOpenSettings={() => openSettingsTo("cooldowns")}
     />
   );
 
@@ -297,12 +317,12 @@ export default function App() {
       locale={cfg.config.locale}
       onSwitch={cfg.switchCharacter}
       onEdit={(id) => {
-        closeCooldownStrip();
+        yieldCooldownChrome();
         setCharEdit({ id });
       }}
       onDelete={cfg.removeCharacter}
       onNew={() => {
-        closeCooldownStrip();
+        yieldCooldownChrome();
         setCharEdit({ id: null });
       }}
       onUpgrade={() => setShowSubscribe(true)}
@@ -310,7 +330,9 @@ export default function App() {
   );
 
   // The character wizard, shared by three entry points: "+ New" (create, cancellable), ✎ (edit/classify
-  // an existing character, pre-filled), and first-run (create, no cancel — nothing to fall back to).
+  // an existing character, pre-filled), and the empty-roster fallback (create, no cancel — nothing to
+  // fall back to). Cancellability keys on charEdit, not firstRun: + New over an empty roster mid-tour
+  // must still cancel back to the tour, not trap the user in the wizard.
   const editingChar = charEdit?.id != null ? cfg.config.characters.find((c) => c.id === charEdit.id) : undefined;
   const characterWizard = (
     <CharacterWizard
@@ -326,7 +348,7 @@ export default function App() {
         else cfg.createCharacter(draft);
         setCharEdit(null);
       }}
-      onCancel={firstRun ? undefined : () => setCharEdit(null)}
+      onCancel={charEdit != null ? () => setCharEdit(null) : undefined}
     />
   );
 
@@ -339,12 +361,22 @@ export default function App() {
   } else if (panel === "items") {
     // The expiring-items panel (#37): live day-scale countdowns for pet/costume/mount, each with a
     // ↻ refresh ("feed"/re-project) that restamps a fresh cycle — and starts an unstarted item.
-    belowPanel = <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} locale={cfg.config.locale} />;
+    belowPanel = (
+      <ExpiringAccordion rows={rec.rows} onRefresh={rec.refresh} locale={cfg.config.locale} onOpenSettings={() => openSettingsTo("items")} />
+    );
   } else if (panel === "routine") {
     // The routine panel (#38): the gate checklist — biologist/books each reading ready or a
     // countdown to next-ready, with a ✓ that restamps the rolling cycle (and starts an unstarted one).
     belowPanel = (
-      <RoutineAccordion rows={rec.routineRows} race={rec.activeRace} locale={cfg.config.locale} onDone={rec.markDone} onRead={rec.markRead} onSetRung={rec.setRung} />
+      <RoutineAccordion
+        rows={rec.routineRows}
+        race={rec.activeRace}
+        locale={cfg.config.locale}
+        onDone={rec.markDone}
+        onRead={rec.markRead}
+        onSetRung={rec.setRung}
+        onOpenSettings={() => openSettingsTo("routine")}
+      />
     );
   } else if (panel === "sequence") {
     // ← returns to the picker sub-view (still below the pinned bar).
@@ -362,6 +394,7 @@ export default function App() {
           setPanel("timers");
         }}
         onOpenSequence={() => setPanel("sequence")}
+        onOpenSettings={() => openSettingsTo("dungeons")}
       />
     );
   }
@@ -375,7 +408,10 @@ export default function App() {
         // `tourSpot` set — the ring must not keep pulsing under the wizard. It returns when the
         // wizard closes and the card re-mounts (the gate is unseen until finished/skipped).
         spotlight={tourActive ? tourSpot : null}
-        activeBossName={cfg.activeBoss?.name}
+        // The ⚔ segment names what's open: the sequence helper reads as TEMPLUM while it's up
+        // (design walk), otherwise the active boss as before. "Templum" is the in-game proper
+        // name — content, not chrome, so it isn't routed through t().
+        activeBossName={panel === "sequence" ? "Templum" : cfg.activeBoss?.name}
         itemsDatum={rec.datum}
         routineDatum={rec.routineDatum}
         locale={cfg.config.locale}
@@ -411,7 +447,7 @@ export default function App() {
             endTour("items");
             return;
           }
-          closeCooldownStrip();
+          yieldCooldownChrome();
           toggle("items");
         }}
         onRoutine={() => {
@@ -419,7 +455,7 @@ export default function App() {
             endTour("routine");
             return;
           }
-          closeCooldownStrip();
+          yieldCooldownChrome();
           toggle("routine");
         }}
         onSettings={openSettings}
@@ -427,8 +463,10 @@ export default function App() {
       />
       {/* The first-run coach card (#68/#71), anchored directly under the dock — ringed glyph above,
           the beat's live tool (pinned strip / exclusive panel) below — so all three read together.
-          Finish, Skip, and clicking ⚔/♻/✓ all mark the tour seen forever (a second character never
-          re-triggers it). It follows the blocking wizard: tourActive is false while the wizard shows. */}
+          Finish, Skip, and clicking ⚔/⧗/✓ all mark the tour seen forever (a second character never
+          re-triggers it). Its character beat embeds the wizard (design walk 4) — classify the
+          seeded "Main" (pre-filled, the save IS the way past the beat; no cancel), or create-first
+          over an empty roster; the renamed chip appears live in the dock above as it saves. */}
       {tourActive && (
         <TourCard
           key={replayNonce} // a replay request mid-tour remounts the card → restart from beat 1 (#73)
@@ -437,6 +475,19 @@ export default function App() {
           onStepChange={onTourStep}
           onDeepLink={openSettingsTo}
           locale={cfg.config.locale}
+          characterClassified={tourCharClassified}
+          charWizard={
+            tourChar ? (
+              <CharacterWizard
+                mode="edit"
+                initial={{ name: tourChar.name, empire: tourChar.empire, race: tourChar.race, builds: tourChar.builds }}
+                locale={cfg.config.locale}
+                onCreate={(draft) => cfg.editCharacter(tourChar.id, draft)}
+              />
+            ) : (
+              <CharacterWizard locale={cfg.config.locale} onCreate={cfg.createCharacter} />
+            )
+          }
         />
       )}
       {cooldownStrip}
@@ -456,7 +507,8 @@ export default function App() {
       </div>
       {showSettings && (
         <div className="settings-modal">
-          <SettingsApp onClose={closeSettings} initialTab={settingsTab ?? undefined} />
+          {/* Inline (browser) settings share the overlay's single cfg — same state, no cross-instance sync. */}
+          <SettingsView cfg={cfg} onClose={closeSettings} initialTab={settingsTab ?? undefined} />
         </div>
       )}
       {/* Cap-hit nudge (#56): a capped add (here, a 2nd character) was just refused. Upgrade → subscribe. */}

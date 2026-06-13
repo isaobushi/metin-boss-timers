@@ -38,7 +38,7 @@ export type Build =
  * and gate metadata ride on the preform (via `ladderId` + `kind`), never on the Race — keeping the
  * two axes (Empire ⊥ Race) independent of the progression structures.
  */
-export type PreformCategory = "class-ability" | "language" | "leadership" | "transformation" | "biologist" | "ward";
+export type PreformCategory = "class-ability" | "language" | "leadership" | "transformation" | "biologist";
 
 /**
  * A chore preform: the catalog's pre-seed description of one recurring chore, mintable into a
@@ -70,16 +70,13 @@ const GATE_MS = 24 * MS_PER_HOUR;
 const BIOLOGIST_MS = 22 * MS_PER_HOUR;
 
 // Ladder ids reused verbatim from `recurring.ts`'s `LADDERS` (the same seam `config.ts` uses): the
-// 55-rung M1→G1 ability ladder, the 20-rung M1-cap language ladder, and the three universal ladders.
+// 65-read M1→P ability ladder (55 books + 10 stones), the 20-rung M1-cap language ladder, and the
+// three universal ladders.
 const LADDER_ABILITY = "class-skill";
 const LADDER_LANGUAGE = "language";
 const LADDER_LEADERSHIP = "leadership";
 const LADDER_TRANSFORMATION = "transformation";
 const LADDER_BIOLOGIST = "biologist";
-// The Ward (7th) reads like a class skill book (M1→G1, 55) but is school-INDEPENDENT, so it climbs
-// its own ladder (a clone of the ability ladder in `recurring.ts`) — keeping it out of the per-school
-// Skill Books band: as a non-`class-skill`/`language` ladder it bands under Utilities like the universals.
-const LADDER_WARD = "ward";
 
 /**
  * The Builds each Race can specialise into — the data fact behind "a Race has a subset of
@@ -94,28 +91,32 @@ const BUILDS_BY_RACE: Record<Race, Build[]> = {
 };
 
 // The Abilities each Build (the in-game "school") levels, sourced from the official Gameforge wiki's
-// per-class skill pages plus the Boost- and 9th-skill catalogues. Each school carries 8 entries: the
-// 6 main actives, then the **Boost** (8th, named after the school's signature skill), then the **9th
-// skill** (Conquerors of Yohara). All read identically — books to lvl 17, then M1→G1 = 55 books — so
-// they share the one `class-skill` ladder; the Ward (7th) is school-INDEPENDENT and lives in
-// `UNIVERSAL` instead. Warrior's two schools share the same 9th skill ("Earthquake"); `subsetFor`
-// de-dupes abilities by name so a (rare) both-schools Warrior never lists it twice. Names still vary
-// by server/version — this stays data the user can retune; what's load-bearing is the per-school split.
+// per-class skill pages plus the Boost- and 9th-skill catalogues. Each school carries 9 entries: the
+// 6 main actives, then a generic **Ward** (7th) and the **Boost** (8th, named after the school's
+// signature skill), then the **9th skill** (Conquerors of Yohara). All read identically — books to lvl
+// 17, then M1→G1 = 55 books and G1→P = 10 Soul Stones — so they share the one `class-skill` ladder. The
+// Ward used to be a school-INDEPENDENT universal; it is now a per-school row banding under that school's
+// header, but kept GENERIC ("Ward", one shared name) because the actual ward a character runs is picked
+// from a cross-class pool — the player renames the placeholder to whichever ward they learned. Because
+// the name is shared, `subsetFor`'s by-name de-dupe collapses it to one row for a (rare) both-schools
+// character — the same mechanism that de-dupes Warrior's shared 9th skill ("Earthquake"). Names still
+// vary by server/version — this stays data the user can retune; what's load-bearing is the per-school
+// split.
 const ABILITIES: Record<Build, string[]> = {
-  // Warrior — main 6, Boost (8th), 9th. Both schools share the 9th, "Earthquake".
-  Body: ["Aura of the Sword", "Berserk", "Dash", "Sword Spin", "Three-Way Cut", "Life Force", "Sword Spin Boost", "Earthquake"],
-  Mental: ["Bash", "Stump", "Sword Strike", "Sword Orb", "Spirit Strike", "Strong Body", "Spirit Strike Boost", "Earthquake"],
+  // Warrior — main 6, Ward (7th), Boost (8th), 9th. Both schools share the 9th, "Earthquake".
+  Body: ["Aura of the Sword", "Berserk", "Dash", "Sword Spin", "Three-Way Cut", "Life Force", "Ward", "Sword Spin Boost", "Earthquake"],
+  Mental: ["Bash", "Stump", "Sword Strike", "Sword Orb", "Spirit Strike", "Strong Body", "Ward", "Spirit Strike Boost", "Earthquake"],
   // Ninja
-  "Blade-Fight": ["Ambush", "Fast Attack", "Rolling Dagger", "Poisonous Cloud", "Insidious Poison", "Stealth", "Ambush Boost", "Astral Light"],
-  Archery: ["Repetitive Shot", "Arrow Shower", "Fire Arrow", "Poison Arrow", "Spark", "Feather Walk", "Fire Arrow Boost", "Tempestus"],
+  "Blade-Fight": ["Ambush", "Fast Attack", "Rolling Dagger", "Poisonous Cloud", "Insidious Poison", "Stealth", "Ward", "Ambush Boost", "Astral Light"],
+  Archery: ["Repetitive Shot", "Arrow Shower", "Fire Arrow", "Poison Arrow", "Spark", "Feather Walk", "Ward", "Fire Arrow Boost", "Tempestus"],
   // Sura
-  Weaponry: ["Finger Strike", "Hell Strike", "Dragon Swirl", "Enchanted Blade", "Fear", "Dispel", "Finger Strike Boost", "Infernus"],
-  "Black Magic": ["Dark Orb", "Dark Strike", "Flame Strike", "Flame Spirit", "Spirit Strike", "Death Wave", "Dark Strike Boost", "Lethal Wave"],
+  Weaponry: ["Finger Strike", "Hell Strike", "Dragon Swirl", "Enchanted Blade", "Fear", "Dispel", "Ward", "Finger Strike Boost", "Infernus"],
+  "Black Magic": ["Dark Orb", "Dark Strike", "Flame Strike", "Flame Spirit", "Spirit Strike", "Death Wave", "Ward", "Dark Strike Boost", "Lethal Wave"],
   // Shaman
-  Dragon: ["Dragon's Roar", "Shooting Dragon", "Flying Talisman", "Dragon's Aid", "Blessing", "Reflect", "Shooting Dragon Boost", "Meteor"],
-  Healing: ["Cure", "Swiftness", "Attack Up", "Lightning Claw", "Lightning Throw", "Summon Lightning", "Summon Lightning Boost", "Ethereal Shield"],
+  Dragon: ["Dragon's Roar", "Shooting Dragon", "Flying Talisman", "Dragon's Aid", "Blessing", "Reflect", "Ward", "Shooting Dragon Boost", "Meteor"],
+  Healing: ["Cure", "Swiftness", "Attack Up", "Lightning Claw", "Lightning Throw", "Summon Lightning", "Ward", "Summon Lightning Boost", "Ethereal Shield"],
   // Lycan
-  Instinct: ["Crimson Wolf Soul", "Indigo Wolf Soul", "Shred", "Wolf's Breath", "Wolf's Claw", "Wolf Pounce", "Wolf's Breath Boost", "Cicatrix"],
+  Instinct: ["Crimson Wolf Soul", "Indigo Wolf Soul", "Shred", "Wolf's Breath", "Wolf's Claw", "Wolf Pounce", "Ward", "Wolf's Breath Boost", "Cicatrix"],
 };
 
 /** The three Empires (value list, for iteration + content-catalog keying — PRD #77). */
@@ -155,13 +156,9 @@ const UNIVERSAL: ChorePreform[] = [
   { name: "Charisma", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_TRANSFORMATION, category: "transformation" },
   { name: "Mining", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_TRANSFORMATION, category: "transformation" },
   { name: "Biologist", durationMs: BIOLOGIST_MS, kind: "gate", ladderId: LADDER_BIOLOGIST, category: "biologist" },
-  // The Ward skill (7th): one per character, freely chosen from a cross-class pool — so it's universal
-  // (school-independent), not a per-school book. A single generic entry; reads like a 55-book skill (its
-  // own `ward` ladder), banding under Utilities rather than the per-school Skill Books.
-  { name: "Ward Skill", durationMs: GATE_MS, kind: "gate", ladderId: LADDER_WARD, category: "ward" },
 ];
 
-/** Build one `class-ability` preform from its Race + Build + Ability name (55-rung M1→G1 ladder). */
+/** Build one `class-ability` preform from its Race + Build + Ability name (65-read M1→P ladder). */
 const abilityPreform = (race: Race, build: Build, name: string): ChorePreform => ({
   name,
   durationMs: GATE_MS,

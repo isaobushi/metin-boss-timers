@@ -10,8 +10,10 @@ import {
   inAlarm,
   isCapped,
   isDue,
+  gateDurationMs,
   ladderCap,
   ladderProgress,
+  ladderCapLabel,
   ladderRungs,
   ladderText,
   markDone,
@@ -302,7 +304,7 @@ describe("markDone", () => {
 describe("LADDERS table", () => {
   it("seeds the five structures with the sourced caps", () => {
     // The last rung's entry is the book-relevant cap (the maximum meaningful position).
-    expect(ladderCap("class-skill")).toBe(55); // M1→G1, triangular 1+2+…+10
+    expect(ladderCap("class-skill")).toBe(65); // M1→G1 books (triangular 55) + G1→P stones (1/level)
     expect(ladderCap("transformation")).toBe(40); // 0→P (20 to M1, then 1/step)
     expect(ladderCap("leadership")).toBe(230); // 20 + 55 + 155 across three Art-of-War books
     expect(ladderCap("language")).toBe(20); // 20 reads to the M1 ceiling
@@ -318,12 +320,25 @@ describe("LADDERS table", () => {
     }
   });
 
-  it("pins the Skill Books M-tier to the triangular thresholds (1+2+…)", () => {
-    // M1=0, M2=1, M3=3 (1+2), M4=6 (1+2+3) … G1=55. The classic skill-book sublevel cost.
+  it("pins the Skill Books thresholds: triangular M-tier, then one stone per G level to P", () => {
+    // M1=0, M2=1, M3=3 (1+2), M4=6 (1+2+3) … G1=55 (the classic skill-book sublevel cost), then
+    // G2..G10 and P at one successful Soul Stone read each (design walk).
     expect(LADDERS["class-skill"].rungs.map((r) => [r.label, r.entry])).toEqual([
       ["M1", 0], ["M2", 1], ["M3", 3], ["M4", 6], ["M5", 10],
-      ["M6", 15], ["M7", 21], ["M8", 28], ["M9", 36], ["M10", 45], ["G1", 55],
+      ["M6", 15], ["M7", 21], ["M8", 28], ["M9", 36], ["M10", 45],
+      ["G1", 55], ["G2", 56], ["G3", 57], ["G4", 58], ["G5", 59],
+      ["G6", 60], ["G7", 61], ["G8", 62], ["G9", 63], ["G10", 64], ["P", 65],
     ]);
+  });
+
+  it("flips the skill-book gates to the 12h Soul Stone duration from G1 onward (late tier)", () => {
+    const DAY = 86_400_000;
+    const id = "class-skill"; // the one skill-book ladder (the per-school Ward now climbs it too)
+    expect(gateDurationMs(id, 54, DAY)).toBe(DAY); // last book read — still the 24h tier
+    expect(gateDurationMs(id, 55, DAY)).toBe(DAY / 2); // on G1 — stones from here, 12h
+    expect(gateDurationMs(id, 64, DAY)).toBe(DAY / 2);
+    expect(gateDurationMs("leadership", 200, DAY)).toBe(DAY); // no late tier elsewhere
+    expect(gateDurationMs(undefined, 999, DAY)).toBe(DAY); // plain gate — def duration rules
   });
 
   it("gives Biologist a per-stage item name + required quantity", () => {
@@ -354,8 +369,12 @@ describe("ladderProgress", () => {
   });
 
   it("goes inert at the exact cap — no next rung, zero reads to go", () => {
+    expect(ladderProgress("class-skill", 65)).toEqual({
+      rungLabel: "P", nextRungLabel: null, readsToNextRung: 0, capped: true,
+    });
+    // G1 is no longer the cap — the stone tier opens beyond it (1 read per G level).
     expect(ladderProgress("class-skill", 55)).toEqual({
-      rungLabel: "G1", nextRungLabel: null, readsToNextRung: 0, capped: true,
+      rungLabel: "G1", nextRungLabel: "G2", readsToNextRung: 1, capped: false,
     });
     expect(ladderProgress("language", 20)).toEqual({
       rungLabel: "M1", nextRungLabel: null, readsToNextRung: 0, capped: true,
@@ -382,8 +401,8 @@ describe("ladderText", () => {
     expect(ladderText("transformation", 0)).toBe("0 · 20→M1");
   });
 
-  it("formats the rung-style cap as a quiet trophy (with the books note where it applies)", () => {
-    expect(ladderText("class-skill", 55)).toBe("G1 ✓ max (books)"); // G→P is Soul Stones, not books
+  it("formats the rung-style cap as a quiet trophy", () => {
+    expect(ladderText("class-skill", 65)).toBe("P ✓ max"); // books to G1, stones to P
     expect(ladderText("transformation", 40)).toBe("P ✓ max");
     expect(ladderText("language", 20)).toBe("M1 ✓ max");
   });
@@ -428,7 +447,7 @@ describe("positionOf / setPosition (the progress map)", () => {
   });
 
   it("clamps to [0, cap] for the ladder", () => {
-    expect(positionOf(setPosition([], "d", 999, "class-skill"), "d")).toBe(55); // capped
+    expect(positionOf(setPosition([], "d", 999, "class-skill"), "d")).toBe(65); // capped
     expect(positionOf(setPosition([], "d", -4, "class-skill"), "d")).toBe(0); // floored
   });
 });
@@ -478,19 +497,27 @@ describe("ladderRungs / rungEntry (the curtain's snap targets, #46)", () => {
 
   it("maps a rung label to its entry threshold", () => {
     expect(rungEntry("class-skill", "M4")).toBe(6); // 1+2+3
-    expect(rungEntry("class-skill", "G1")).toBe(55); // the cap
+    expect(rungEntry("class-skill", "G1")).toBe(55); // where the stone tier opens
+    expect(rungEntry("class-skill", "P")).toBe(65); // the cap
     expect(rungEntry("transformation", "M1")).toBe(20);
   });
 
   it("is null for a label not on the ladder (or an unknown ladder)", () => {
-    expect(rungEntry("class-skill", "P")).toBeNull(); // class skill books cap at G1
     expect(rungEntry("language", "G1")).toBeNull();
     expect(rungEntry(undefined, "M1")).toBeNull();
+  });
+
+  it("names the cap for the maxed toggle — P mostly, M1 on languages, ✓ on stage, null off ladder", () => {
+    expect(ladderCapLabel("class-skill")).toBe("P");
+    expect(ladderCapLabel("leadership")).toBe("P");
+    expect(ladderCapLabel("language")).toBe("M1"); // languages cap at M1 — the button must say so
+    expect(ladderCapLabel("biologist")).toBe("✓"); // stage style — no rank, "done" reads as a tick
+    expect(ladderCapLabel(undefined)).toBeNull(); // plain gate — the generic "P" glyph rules
   });
 });
 
 describe("routineSection (the #57 panel banding)", () => {
-  it("bands the race Abilities under books, the foreign languages under languages", () => {
+  it("bands the race Abilities (including each school's per-school Ward) under books, foreign languages under languages", () => {
     expect(routineSection("class-skill")).toBe("books");
     expect(routineSection("language")).toBe("languages");
   });

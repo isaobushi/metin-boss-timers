@@ -79,8 +79,8 @@ const DE: Record<string, string> = {
   "recurring.shinsoo-language": "Shinsoo-Sprache",
   "recurring.biologist":        "Biologe",
 
-  // ---- Catalog universals ----
-  "recurring.ward-skill":       "Bannkreis",
+  // ---- Per-school Ward (7th) — generic, shared across every school's list (#57) ----
+  "recurring.ward":             "Bannkreis",
 
   // ---- Warrior / Body ----
   "recurring.aura-of-the-sword":  "Aura des Schwertes",
