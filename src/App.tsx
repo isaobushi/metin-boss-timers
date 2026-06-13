@@ -418,7 +418,10 @@ export default function App() {
         onSkills={() => {
           const target = cfg.activeBoss ? "timers" : "skills";
           if (tourActive) endTour(target);
-          else setPanel(skillsOpen ? null : target);
+          else {
+            yieldCooldownChrome();
+            setPanel(skillsOpen ? null : target);
+          }
         }}
         onCooldowns={() => {
           // Mid-tour, ⏱ exits like the other tools (#96 review): the tour drives the pin now, so
@@ -431,14 +434,19 @@ export default function App() {
             setAddOpen(cd.pills.length === 0);
             return;
           }
+          // Engaging the cooldown tool closes whatever exclusive panel was open — switching dock
+          // tools leaves only the pills (a status line), never a stale skills/items/routine panel
+          // sitting under the strip. Collapsing the strip back off leaves the panel slot empty.
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
           if (cd.pills.length > 0) {
+            if (!cooldownsPinned) setPanel(null);
             setCooldownsPinned((p) => !p);
             return;
           }
           // Nothing running → ⏱ pins the strip (which hosts the +) and opens the add menu directly;
           // clicking again closes both. Without the pin there'd be nowhere for the picker to mount.
           const showing = cooldownsPinned;
+          if (!showing) setPanel(null);
           setCooldownsPinned(!showing);
           setAddOpen(!showing);
         }}
