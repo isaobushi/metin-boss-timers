@@ -890,6 +890,38 @@ describe("setRung (set-rung curtain, #46)", () => {
     expect(setRung(c, rec(c)[0].id, "M4")).toBe(c); // Alastor Pet — a deadline, no ladder
     expect(setRung(c, books(c).id, "X9")).toBe(c); // not a rung on the class-skill ladder
   });
+
+  it("picking the cap rung (P) auto-retires the def done-forever — parallel to the ✓ that reaches it", () => {
+    const c = makeConfig();
+    const def = books(c);
+    const after = setRung(c, def.id, "P");
+    expect(recProg(after)).toEqual([{ defId: def.id, position: 65 }]); // snapped onto the P cap
+    expect(rec(after).find((d) => d.id === def.id)?.maxed).toBe(true); // and retired, like markRead's cap ✓
+  });
+
+  it("picking a sub-cap rung on a retired def reactivates it (drops maxed) and corrects the rank", () => {
+    const base = makeConfig();
+    const original = books(base);
+    const maxed = setRecurringMaxed(base, original.id, true); // retired at P (position 65)
+    expect(rec(maxed).find((d) => d.id === original.id)?.maxed).toBe(true);
+    const after = setRung(maxed, original.id, "M2");
+    expect(rec(after).find((d) => d.id === original.id)).toEqual(original); // key deleted, byte-identical
+    expect(recProg(after)).toEqual([{ defId: original.id, position: 1 }]); // re-ranked to M2's entry
+  });
+
+  it("picking a sub-cap rung on a live def adds no maxed flag", () => {
+    const c = makeConfig();
+    const def = books(c);
+    expect(rec(setRung(c, def.id, "M4")).find((d) => d.id === def.id)?.maxed).toBeUndefined();
+  });
+
+  it("a stage ladder (Biologist) never maxes from the curtain — its cap tips only on the final ✓", () => {
+    const c = makeConfig();
+    const bio = rec(c)[12]; // Biologist, style stage, cap 235; Stage 10's entry (215) is below it
+    const after = setRung(c, bio.id, "Stage 10");
+    expect(recProg(after)).toEqual([{ defId: bio.id, position: 215 }]);
+    expect(rec(after).find((d) => d.id === bio.id)?.maxed).toBeUndefined();
+  });
 });
 
 // ── Multi-character write path (#54) ───────────────────────────────────────────────────────────
