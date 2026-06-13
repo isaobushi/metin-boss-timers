@@ -141,6 +141,10 @@ body {
   align-items: center;
   justify-content: center;
   width: 288px;
+  /* Reserve the ← footprint on BOTH sides so the centred legend stays centred yet never
+     slides under the absolute icon — a long locale (e.g. German) wraps inside this inner
+     area instead of overflowing left into the arrow. */
+  padding: 0 30px;
   margin-top: 6px;
 }
 .timer-foot .icon-btn {
@@ -149,7 +153,6 @@ body {
 }
 .timer-foot .timer-hint {
   margin-top: 0;
-  white-space: nowrap;
 }
 
 /* shared buttons / inputs */
