@@ -40,12 +40,14 @@ import {
   deleteCharacter,
   selectCharacter,
   classifyCharacter,
+  resetSection,
   markTourSeen,
   shouldRunTour,
   type Config,
 } from "./config";
 import { inAlarm, type RecurringProgress } from "./recurring";
 import { buildsFor, subsetFor } from "./skillCatalog";
+import { DEFAULT_LOCALE } from "./localeTypes";
 import { DEFAULT_SOUND_ID, SOUND_IDS, isSoundId } from "./sounds";
 
 // The config model is pure: every op is `(Config, ...) -> Config` with no clock, no
@@ -1099,6 +1101,81 @@ describe("classifyCharacter", () => {
   it("is a no-op for an unknown id", () => {
     const c = makeConfig();
     expect(classifyCharacter(c, "character-999", { name: "X", empire: "Jinno", race: "Warrior", builds: ["Body"] })).toBe(c);
+  });
+});
+
+// Per-section restore: the settings header's ↺ resets only the tab in view, leaving the other
+// sections' customization intact (the all-wipe `makeConfig()` reset is gone).
+describe("resetSection", () => {
+  it("dungeons: restores the Balathor seed, leaving cooldowns and recurring untouched", () => {
+    let c = makeConfig();
+    c = renameBoss(c, c.bosses[0].id, "Custom");
+    c = addBoss(c); // a second, user-added boss
+    const cooldownsBefore = c.cooldowns;
+    const recurringBefore = rec(c);
+    const next = resetSection(c, "dungeons");
+    expect(next.bosses).toHaveLength(1);
+    expect(next.bosses[0].name).toBe("Balathor");
+    expect(next.bosses[0].skills).toHaveLength(2);
+    expect(next.cooldowns).toBe(cooldownsBefore); // other sections untouched
+    expect(rec(next)).toEqual(recurringBefore);
+  });
+
+  it("cooldowns: re-seeds the catalog and drops every running cooldown", () => {
+    let c = makeConfig();
+    const seededNames = makeConfig().cooldowns.map((d) => d.name);
+    c = renameCooldown(c, c.cooldowns[0].id, "Custom Dungeon");
+    c = startCooldown(c, c.cooldowns[1].id, 1000);
+    expect(c.running).toHaveLength(1); // a running cooldown is in flight
+    const next = resetSection(c, "cooldowns");
+    expect(next.cooldowns.map((d) => d.name)).toEqual(seededNames);
+    expect(next.cooldownSeq).toBe(seededNames.length);
+    expect(next.running).toEqual([]);
+  });
+
+  it("items: re-seeds the deadline items off recurringSeq, keeping the gate routine", () => {
+    let c = makeConfig();
+    const gatesBefore = rec(c).filter((d) => d.kind === "gate");
+    const firstDeadline = rec(c).find((d) => d.kind === "deadline")!;
+    c = renameRecurring(c, firstDeadline.id, "Custom Item");
+    c = removeRecurring(c, rec(c).filter((d) => d.kind === "deadline")[1].id); // drop another
+    const next = resetSection(c, "items");
+    const deadlines = rec(next).filter((d) => d.kind === "deadline");
+    expect(deadlines.map((d) => d.name)).toEqual(["Alastor Pet", "White Navy Uniform Costume", "Battle Horse"]);
+    expect(rec(next).filter((d) => d.kind === "gate")).toEqual(gatesBefore); // gates untouched
+    expect(next.recurringSeq).toBe(c.recurringSeq + 3); // 3 fresh deadlines minted off the counter
+  });
+
+  it("routine: re-seeds the active character's class gates and resets ladder progress, keeping deadlines", () => {
+    let c = classifyCharacter(makeConfig(), "character-1", {
+      name: "Main",
+      empire: "Jinno",
+      race: "Warrior",
+      builds: ["Body"],
+    });
+    const deadlinesBefore = rec(c).filter((d) => d.kind === "deadline");
+    const aGate = rec(c).find((d) => d.kind === "gate")!;
+    c = withProgress(c, [{ defId: aGate.id, position: 5 }]);
+    c = renameRecurring(c, aGate.id, "Custom Gate");
+    const next = resetSection(c, "routine");
+    const gates = rec(next).filter((d) => d.kind === "gate");
+    expect(gates.map((d) => d.name)).toEqual(subsetFor("Jinno", "Warrior", ["Body"]).map((p) => p.name));
+    expect(rec(next).filter((d) => d.kind === "deadline")).toEqual(deadlinesBefore);
+    expect(recProg(next)).toEqual([]); // ladder progress on the replaced gates dropped
+  });
+
+  it("language: restores the default locale, touching nothing else", () => {
+    const c: Config = { ...makeConfig(), locale: "de" };
+    const next = resetSection(c, "language");
+    expect(next.locale).toBe(DEFAULT_LOCALE);
+    expect(next.bosses).toBe(c.bosses); // every other slice is the same reference
+    expect(next.characters).toBe(c.characters);
+  });
+
+  it("is a no-op for the recurring sections with no active character", () => {
+    const c: Config = { ...makeConfig(), activeCharacterId: null };
+    expect(resetSection(c, "items")).toBe(c);
+    expect(resetSection(c, "routine")).toBe(c);
   });
 });
 

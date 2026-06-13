@@ -24,6 +24,7 @@ import { type Build, type ChorePreform, type Empire, type Race, subsetFor } from
 import { clampDuration } from "./cooldownTuning";
 import { cooldownKey, recurringKey } from "./contentKeys";
 import { DEFAULT_LOCALE, type Locale } from "./localeTypes";
+import type { SettingsTab } from "./settingsLink";
 
 // A skill is everything the timer engine needs to make a timer (`TimerInit` =
 // { id; label; durationMs; soundId }) plus an optional global-hotkey binding. It stays a
@@ -227,6 +228,19 @@ function seedRecurring(): RecurringDef[] {
 }
 
 /**
+ * Seed the shipped default dungeon onto `c`: "Balathor" with two skills, boss/skill counters reset
+ * to match the fresh seed. Shared by `makeConfig` (first run) and `resetSection("dungeons")` (the
+ * per-section restore) so the two can't drift if the default boss ever changes.
+ */
+function seedBosses(c: Config): Config {
+  let base: Config = { ...c, bosses: [], bossSeq: 0, skillSeq: 0 };
+  base = addBoss(base);
+  base = renameBoss(base, base.bosses[0].id, DEFAULT_BOSS_NAME);
+  base = addSkill(base, base.bosses[0].id);
+  return base;
+}
+
+/**
  * The shipped default config: one boss ("Balathor", violet) with two skills, plus the
  * seeded cooldown catalog (six example dungeons) and recurring catalog (three expiring
  * items + the recurring chore gates) — nothing running yet on either.
@@ -246,9 +260,7 @@ export function makeConfig(): Config {
     locale: DEFAULT_LOCALE,
     hasSeenTour: false,
   };
-  c = addBoss(c);
-  c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
-  c = addSkill(c, c.bosses[0].id);
+  c = seedBosses(c);
   const cooldowns = seedCooldowns();
   // The shipped recurring seed lives under a single default character; bosses/cooldowns stay global.
   const recurring = seedRecurring();
@@ -262,6 +274,59 @@ export function makeConfig(): Config {
     activeCharacterId: character.id,
     characterSeq: 1,
   };
+}
+
+/**
+ * Restore ONE settings section to its shipped defaults, leaving every other section's
+ * customization intact (PRD: per-section reset). The settings header's ↺ resolves to this for
+ * the active tab — the all-wipe `makeConfig()` reset is gone (full restore lives in backup/import).
+ *
+ *  • `dungeons`  — re-seed the default boss ("Balathor" + one skill); boss/skill counters reset.
+ *                  Boss timers are session-only, so there's no persisted run set to clear.
+ *  • `cooldowns` — re-seed the dungeon-cooldown catalog and drop every running cooldown (their
+ *                  def ids are gone).
+ *  • `items`     — re-seed the active character's `deadline` "expiring items" from the generic seed,
+ *                  keeping its `gate` routine; running items on the replaced kind reset.
+ *  • `routine`   — re-seed the active character's `gate` chores from ITS OWN class (`subsetFor`,
+ *                  exactly as `classifyCharacter` does — an unclassified character gets the universal
+ *                  chores), keeping its `deadline` items; ladder progress + running gates reset.
+ *  • `language`  — back to the default locale.
+ *
+ * With no active character the recurring sections are a no-op (nothing to re-seed).
+ */
+export function resetSection(c: Config, section: SettingsTab): Config {
+  switch (section) {
+    case "dungeons":
+      return seedBosses(c);
+    case "cooldowns": {
+      const cooldowns = seedCooldowns();
+      return { ...c, cooldowns, cooldownSeq: cooldowns.length, running: [] };
+    }
+    case "items":
+    case "routine": {
+      const active = activeCharacter(c);
+      if (!active) return c;
+      const kind: RecurringKind = section === "items" ? "deadline" : "gate";
+      const sources =
+        kind === "gate"
+          ? subsetFor(active.empire, active.race, active.builds)
+          : RECURRING_SEED.filter((r) => r.kind === "deadline");
+      const { defs: fresh, seq: recurringSeq } = mintRecurring(sources, c.recurringSeq);
+      const otherKind = active.recurring.filter((d) => d.kind !== kind);
+      const keptIds = new Set(otherKind.map((d) => d.id));
+      // Canonical order is deadlines-then-gates (matches the seed and classifyCharacter).
+      const recurring = kind === "deadline" ? [...fresh, ...otherKind] : [...otherKind, ...fresh];
+      const updated: Character = {
+        ...active,
+        recurring,
+        recurringRunning: active.recurringRunning.filter((r) => keptIds.has(r.defId)),
+        recurringProgress: active.recurringProgress.filter((p) => keptIds.has(p.defId)),
+      };
+      return { ...c, characters: c.characters.map((ch) => (ch.id === active.id ? updated : ch)), recurringSeq };
+    }
+    case "language":
+      return { ...c, locale: DEFAULT_LOCALE };
+  }
 }
 
 /** Append a new boss (with one default skill); its accent cycles from the palette. */

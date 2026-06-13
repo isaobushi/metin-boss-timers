@@ -13,7 +13,8 @@
 //
 // The surface grew a section per dock tool (bosses, cooldowns, items, routine); once the
 // routine seed filled out it was too tall to scan, so the four sections live behind tabs
-// keyed to the same icons the dock uses (⚔ ⏱ ⧗ ✓). Reset/close stay global in the head.
+// keyed to the same icons the dock uses (⚔ ⏱ ⧗ ✓). The head's ↺ resets only the tab in view
+// (per-section defaults); close stays global.
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { BossSettings } from "../overlay/BossSettings";
 import { CooldownSettings } from "../overlay/CooldownSettings";
@@ -161,7 +162,9 @@ export function SettingsView({
           <button
             className="settings-icon-btn"
             onClick={() => {
-              if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetConfig();
+              // Context-aware: the ↺ restores only the tab in view, leaving the others intact.
+              // Full restore lives in backup/import, so there's no all-wipe here.
+              if (window.confirm(t("settings.resetConfirm", locale))) cfg.resetSectionTo(tab);
             }}
             {...tip(t("settings.resetToDefaults", locale))}
           >

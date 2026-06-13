@@ -34,12 +34,14 @@ import {
   deleteCharacter,
   selectCharacter,
   classifyCharacter,
+  resetSection,
   markTourSeen,
   type Boss,
   type CharacterDraft,
   type Config,
 } from "../engine/config";
 import type { ChorePreform } from "../engine/skillCatalog";
+import type { SettingsTab } from "../engine/settingsLink";
 import type { SoundId } from "../engine/sounds";
 import { allows, DEV_ENTITLEMENT, type Entitlement, type Mutation } from "../engine/entitlement";
 import { deserialize, serialize } from "../engine/persist";
@@ -324,10 +326,12 @@ export function useConfig() {
 
   const selectBoss = useCallback((id: string | null) => setActiveBossId(id), []);
 
-  // Wipe all customization back to the shipped defaults (persisted by the save effect).
-  const resetConfig = useCallback(() => {
-    setConfig(makeConfig());
-    setActiveBossId(null);
+  // Restore ONE settings section to the shipped defaults, leaving the others untouched (persisted
+  // by the save effect). The dungeons reset drops the boss selection (its ids are regenerated);
+  // the others leave the active boss alone.
+  const resetSectionTo = useCallback((section: SettingsTab) => {
+    setConfig((c) => resetSection(c, section));
+    if (section === "dungeons") setActiveBossId(null);
   }, []);
 
   // Switch the active locale — persisted + cross-window synced like any other config edit.
@@ -403,7 +407,7 @@ export function useConfig() {
     editCharacter,
     removeCharacter,
     selectBoss,
-    resetConfig,
+    resetSectionTo,
     changeLocale,
     completeTour,
   };
