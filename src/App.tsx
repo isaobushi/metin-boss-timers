@@ -437,16 +437,22 @@ export default function App() {
           // Engaging the cooldown tool closes whatever exclusive panel was open — switching dock
           // tools leaves only the pills (a status line), never a stale skills/items/routine panel
           // sitting under the strip. Collapsing the strip back off leaves the panel slot empty.
+          // EXCEPT the live boss-timer panel: the strip is built to pin ABOVE running timers, and
+          // closing it would unmount TimerScreen and silently reset those countdowns — so ⏱ stays
+          // non-destructive there (matches the pre-strip behaviour).
+          const yieldPanelOnEngage = () => {
+            if (panel !== "timers") setPanel(null);
+          };
           // Running cooldowns → ⏱ toggles the pinned pills strip (which carries the + as its last cell).
           if (cd.pills.length > 0) {
-            if (!cooldownsPinned) setPanel(null);
+            if (!cooldownsPinned) yieldPanelOnEngage();
             setCooldownsPinned((p) => !p);
             return;
           }
           // Nothing running → ⏱ pins the strip (which hosts the +) and opens the add menu directly;
           // clicking again closes both. Without the pin there'd be nowhere for the picker to mount.
           const showing = cooldownsPinned;
-          if (!showing) setPanel(null);
+          if (!showing) yieldPanelOnEngage();
           setCooldownsPinned(!showing);
           setAddOpen(!showing);
         }}
