@@ -228,6 +228,19 @@ function seedRecurring(): RecurringDef[] {
 }
 
 /**
+ * Seed the shipped default dungeon onto `c`: "Balathor" with two skills, boss/skill counters reset
+ * to match the fresh seed. Shared by `makeConfig` (first run) and `resetSection("dungeons")` (the
+ * per-section restore) so the two can't drift if the default boss ever changes.
+ */
+function seedBosses(c: Config): Config {
+  let base: Config = { ...c, bosses: [], bossSeq: 0, skillSeq: 0 };
+  base = addBoss(base);
+  base = renameBoss(base, base.bosses[0].id, DEFAULT_BOSS_NAME);
+  base = addSkill(base, base.bosses[0].id);
+  return base;
+}
+
+/**
  * The shipped default config: one boss ("Balathor", violet) with two skills, plus the
  * seeded cooldown catalog (six example dungeons) and recurring catalog (three expiring
  * items + the recurring chore gates) — nothing running yet on either.
@@ -247,9 +260,7 @@ export function makeConfig(): Config {
     locale: DEFAULT_LOCALE,
     hasSeenTour: false,
   };
-  c = addBoss(c);
-  c = renameBoss(c, c.bosses[0].id, DEFAULT_BOSS_NAME);
-  c = addSkill(c, c.bosses[0].id);
+  c = seedBosses(c);
   const cooldowns = seedCooldowns();
   // The shipped recurring seed lives under a single default character; bosses/cooldowns stay global.
   const recurring = seedRecurring();
@@ -285,13 +296,8 @@ export function makeConfig(): Config {
  */
 export function resetSection(c: Config, section: SettingsTab): Config {
   switch (section) {
-    case "dungeons": {
-      let base: Config = { ...c, bosses: [], bossSeq: 0, skillSeq: 0 };
-      base = addBoss(base);
-      base = renameBoss(base, base.bosses[0].id, DEFAULT_BOSS_NAME);
-      base = addSkill(base, base.bosses[0].id);
-      return base;
-    }
+    case "dungeons":
+      return seedBosses(c);
     case "cooldowns": {
       const cooldowns = seedCooldowns();
       return { ...c, cooldowns, cooldownSeq: cooldowns.length, running: [] };
