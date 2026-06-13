@@ -74,7 +74,11 @@ export function RecurringSettings({
   rank,
   locale,
 }: Props) {
-  const items = recurring.filter((d) => d.kind === kind);
+  // Maxed (perfected, #69) rows sink to the bottom — an achieved task drops out of the way of the
+  // live ones, lit not struck (design walk). sort() is stable, so order within each group holds.
+  const items = recurring
+    .filter((d) => d.kind === kind)
+    .sort((a, b) => Number(a.maxed ?? false) - Number(b.maxed ?? false));
   const title = kind === "deadline" ? t("recurring.titleItems", locale) : t("recurring.titleRoutine", locale);
   const addLabel = kind === "deadline" ? t("recurring.addItem", locale) : t("recurring.addRoutine", locale);
   const emptyLabel = kind === "deadline" ? t("recurring.noItems", locale) : t("recurring.noRoutine", locale);
@@ -86,7 +90,9 @@ export function RecurringSettings({
 
       <div className="cd-head">
         <span className="cd-head__name">{t("recurring.colName", locale)}</span>
-        <span className="cd-head__dur">{t(rank ? "recurring.colRank" : "recurring.colDuration", locale)}</span>
+        <span className={`cd-head__dur${rank ? " cd-head__dur--rank" : ""}`}>
+          {t(rank ? "recurring.colRank" : "recurring.colDuration", locale)}
+        </span>
         {onSetMaxed && <span className="cd-head__x" />}
         <span className="cd-head__x" />
       </div>

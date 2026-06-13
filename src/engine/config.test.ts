@@ -468,6 +468,15 @@ describe("renameCooldown", () => {
     const c = makeConfig();
     expect(renameCooldown(c, "cooldown-999", "X")).toBe(c);
   });
+
+  it("drops the catalogKey so a renamed seeded cooldown shows the new name verbatim (not the catalog spelling)", () => {
+    const c = makeConfig();
+    const id = c.cooldowns[0].id;
+    expect(c.cooldowns[0].catalogKey).toBeDefined(); // seeded cooldowns localize through their key — the dock would show that, not the rename
+    const after = renameCooldown(c, id, "My Boss");
+    expect(after.cooldowns[0].name).toBe("My Boss");
+    expect(after.cooldowns[0].catalogKey).toBeUndefined(); // now user content — rendered exactly as typed, in every locale
+  });
 });
 
 describe("retagCooldown", () => {
@@ -612,6 +621,15 @@ describe("renameRecurring", () => {
   it("is a no-op for an unknown def id", () => {
     const c = makeConfig();
     expect(renameRecurring(c, "recurring-999", "X")).toBe(c);
+  });
+
+  it("drops the catalogKey so a renamed seeded def shows the new name verbatim (not the catalog spelling)", () => {
+    const c = makeConfig();
+    const [a] = rec(c);
+    expect(a.catalogKey).toBeDefined(); // seeded defs localize through their key — the dock would show that, not the rename
+    const after = renameRecurring(c, a.id, "My Ward");
+    expect(rec(after)[0].name).toBe("My Ward");
+    expect(rec(after)[0].catalogKey).toBeUndefined(); // now user content — rendered exactly as typed, in every locale
   });
 });
 
@@ -777,6 +795,23 @@ describe("markRead (ladder read-outcome gesture, #45)", () => {
     const c = withProgress(base, [{ defId: def.id, position: 65 }]); // already at P, the cap
     const after = markRead(c, def.id, 1_000, true);
     expect(recProg(after)).toEqual([{ defId: def.id, position: 65 }]); // clamped, no overshoot
+  });
+
+  it("the ✓ that REACHES the cap retires the def done-forever (maxed) — the settings 'P' state", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = withProgress(base, [{ defId: def.id, position: 64 }]); // G10 — one read short of P
+    const after = markRead(c, def.id, 1_000, true);
+    expect(recProg(after)).toEqual([{ defId: def.id, position: 65 }]); // advanced onto the P cap
+    expect(rec(after).find((d) => d.id === def.id)?.maxed).toBe(true); // and auto-retired, not capped-but-live
+  });
+
+  it("a ✓ that does NOT reach the cap leaves the def live (not maxed)", () => {
+    const base = makeConfig();
+    const def = books(base);
+    const c = withProgress(base, [{ defId: def.id, position: 10 }]);
+    const after = markRead(c, def.id, 1_000, true);
+    expect(rec(after).find((d) => d.id === def.id)?.maxed).toBeUndefined();
   });
 
   it("restamps the gate with the 12h Soul Stone duration once past G1 (late tier)", () => {

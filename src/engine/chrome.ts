@@ -142,6 +142,7 @@ const EN = {
   "routine.readFailEarly":    "read now (skipped the cooldown) but failed — book burned, no advance; restamp from now",
   "routine.markDoneReady":    "mark done — restamp a full cycle from now",
   "routine.markDoneEarly":    "done early — restamp from now (forfeits the wait)",
+  "routine.skipCooldown":     "use the scroll to skip the cooldown for an early read (used an item)",
 
   // ---- RungCurtain ----
   "rung.triggerTitle":        "set current rung",
@@ -397,6 +398,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "routine.readFailEarly":    "jetzt gelesen (Cooldown übersprungen) aber fehlgeschlagen — Buch verbrannt, keine Stufenerhöhung; ab jetzt neu stempeln",
   "routine.markDoneReady":    "erledigt — vollen Zyklus ab jetzt neu stempeln",
   "routine.markDoneEarly":    "früh erledigt — ab jetzt neu stempeln (Wartezeit verfällt)",
+  "routine.skipCooldown":     "Schriftrolle benutzen, um den Cooldown für ein frühes Lesen zu überspringen (Item benutzt)",
 
   // ---- RungCurtain ----
   "rung.triggerTitle":        "aktuelle Stufe festlegen",

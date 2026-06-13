@@ -103,6 +103,26 @@ export function CheckboxIcon(p: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Rolled scroll/parchment — the "used an item to skip the cooldown" early-read unlock (design walk):
+ *  a sheet hanging from a curled top, rolled at the foot, with two lines of writing. */
+export function ScrollIcon(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        {/* curled top */}
+        <path d="M8 3.5h9a1.8 1.8 0 011.8 1.8c0 1-.8 1.7-1.8 1.7" />
+        {/* left edge falling from the curl, and the right edge */}
+        <path d="M8 3.5C6.9 3.5 6 4.4 6 5.5V18" />
+        <path d="M17 7v9.5" />
+        {/* rolled foot */}
+        <path d="M6 18a2 2 0 002 2h7.2c1 0 1.8-.8 1.8-1.8s-.8-1.7-1.8-1.7H8" />
+        {/* writing */}
+        <path d="M9 9.5h5M9 12.5h5" />
+      </g>
+    </svg>
+  );
+}
+
 /** Circled question mark — the "show me around" tour replay. */
 export function TourIcon(p: SVGProps<SVGSVGElement>) {
   return (

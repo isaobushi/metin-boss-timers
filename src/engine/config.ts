@@ -386,10 +386,19 @@ export function addCooldown(c: Config): Config {
  * re-derives `tag` from the new name, so the short strip label stays in sync as the user
  * types. To override the auto-tag, call `retagCooldown` afterward — a later rename will
  * re-derive it again. An unknown `defId` is a no-op (the same config is returned).
+ *
+ * Like `renameRecurring`, a rename also DROPS any `catalogKey`: the def becomes user content.
+ * Seeded cooldowns resolve their display name through the locale tables by `catalogKey`, so without
+ * this the dock keeps showing the shipped spelling and swallows the rename. Once you've typed your
+ * own name it should show verbatim in every locale — localization is for the shipped name only.
  */
 export function renameCooldown(c: Config, defId: string, name: string): Config {
   if (!cooldownById(c, defId)) return c;
-  return editCooldown(c, defId, (d) => ({ ...d, name, tag: deriveTag(name) }));
+  return editCooldown(c, defId, (d) => {
+    const next = { ...d, name, tag: deriveTag(name) };
+    delete next.catalogKey; // renamed → user content; render `name` verbatim, not the catalog spelling
+    return next;
+  });
 }
 
 /**
@@ -647,9 +656,10 @@ const withGateDuration = (def: RecurringDef, progress: RecurringProgress[]): Rec
  * Log the outcome of a ladder read for `defId` (issue #45) — the two-outcome gesture a ladder row
  * shows in place of the plain gate's single ✓. Either outcome restamps the gate (`markDone` — a
  * read/consign happened, so its cooldown starts), but only `success` advances the rank: `position +
- * 1`, clamped to the ladder's cap (a ✓ at the cap is a no-op on position — the row is already the
- * inert trophy). A `fail` burns the book/item with no advance — gate only. An unknown `defId` is a
- * no-op.
+ * 1`, clamped to the ladder's cap. The ✓ that REACHES the cap also retires the def done-forever
+ * (`maxed`, #69) — reaching P (or M1 on a language, the last Biologist stage) is completion, so it
+ * lands in the same end state the settings "P" toggle sets rather than sitting capped-but-live. A
+ * `fail` burns the book/item with no advance — gate only. An unknown `defId` is a no-op.
  *
  * The gate always restamps, on every read, for both ladder styles: a `rung` read is a daily book
  * read, and a `stage` ✓ is a single item consigned — each consign has its own cooldown (Biologist's
@@ -663,7 +673,17 @@ export function markRead(c: Config, defId: string, now: number, success: boolean
     const recurringRunning = markDone(ch.recurringRunning, withGateDuration(def, ch.recurringProgress), now);
     if (!success) return { ...ch, recurringRunning }; // failed read — gate restamped, rank untouched
     const next = positionOf(ch.recurringProgress, defId) + 1;
-    return { ...ch, recurringRunning, recurringProgress: setPosition(ch.recurringProgress, defId, next, def.ladderId) };
+    const recurringProgress = setPosition(ch.recurringProgress, defId, next, def.ladderId);
+    // Reaching the cap rung (P — or M1 on languages, the final Biologist stage) IS completion: auto-retire
+    // the perfected task done-forever (#69), the same end state the settings "P" toggle sets. Without this
+    // the ladder sat capped-but-LIVE — reading "P" in settings yet not in the retired (sunk/lit) state, and
+    // still cluttering the daily routine. A maxed def keeps its record, so this is reversible (un-toggle in
+    // settings). `ladderCap(undefined)` is 0, so the `ladderId` guard keeps a plain gate from ever maxing.
+    const reachedCap = def.ladderId != null && next >= ladderCap(def.ladderId);
+    const recurring = reachedCap
+      ? ch.recurring.map((d) => (d.id === defId ? { ...d, maxed: true } : d))
+      : ch.recurring;
+    return { ...ch, recurring, recurringRunning, recurringProgress };
   });
 }
 
@@ -727,10 +747,24 @@ export function addCatalogRoutine(c: Config, preform: ChorePreform): Config {
   return editActiveCharacter({ ...c, recurringSeq }, (ch) => ({ ...ch, recurring: [...ch.recurring, ...defs] }));
 }
 
-/** Rename a definition (like `renameCooldown`, minus the tag re-derive). An unknown `defId` is a no-op. */
+/**
+ * Rename a definition (like `renameCooldown`, minus the tag re-derive). An unknown `defId` is a no-op.
+ *
+ * A rename also DROPS any `catalogKey`: it turns the def into USER content. Seeded defs resolve their
+ * display name through the locale tables by `catalogKey`, so without this the dock keeps showing the
+ * shipped spelling and silently swallows the rename (the reported "rename not reflected in the dock"
+ * bug). Once the player has typed their own name — e.g. naming a generic "Ward" after the actual ward
+ * they run — that name should show everywhere, verbatim, in every locale; localization is for the
+ * shipped name only. This is the same seam `resolveDisplayName` already draws between seeded
+ * (localized) and user-created (verbatim) items.
+ */
 export function renameRecurring(c: Config, defId: string, name: string): Config {
   if (!recurringById(c, defId)) return c;
-  return editRecurring(c, defId, (d) => ({ ...d, name }));
+  return editRecurring(c, defId, (d) => {
+    const next = { ...d, name };
+    delete next.catalogKey; // a renamed def is user content now — render `name` verbatim, not the catalog spelling
+    return next;
+  });
 }
 
 /** Set a definition's duration, clamped to the day-scale [1m, 365d] band. No-op if unknown. */

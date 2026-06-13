@@ -295,15 +295,6 @@ export const LADDERS: Record<string, LadderStructure> = {
     rungs: buildRungs([...mTier, ...gTier, "P"], [...triangular10, ...Array(10).fill(1)]),
     lateTier: { fromEntry: G1_ENTRY, durationMs: SOUL_STONE_MS },
   },
-  // Ward skill (#57): the 7th skill reads exactly like a class skill book (books to G1, stones to
-  // P) — a clone of the ability ladder under its own id, so the school-independent Ward keeps the
-  // book progression while banding under Utilities (it is neither `class-skill` nor `language`).
-  ward: {
-    id: "ward",
-    style: "rung",
-    rungs: buildRungs([...mTier, ...gTier, "P"], [...triangular10, ...Array(10).fill(1)]),
-    lateTier: { fromEntry: G1_ENTRY, durationMs: SOUL_STONE_MS },
-  },
   // Transformation pattern (shared by Transformation/Inspiration/Charisma/Mining): 0→M1 = 20, then
   // 1 read per step to P (G11). Total 40 — only the climb to M1 is heavy.
   transformation: {
@@ -363,13 +354,15 @@ export const ladderCap = (ladderId: string | undefined): number => {
 export const ladderRungs = (ladderId: string | undefined): LadderRung[] => ladderById(ladderId)?.rungs ?? [];
 
 /**
- * The cap rung's display label for a rung-style ladder — what the settings maxed toggle shows, so
- * the button names the rank it grants: "P" on most ladders, "M1" on languages (their in-game
- * ceiling). Null for a stage ladder (Biologist) or a plain gate, where the generic "P" glyph rules.
+ * The cap label for the settings maxed toggle, so the button names what it grants: "P" on most
+ * rung ladders, "M1" on languages (their in-game ceiling), and a "✓" check on a stage ladder
+ * (Biologist) — that chain has no rank, so "done" reads as a tick, not a grade. Null for a plain
+ * (ladder-less) gate, where the generic "P" glyph rules.
  */
 export const ladderCapLabel = (ladderId: string | undefined): string | null => {
   const l = ladderById(ladderId);
-  return l && l.style === "rung" ? l.rungs[l.rungs.length - 1].label : null;
+  if (!l) return null;
+  return l.style === "rung" ? l.rungs[l.rungs.length - 1].label : "✓";
 };
 
 /**
@@ -504,10 +497,11 @@ export type RoutineSection = "books" | "languages" | "chores";
 
 /**
  * Classify a gate into its Routine section by `ladderId` (#57): the race-filtered class Abilities
- * (the `class-skill` ladder) read as `books`; the foreign `language` ladders as `languages`; every
- * other gate — the universal Transformation/Leadership/Biologist ladders and any plain user-added
- * gate (no ladder) — as `chores`. Pure presentation, like `ladderId` itself. The ladder-id literals
- * match `skillCatalog`'s `LADDER_ABILITY`/`LADDER_LANGUAGE` and `config`'s seed.
+ * (the `class-skill` ladder — which now carries each school's per-school Ward, the 7th skill) read as
+ * `books`; the foreign `language` ladders as `languages`; every other gate — the universal
+ * Transformation/Leadership/Biologist ladders and any plain user-added gate (no ladder) — as
+ * `chores`. Pure presentation, like `ladderId` itself. The ladder-id literals match `skillCatalog`'s
+ * `LADDER_ABILITY`/`LADDER_LANGUAGE` and `config`'s seed.
  */
 export function routineSection(ladderId: string | undefined): RoutineSection {
   if (ladderId === "class-skill") return "books";

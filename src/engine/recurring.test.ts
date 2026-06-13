@@ -333,11 +333,10 @@ describe("LADDERS table", () => {
 
   it("flips the skill-book gates to the 12h Soul Stone duration from G1 onward (late tier)", () => {
     const DAY = 86_400_000;
-    for (const id of ["class-skill", "ward"]) {
-      expect(gateDurationMs(id, 54, DAY)).toBe(DAY); // last book read — still the 24h tier
-      expect(gateDurationMs(id, 55, DAY)).toBe(DAY / 2); // on G1 — stones from here, 12h
-      expect(gateDurationMs(id, 64, DAY)).toBe(DAY / 2);
-    }
+    const id = "class-skill"; // the one skill-book ladder (the per-school Ward now climbs it too)
+    expect(gateDurationMs(id, 54, DAY)).toBe(DAY); // last book read — still the 24h tier
+    expect(gateDurationMs(id, 55, DAY)).toBe(DAY / 2); // on G1 — stones from here, 12h
+    expect(gateDurationMs(id, 64, DAY)).toBe(DAY / 2);
     expect(gateDurationMs("leadership", 200, DAY)).toBe(DAY); // no late tier elsewhere
     expect(gateDurationMs(undefined, 999, DAY)).toBe(DAY); // plain gate — def duration rules
   });
@@ -508,17 +507,17 @@ describe("ladderRungs / rungEntry (the curtain's snap targets, #46)", () => {
     expect(rungEntry(undefined, "M1")).toBeNull();
   });
 
-  it("names the cap rung for the maxed toggle — P mostly, M1 on languages, null off rung-style", () => {
+  it("names the cap for the maxed toggle — P mostly, M1 on languages, ✓ on stage, null off ladder", () => {
     expect(ladderCapLabel("class-skill")).toBe("P");
     expect(ladderCapLabel("leadership")).toBe("P");
     expect(ladderCapLabel("language")).toBe("M1"); // languages cap at M1 — the button must say so
-    expect(ladderCapLabel("biologist")).toBeNull(); // stage style — the generic "P" glyph rules
-    expect(ladderCapLabel(undefined)).toBeNull(); // plain gate
+    expect(ladderCapLabel("biologist")).toBe("✓"); // stage style — no rank, "done" reads as a tick
+    expect(ladderCapLabel(undefined)).toBeNull(); // plain gate — the generic "P" glyph rules
   });
 });
 
 describe("routineSection (the #57 panel banding)", () => {
-  it("bands the race Abilities under books, the foreign languages under languages", () => {
+  it("bands the race Abilities (including each school's per-school Ward) under books, foreign languages under languages", () => {
     expect(routineSection("class-skill")).toBe("books");
     expect(routineSection("language")).toBe("languages");
   });

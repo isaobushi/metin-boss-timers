@@ -14,7 +14,7 @@ import { TourCard } from "./overlay/TourCard";
 import { BossSelect } from "./overlay/BossSelect";
 import { TimerScreen } from "./overlay/TimerScreen";
 import { SequenceScreen } from "./overlay/SequenceScreen";
-import SettingsApp from "./settings/SettingsApp";
+import { SettingsView } from "./settings/SettingsApp";
 import { DemoScene } from "./DemoScene";
 import { useConfig } from "./overlay/useConfig";
 import { useCooldowns } from "./overlay/useCooldowns";
@@ -507,7 +507,8 @@ export default function App() {
       </div>
       {showSettings && (
         <div className="settings-modal">
-          <SettingsApp onClose={closeSettings} initialTab={settingsTab ?? undefined} />
+          {/* Inline (browser) settings share the overlay's single cfg — same state, no cross-instance sync. */}
+          <SettingsView cfg={cfg} onClose={closeSettings} initialTab={settingsTab ?? undefined} />
         </div>
       )}
       {/* Cap-hit nudge (#56): a capped add (here, a 2nd character) was just refused. Upgrade → subscribe. */}

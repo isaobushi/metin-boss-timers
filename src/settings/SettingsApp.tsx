@@ -1,7 +1,15 @@
-// The settings window's root — the full config-editing surface that lives *outside* the
-// compact overlay (slice #6). It runs its own `useConfig()`; every edit persists and
-// broadcasts, so the overlay window reflects changes live (configSync). One BossSettings
-// block per boss, plus add-boss and reset-to-defaults that used to crowd the overlay.
+// The settings surface — the full config-editing UI that lives *outside* the compact overlay
+// (slice #6). One BossSettings block per boss, plus add-boss and reset-to-defaults that used to
+// crowd the overlay.
+//
+// It comes in two shells over the SAME body (`SettingsView`), differing only in where the config
+// comes from:
+//   • Tauri: a separate OS settings WINDOW (main.tsx → the default-export `SettingsApp` wrapper)
+//     runs its OWN `useConfig()`, kept in step with the overlay window over configSync (emit/listen).
+//   • Browser: App renders `<SettingsView cfg={...}>` INLINE as a modal and hands it the overlay's
+//     own `cfg`, so the dock and settings are literally one `useConfig` — edits reflect instantly,
+//     with no cross-instance BroadcastChannel sync to drop (two in-document instances never agreed
+//     reliably: a rung set in the dock, or a rename, wouldn't reach the other surface).
 //
 // The surface grew a section per dock tool (bosses, cooldowns, items, routine); once the
 // routine seed filled out it was too tall to scan, so the four sections live behind tabs
@@ -42,8 +50,15 @@ type TabId = SettingsTab;
 // `initialTab` is the deep-link seed (#72) — the SINGLE seeding seam: App's inline modal passes
 // the nudge's tab, main.tsx passes the Tauri window's URL-hash tab (initialSettingsTab). The
 // component never reads location itself; later re-tabs arrive over the transient bus.
-export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
-  const cfg = useConfig();
+export function SettingsView({
+  cfg,
+  onClose,
+  initialTab,
+}: {
+  cfg: ReturnType<typeof useConfig>;
+  onClose?: () => void;
+  initialTab?: SettingsTab;
+}) {
   const close = onClose ?? closeSettingsWindow;
   const [tab, setTab] = useState<TabId>(initialTab ?? "dungeons");
 
@@ -297,4 +312,12 @@ export default function SettingsApp({ onClose, initialTab }: { onClose?: () => v
       )}
     </div>
   );
+}
+
+// The Tauri settings WINDOW root (main.tsx): a standalone surface that owns its config, kept in
+// step with the overlay window over configSync (emit/listen). In the browser App renders
+// `<SettingsView>` inline with the overlay's own cfg instead, so this wrapper isn't used there.
+export default function SettingsApp({ onClose, initialTab }: { onClose?: () => void; initialTab?: SettingsTab }) {
+  const cfg = useConfig();
+  return <SettingsView cfg={cfg} onClose={onClose} initialTab={initialTab} />;
 }

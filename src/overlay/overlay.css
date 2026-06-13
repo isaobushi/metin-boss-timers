@@ -809,6 +809,8 @@ body[data-window="settings"] {
 .cd-rank {
   width: 184px;
   flex-shrink: 0;
+  /* breathing room from the NAME column, and aligns the rung readout under the RANK header */
+  padding-left: 8px;
   font-size: 11px;
   color: #b9aee6;
 }
@@ -819,13 +821,21 @@ body[data-window="settings"] {
 .cd-rank .dock-acc__ladder {
   font-size: 11px;
 }
-/* a maxed (done-forever, #69) routine reads as retired-but-kept: dimmed, struck, restorable */
-.cd-row--maxed .cd-name,
-.cd-row--maxed .cd-dur {
-  opacity: 0.45;
+/* RANK header sits left-aligned over the (left-aligned) rung readout, with the same indent — the
+   inherited centered DURATION header would float mid-cell, off the column it labels. */
+.cd-head__dur--rank {
+  text-align: left;
+  padding-left: 8px;
+}
+/* a maxed (perfected, #69) routine reads as achieved, not retired (design walk): lit ember band,
+   sorted to the bottom — no dim, no strike. The P/M/✓ toggle restores it. */
+.cd-row--maxed {
+  background: color-mix(in srgb, #ff6b2c 9%, transparent);
+  border-radius: 6px;
 }
 .cd-row--maxed .cd-name {
-  text-decoration: line-through;
+  color: #ffd9b0;
+  border-color: #ffa14a55;
 }
 /* The done-forever toggle (#69) — a "P" after Metin2's Perfect-Master grade: quiet while the
    routine is active, lit ember with a glow once retired. */
@@ -1218,10 +1228,13 @@ body[data-window="settings"] {
   background: #ffffff12;
   color: #fff;
 }
-/* The ✓ mark-done at a routine row's end — the refresh glyph's sibling. Green at rest when the
-   item is do-able now (the row carries `is-ready`), so the actionable tick pulls the eye; quiet
-   and muted once the chore is satisfied (`is-done`). */
-.dock-acc__done {
+/* The ✓/✗ read buttons at a routine row's end. Two states only — and the ✓ and ✗ share one calm
+   panel violet, so the win/loss outcome reads from the glyph (✓ vs ✗), not from colour:
+     • active   — live (the row is ready, or the scroll unlocked an early read): solid violet.
+     • disabled — locked while counting down (a read happened, awaiting ready or the scroll): faint.
+   No third "ready"/"early" shade, and no white — hover just lifts a faint background. */
+.dock-acc__done,
+.dock-acc__fail {
   flex: none;
   padding: 2px 5px;
   border: 0;
@@ -1232,42 +1245,54 @@ body[data-window="settings"] {
   line-height: 1;
   cursor: pointer;
 }
-.dock-acc__done:hover {
+.dock-acc__done:hover,
+.dock-acc__fail:hover {
   background: #ffffff12;
-  color: #fff;
 }
-.dock-acc__row.is-ready .dock-acc__done {
-  color: #39ff88;
-}
-.dock-acc__row.is-done .dock-acc__done {
-  opacity: 0.5;
-}
-/* The ladder read-outcome pair (#45): ✓ success + ✗ fail, shown only on a ready ladder row. The ✗
-   is the ✓'s sibling glyph button, tinted toward the loss accent so the two outcomes read apart. */
 .dock-acc__reads {
   flex: none;
   display: flex;
   gap: 2px;
 }
-.dock-acc__fail {
+/* The locked (disabled) state — unclickable and faint until the gate reads ready or the scroll
+   unlocks an early read. */
+.dock-acc__done:disabled,
+.dock-acc__fail:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+.dock-acc__done:disabled:hover,
+.dock-acc__fail:disabled:hover {
+  background: transparent;
+}
+/* The scroll — early-read unlock (design walk): the third glyph beside ✓/✗, and their exact mirror.
+   Two states only — enabled gold while the read buttons are locked (tap to skip the cooldown), faint
+   and disabled whenever they're live (nothing to unlock). */
+.dock-acc__skip {
   flex: none;
-  padding: 2px 5px;
+  padding: 2px 4px;
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #ff6b8b;
+  color: #ffd166;
   font-size: 13px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
+  opacity: 0.9;
 }
-.dock-acc__fail:hover {
+.dock-acc__skip:hover {
   background: #ffffff12;
-  color: #fff;
+  opacity: 1;
 }
-/* While the gate counts down, both read-outcome buttons dim — a tapped read here is the deliberate
-   "skipped the cooldown" early read, mirroring the plain gate's muted done-early ✓. */
-.dock-acc__row.is-done .dock-acc__fail {
-  opacity: 0.5;
+.dock-acc__skip:disabled {
+  opacity: 0.16;
+  cursor: default;
+}
+.dock-acc__skip:disabled:hover {
+  background: transparent;
+  color: #ffd166;
 }
 /* A capped ladder row — the inert trophy. No gesture, no gate countdown; the rung readout under
    the name reads `… ✓ max`. Dimmed and gold-tinted so a maxed ladder reads as done-and-proud. */

@@ -83,9 +83,10 @@ describe("subsetFor — class abilities", () => {
     expect(abilities(subsetFor("Jinno", "Warrior", ["Mental"])).map((p) => p.name)).toContain("Earthquake");
   });
 
-  it("carries the Boost (8th) and 9th skill as school abilities on the skill-book ladder", () => {
+  it("carries the Ward (7th), Boost (8th) and 9th skill as school abilities on the skill-book ladder", () => {
     const bm = abilities(subsetFor("Chunjo", "Sura", ["Black Magic"]));
     const names = bm.map((p) => p.name);
+    expect(names).toContain("Ward"); // 7th — the generic, renameable per-school ward
     expect(names).toContain("Dark Strike Boost"); // 8th — the school's boost
     expect(names).toContain("Lethal Wave"); // 9th
     expect(bm.every((p) => p.build === "Black Magic")).toBe(true); // both tagged to the school
@@ -122,7 +123,7 @@ describe("subsetFor — languages", () => {
 });
 
 describe("subsetFor — universal chores", () => {
-  const universalNames = ["Leadership", "Transformation", "Inspiration", "Charisma", "Mining", "Biologist", "Ward Skill"];
+  const universalNames = ["Leadership", "Transformation", "Inspiration", "Charisma", "Mining", "Biologist"];
 
   it("includes every universal chore regardless of race/empire", () => {
     for (const empire of ALL_EMPIRES) {
