@@ -240,8 +240,8 @@ const EN = {
 
   // ---- SettingsApp ----
   "settings.title":             "SETTINGS",
-  "settings.resetToDefaults":   "reset to defaults",
-  "settings.resetConfirm":      "Reset all bosses, skills, cooldowns and items to defaults?",
+  "settings.resetToDefaults":   "reset this section to defaults",
+  "settings.resetConfirm":      "Reset this section to its defaults? Your other sections won't change.",
   "settings.close":             "close",
   "settings.tabDungeons":       "Dungeons",
   "settings.tabCooldowns":      "Cooldowns",
@@ -482,8 +482,8 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
 
   // ---- SettingsApp ----
   "settings.title":           "EINSTELLUNGEN",
-  "settings.resetToDefaults": "auf Standardwerte zurücksetzen",
-  "settings.resetConfirm":    "Alle Bosse, Skills, Cooldowns und Items auf Standardwerte zurücksetzen?",
+  "settings.resetToDefaults": "diesen Bereich auf Standardwerte zurücksetzen",
+  "settings.resetConfirm":    "Diesen Bereich auf Standardwerte zurücksetzen? Deine anderen Bereiche bleiben unverändert.",
   "settings.close":           "schließen",
   "settings.tabDungeons":     "Dungeons",
   "settings.tabCooldowns":    "Cooldowns",
