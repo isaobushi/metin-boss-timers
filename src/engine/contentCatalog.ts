@@ -565,7 +565,7 @@ const FR: Record<string, string> = {
   "cooldown.nemere": "Nemere",
   "cooldown.meley": "Meley",
   "cooldown.balathor": "Balathor",
-  "cooldown.northwind-war-chief": "Chef de guerre du Nordvent", // ?
+  "cooldown.northwind-war-chief": "Chef guerrier d'Aquilon", // fr-wiki mob 6895 (element suffix dropped, as DE)
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet": "Alastor Pet",
@@ -719,12 +719,12 @@ const FR: Record<string, string> = {
 // (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
 const PL: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
-  "cooldown.hydra": "Hydra", // ?
-  "cooldown.razador": "Razador",
+  "cooldown.hydra": "Hydra",       // pl-wiki "Hydra" (confirmed)
+  "cooldown.razador": "Razador",   // pl-wiki "Walka z Razadorem" (verbatim)
   "cooldown.nemere": "Nemere",
   "cooldown.meley": "Meley",
   "cooldown.balathor": "Balathor",
-  "cooldown.northwind-war-chief": "Wódz Północnego Wiatru", // ?
+  "cooldown.northwind-war-chief": "Wódz Wojenny Wiatru Północnego", // ? field-boss page absent; "Wódz Wojenny"=War Chief confirmed
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet": "Alastor Pet",
