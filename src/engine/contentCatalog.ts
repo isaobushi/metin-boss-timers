@@ -209,9 +209,194 @@ const DE: Record<string, string> = {
   "biologist.wisdom-jewel":         "Weisheitsjuwel",
 };
 
+// ---- Italian content table (#99 slice 1) ----
+// Game-content names that must match the official Italian Metin2 client. PROVENANCE is mixed:
+//   • The 71 class-skill keys are SEEDED from the validated metin2alerts dump
+//     (reference/metin2alerts/skills-by-catalogkey.json, names.it) via scripts/reseed-it-from-dump.mjs.
+//     That dump scored 68/71 exact vs the hand-transcribed DE client table, so it is a trustworthy
+//     seed; for Italian the maintainer (native speaker) does the cross-check the house rule asks for.
+//   • The 10 Biologist consign items are sourced from the official client item DB
+//     (metin2alerts item_names/it.pbf via scripts/decode-item-names.mjs) — validated, not guessed.
+//   • The rest the skills dump doesn't carry — bosses, empires, races, builds, the app-chores
+//     (skill-books/transformation/biologist/ward) and a few proper-noun ultimates — are still
+//     HAND-DRAFTED and marked `// ?`. Verify first against the IT client / Gameforge IT wiki.
+//     Proper nouns (Tempestus, Infernus, Cicatrix, the Empires) the client keeps verbatim,
+//     confirmed against the store locale dump. (Bosses are mobs — sourceable from the dump's
+//     mob_names endpoint if needed; not yet pulled.)
+//
+// Like DE, every key from seededContentKeys() is listed explicitly so the strict guard in
+// contentCatalog.test.ts fails CI on any gap or orphan.
+// NOTE: the two 2026-06-11 seed-swap items (alastor-pet, white-navy-uniform-costume) keep their
+// English spelling here, mirroring the DE HITL decision — change only if the IT client differs.
+const IT: Record<string, string> = {
+  // ---- Cooldowns (bosses) ----
+  // Sourced from the official mob DB (metin2alerts mob_names/it.json, matched by EN name → vnum).
+  "cooldown.hydra":             "Idra",       // en "Hydra" (vnum 3964) — Italianized in client
+  "cooldown.razador":           "Razador",    // verbatim (vnum 6437)
+  "cooldown.nemere":            "Nemere",     // verbatim (vnum 6435)
+  "cooldown.meley":             "Meley",      // short form of "Meley, Regina d. draghi" (vnum 6193)
+  "cooldown.balathor":          "Balathor",   // verbatim (vnum 6897)
+  "cooldown.northwind-war-chief": "Condottiero boreale", // en "Northwind War Chief" (vnum 6895)
+
+  // ---- Recurring seed (deadline items) ----
+  "recurring.alastor-pet":      "Alastor Pet",
+  "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
+  "recurring.battle-horse":     "Cavallo da battaglia",
+
+  // ---- Recurring seed (gate chores — universals) ----
+  "recurring.skill-books":      "Libri delle abilità",
+  "recurring.transformation":   "Trasformazione",
+  "recurring.inspiration":  "Ispirazione",
+  "recurring.charisma":  "Carisma",
+  "recurring.mining":  "Scienza mineraria",
+  "recurring.leadership":  "Guida",
+  // Cosmetic-diff override (same as DE's "…-Sprache"): the dump gives bare "Jinno/Chunjo/Shinsoo"
+  // for the language chore, which collides with the Empire names. "Lingua X" confirmed by the
+  // maintainer against the IT client (2026-06-14).
+  "recurring.jinno-language":   "Lingua Jinno",
+  "recurring.chunjo-language":  "Lingua Chunjo",
+  "recurring.shinsoo-language": "Lingua Shinsoo",
+  "recurring.biologist":        "Biologo",
+
+  // ---- Per-school Ward (7th) — generic, shared across every school's list (#57) ----
+  "recurring.ward":             "Contrattacco",
+
+  // ---- Warrior / Body ----
+  "recurring.aura-of-the-sword":  "Aura della spada",
+  "recurring.berserk":  "Estasi da combattimento",
+  "recurring.dash":  "Sibilare",
+  "recurring.sword-spin":  "Vortice di spada",
+  "recurring.three-way-cut":  "Taglio a tre vie",
+  "recurring.life-force":  "Volontà di vivere",
+  "recurring.sword-spin-boost":  "Boost Vortice di spada",
+  "recurring.earthquake":  "Terremoto",
+
+  // ---- Warrior / Mental ----
+  "recurring.bash":  "Colpo potente",
+  "recurring.stump":  "Pestone",
+  "recurring.sword-strike":  "Colpo di spada",
+  "recurring.sword-orb":  "Orb della spada",
+  "recurring.spirit-strike":      "Colpo di spirito",
+  "recurring.strong-body":  "Corpo forte",
+  "recurring.spirit-strike-boost":  "Boost Penetrazione",
+  // recurring.earthquake shared with Body — keyed once above
+
+  // ---- Ninja / Blade-Fight ----
+  "recurring.ambush":  "Tranello",
+  "recurring.fast-attack":  "Attacco lampo",
+  "recurring.rolling-dagger":  "Vortice del pugnale",
+  "recurring.poisonous-cloud":  "Nuvola velenosa",
+  "recurring.insidious-poison":  "Veleno insidioso",
+  "recurring.stealth":  "Camuffamento",
+  "recurring.ambush-boost":  "Boost Tranello",
+  "recurring.astral-light":  "Luce astrale",
+
+  // ---- Ninja / Archery ----
+  "recurring.repetitive-shot":  "Tiro ripetuto",
+  "recurring.arrow-shower":  "Pioggia di frecce",
+  "recurring.fire-arrow":  "Freccia di fuoco",
+  "recurring.poison-arrow":  "Freccia avvelenata",
+  "recurring.spark":  "Colpo sfavillante",
+  "recurring.feather-walk":  "Passo piumato",
+  "recurring.fire-arrow-boost":  "Boost Freccia di fuoco",
+  "recurring.tempestus":          "Tempestus",
+
+  // ---- Sura / Weaponry ----
+  "recurring.finger-strike":  "Schiocco di dita",
+  "recurring.hell-strike":  "Infernus",
+  "recurring.dragon-swirl":  "Vortice del drago",
+  "recurring.enchanted-blade":  "Lama incantata",
+  "recurring.fear":  "Paura",
+  "recurring.dispel":  "Annullamento magia",
+  "recurring.finger-strike-boost":  "Boost Schiocco di dita",
+  "recurring.infernus":           "Infernus",
+
+  // ---- Sura / Black Magic ----
+  "recurring.dark-orb":  "Pietra oscura",
+  "recurring.dark-strike":  "Colpo oscuro",
+  "recurring.flame-strike":  "Colpo di fiamma",
+  "recurring.flame-spirit":  "Spirito della fiamma",
+  // recurring.spirit-strike shared with Warrior Mental — keyed once above
+  "recurring.death-wave":  "Onda letale",
+  "recurring.dark-strike-boost":  "Boost Colpo oscuro",
+  "recurring.lethal-wave":        "Onda letale",
+
+  // ---- Shaman / Dragon ----
+  "recurring.dragon-s-roar":  "Ruggito del drago",
+  "recurring.shooting-dragon":  "Tiro del drago",
+  "recurring.flying-talisman":  "Talismano volante",
+  "recurring.dragon-s-aid":  "Aiuto del drago",
+  "recurring.blessing":  "Benedizione",
+  "recurring.reflect":  "Riflessione",
+  "recurring.shooting-dragon-boost":  "Boost Tiro del drago",
+  "recurring.meteor":  "Meteora",
+
+  // ---- Shaman / Healing ----
+  "recurring.cure":  "Cura",
+  "recurring.swiftness":  "Rapidità",
+  "recurring.attack-up":  "Attacco+",
+  "recurring.lightning-claw":  "Artiglio di lampo",
+  "recurring.lightning-throw":  "Lancio di lampi",
+  "recurring.summon-lightning":  "Evocare i lampi",
+  "recurring.summon-lightning-boost":  "Boost Evocare i lampi",
+  "recurring.ethereal-shield":    "Scudo etereo",
+
+  // ---- Lycan / Instinct ----
+  "recurring.crimson-wolf-soul":  "Anima del lupo purpureo",
+  "recurring.indigo-wolf-soul":  "Anima del lupo indaco",
+  "recurring.shred":  "Strazio",
+  "recurring.wolf-s-breath":  "Respiro del lupo",
+  "recurring.wolf-s-claw":  "Artiglio di lupo",
+  "recurring.wolf-pounce":  "Salto del lupo",
+  "recurring.wolf-s-breath-boost":  "Boost Respiro del lupo",
+  "recurring.cicatrix":           "Cicatrix",
+
+  // ---- Empires ----
+  "empire.shinsoo": "Shinsoo",
+  "empire.chunjo":  "Chunjo",
+  "empire.jinno":   "Jinno",
+
+  // ---- Races ----
+  // Sourced from the official client class table (metin2alerts locale/it.json JOB_* keys).
+  "race.warrior": "Guerriero", // JOB_WARRIOR
+  "race.ninja":   "Ninja",     // JOB_ASSASSIN
+  "race.sura":    "Sura",      // JOB_SURA
+  "race.shaman":  "Shamano",   // JOB_SHAMAN (client spelling, not "Sciamano")
+  "race.lycan":   "Lican",     // JOB_WOLFMAN (client spelling, not "Lycan")
+
+  // ---- Builds (schools) ----
+  // School names confirmed by the maintainer against the IT client (2026-06-14).
+  "build.body":        "Corpo",
+  "build.mental":      "Mentale",
+  "build.blade-fight": "Corpo a Corpo",
+  "build.archery":     "Arco",
+  "build.weaponry":    "Armi magiche",
+  "build.black-magic": "Magia Nera",
+  "build.dragon":      "Drago",
+  "build.healing":     "Guarigione",
+  "build.instinct":    "Istinto", // ? maintainer unsure this school name exists/spelling
+
+  // ---- Biologist consignment items ----
+  // Sourced from the official client item DB (metin2alerts item_names/it.pbf, decoded by
+  // scripts/decode-item-names.mjs) — matched by EN name, IT read from the same item id. The
+  // trailing "+" refine marker the dump uses is stripped. red-ghost is the client's abbreviated
+  // form ("Fanta." = Fantasma); expand only if the in-app row is too cramped to read.
+  "biologist.orc-tooth":            "Dente di Orco",
+  "biologist.curse-book":           "Libro delle maledizioni",
+  "biologist.demon-s-keepsake":     "Ricordo di Demone",
+  "biologist.ice-marble":           "Palla di Ghiaccio",
+  "biologist.zelkova-branch":       "Ramo di Zelkova",
+  "biologist.tugyi-s-tablet":       "Tavola di Tugyi",
+  "biologist.red-ghost-tree-branch": "Ramo Albero Fanta. Rosso", // client abbreviation, kept (maintainer-confirmed)
+  "biologist.leaders-notes":        "Notizie dei Capi",
+  "biologist.malevolence-jewel":    "Gioiello dell'Invidia",
+  "biologist.wisdom-jewel":         "Gioiello della saggezza",
+};
+
 const TABLES: Record<Locale, Record<string, string>> = {
   en: EN,
   de: DE,
+  it: IT,
 };
 
 /**

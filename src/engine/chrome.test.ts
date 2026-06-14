@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { t, resolveChrome } from "./chrome";
 import type { ChromeKey } from "./chrome";
+import { SUPPORTED_LOCALES } from "./localeTypes";
 
 // ---- t() — the public two-arg resolver ----
 
@@ -87,6 +88,40 @@ describe("t(key, 'de') — German chrome table", () => {
   });
 });
 
+// ---- t() cross-locale — real it table (#99 slice 1) ----
+
+describe("t(key, 'it') — Italian chrome table", () => {
+  it("returns the Italian string for dock.settings when locale is 'it'", () => {
+    expect(t("dock.settings", "it")).toBe("impostazioni");
+  });
+
+  it("returns the Italian string for dock.quit when locale is 'it'", () => {
+    expect(t("dock.quit", "it")).toBe("esci da Dragon's Aid");
+  });
+
+  it("returns non-empty strings for a spread of keys when locale is 'it'", () => {
+    // The IT table is authored complete, but this still pins the en-fallback contract: every key
+    // must resolve to a non-empty string under 'it' (never blank, never the raw key).
+    const spot: ChromeKey[] = [
+      "dock.skills",
+      "dock.cooldowns",
+      "dock.expiring",
+      "dock.routine",
+      "settings.title",
+      "settings.resetToDefaults",
+      "wizard.newCharacter",
+      "wizard.cancel",
+      "subscribe.title",
+      "backup.invalid",
+    ];
+    for (const key of spot) {
+      const out = t(key, "it");
+      expect(out, `key "${key}" should resolve non-empty under it`).toBeTruthy();
+      expect(out, `key "${key}" should not resolve to the raw key`).not.toBe(key);
+    }
+  });
+});
+
 // ---- settings explainer headers (#72) ----
 
 describe("settings tab explainers (#72)", () => {
@@ -97,9 +132,9 @@ describe("settings tab explainers (#72)", () => {
     "settings.explainRoutine",
   ];
 
-  it("resolve to non-empty strings in both shipped locales", () => {
+  it("resolve to non-empty strings in every shipped locale", () => {
     for (const key of EXPLAINERS) {
-      for (const locale of ["en", "de"] as const) {
+      for (const locale of SUPPORTED_LOCALES) {
         expect(t(key, locale), `${key} (${locale})`).toBeTruthy();
       }
     }
@@ -107,7 +142,7 @@ describe("settings tab explainers (#72)", () => {
 
   it("respect the glossary avoid-words (no reminder/daily/quest/alarm)", () => {
     for (const key of EXPLAINERS) {
-      for (const locale of ["en", "de"] as const) {
+      for (const locale of SUPPORTED_LOCALES) {
         expect(t(key, locale), `${key} (${locale})`).not.toMatch(/\b(reminder|daily|quest|alarm)/i);
       }
     }
