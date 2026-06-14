@@ -765,10 +765,29 @@ export function setRung(c: Config, defId: string, rungLabel: string): Config {
   if (!def) return c;
   const entry = rungEntry(def.ladderId, rungLabel);
   if (entry == null) return c; // not a rung on this def's ladder (or no ladder) → no-op
-  return editActiveCharacter(c, (ch) => ({
-    ...ch,
-    recurringProgress: setPosition(ch.recurringProgress, defId, entry, def.ladderId),
-  }));
+  // Keep `maxed` (the retired/trophy end state) consistent with the rung the curtain lands on — the
+  // same coupling the ✓ path (`markRead`) and the settings toggle (`setRecurringMaxed`) already hold:
+  // picking the cap rung (P / M1) IS completion, so it auto-retires done-forever rather than sitting
+  // capped-but-live; picking any rung BELOW the cap on an already-retired def reactivates it (you've
+  // declared a live rank). A `stage` ladder (Biologist) has no rung whose entry reaches the cap — that
+  // tips only on the final ✓ consignment — so its curtain never maxes here, which is correct. Mirrors
+  // `setRecurringMaxed`'s convention: max → `maxed: true`; restore → DELETE the key (byte-identical
+  // round-trip to a pre-#69 def). The daily gate (`recurringRunning`) stays untouched either way.
+  const reachedCap = entry >= ladderCap(def.ladderId);
+  return editActiveCharacter(c, (ch) => {
+    let recurring = ch.recurring;
+    if (reachedCap && !def.maxed) {
+      recurring = ch.recurring.map((d) => (d.id === defId ? { ...d, maxed: true } : d));
+    } else if (!reachedCap && def.maxed) {
+      recurring = ch.recurring.map((d) => {
+        if (d.id !== defId) return d;
+        const next = { ...d };
+        delete next.maxed;
+        return next;
+      });
+    }
+    return { ...ch, recurring, recurringProgress: setPosition(ch.recurringProgress, defId, entry, def.ladderId) };
+  });
 }
 
 // ---- recurring catalog CRUD (issue #37/#38) — the day-scale sibling of the cooldown editor ----
