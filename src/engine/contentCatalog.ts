@@ -878,12 +878,13 @@ const PL: Record<string, string> = {
 // (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
 const TR: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
-  "cooldown.hydra": "Hydra", // ?
-  "cooldown.razador": "Razador",
-  "cooldown.nemere": "Nemere",
-  "cooldown.meley": "Meley",
-  "cooldown.balathor": "Balathor",
-  "cooldown.northwind-war-chief": "Kuzey Rüzgarı Savaş Şefi", // ?
+  // Confirmed against the official TR client / Gameforge tr-wiki + mob vnums (2026-06-14).
+  "cooldown.hydra": "Hidra",       // tr-wiki "Hidra"
+  "cooldown.razador": "Razadör",   // TR client spelling with ö (tr-wiki "Razadör Yumurtası")
+  "cooldown.nemere": "Nemere",     // verbatim (Nemere Tapınağı)
+  "cooldown.meley": "Meley",       // verbatim (Meley'in Bebeği)
+  "cooldown.balathor": "Balathor", // verbatim (tr-wiki "Balathor")
+  "cooldown.northwind-war-chief": "Kuzey R. Savaş Reisi", // client string for mob 6895
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet": "Alastor Pet",
