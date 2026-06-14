@@ -14,7 +14,7 @@
     "windows": [
       {
         "title": "Dragon's Aid",
-        "width": 360,
+        "width": 540,
         "height": 320,
         "resizable": true,
         "fullscreen": false,
