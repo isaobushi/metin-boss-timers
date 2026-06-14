@@ -1030,10 +1030,330 @@ const TR: Record<string, string> = {
   "biologist.wisdom-jewel": "Bilgelik Mücevheri", // ?
 };
 
+// ---- Romanian content table (#99) ----
+// 71 class skills seeded from the metin2alerts dump (names.ro); 5 races from locale/ro.json
+// JOB_*; proper nouns (empires, Tempestus/Infernus/Cicatrix, verbatim bosses) kept as-is. The
+// `// ?` keys are hand-translated best-effort (no dump for bosses/builds/biologist/app-chores)
+// and await a native Romanian cross-check. Every seededContentKeys() key is present
+// (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
+const RO: Record<string, string> = {
+  // ---- Cooldowns (bosses) ----
+  "cooldown.hydra": "Hydra", // ro-wiki "Hydra" (kept verbatim in RO client)
+  "cooldown.razador": "Razador",
+  "cooldown.nemere": "Nemere",
+  "cooldown.meley": "Meley",
+  "cooldown.balathor": "Balathor",
+  "cooldown.northwind-war-chief": "Căpetenie Adăpost Nord", // ro-wiki "Căpetenie Adăpost Nord" (mob 6895, ice; element suffix dropped, as DE)
+
+  // ---- Recurring seed (deadline items) ----
+  "recurring.alastor-pet": "Alastor Pet",
+  "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
+  "recurring.battle-horse": "Cal de Luptă", // ?
+
+  // ---- Recurring seed (gate chores — universals) ----
+  "recurring.skill-books": "Cărți de Abilități", // ?
+  "recurring.transformation": "Transformare", // ?
+  "recurring.inspiration": "Inspiraţie",
+  "recurring.charisma": "Carisma",
+  "recurring.mining": "Minerit",
+  "recurring.leadership": "Conducere",
+  "recurring.jinno-language": "Limba Jinno", // ?
+  "recurring.chunjo-language": "Limba Chunjo", // ?
+  "recurring.shinsoo-language": "Limba Shinsoo", // ?
+  "recurring.biologist": "Biolog", // ?
+
+  // ---- Per-school Ward (7th) — generic, shared across every school's list (#57) ----
+  "recurring.ward": "Contraatac", // ?
+
+  // ---- Warrior / Body ----
+  "recurring.aura-of-the-sword": "Aura Sabiei",
+  "recurring.berserk": "Iureş",
+  "recurring.dash": "Izbitură",
+  "recurring.sword-spin": "Vârtejul Sabiei",
+  "recurring.three-way-cut": "Incizie Triplă",
+  "recurring.life-force": "Puterea Vieţii",
+  "recurring.sword-spin-boost": "Ajutor Vârtejul Sabiei",
+  "recurring.earthquake": "Cutremur",
+
+  // ---- Warrior / Mental ----
+  "recurring.bash": "Zdrobire",
+  "recurring.stump": "Zdruncinare",
+  "recurring.sword-strike": "Atacul Sabiei",
+  "recurring.sword-orb": "Sfera Sabiei",
+  "recurring.spirit-strike": "Lovitură Spirituală", // ?
+  "recurring.strong-body": "Corp Rezistent",
+  "recurring.spirit-strike-boost": "Ajutor Atacul Spiritului",
+
+  // ---- Ninja / Blade-Fight ----
+  "recurring.ambush": "Ambuscadă",
+  "recurring.fast-attack": "Atac fulger",
+  "recurring.rolling-dagger": "Pumnal Rulant",
+  "recurring.poisonous-cloud": "Nor Otrăvitor",
+  "recurring.insidious-poison": "Otravă Subtilă",
+  "recurring.stealth": "Camuflaj",
+  "recurring.ambush-boost": "Ajutor Ambuscadă",
+  "recurring.astral-light": "Lumină Astrală",
+
+  // ---- Ninja / Archery ----
+  "recurring.repetitive-shot": "Foc Repetat",
+  "recurring.arrow-shower": "Ploaie de Săgeţi",
+  "recurring.fire-arrow": "Săgeată de Foc",
+  "recurring.poison-arrow": "Săgeată Otrăvită",
+  "recurring.spark": "Scânteie",
+  "recurring.feather-walk": "Mers de Fulg",
+  "recurring.fire-arrow-boost": "Ajutor Sageată de Foc",
+  "recurring.tempestus": "Tempestus",
+
+  // ---- Sura / Weaponry ----
+  "recurring.finger-strike": "Lovitura Degetului",
+  "recurring.hell-strike": "Chinul Iadului",
+  "recurring.dragon-swirl": "Vârtejul Dragonului",
+  "recurring.enchanted-blade": "Tăiş Vrăjit",
+  "recurring.fear": "Teamă",
+  "recurring.dispel": "Risipirea Magiei",
+  "recurring.finger-strike-boost": "Ajutor Lovitura Degetului",
+  "recurring.infernus": "Infernus",
+
+  // ---- Sura / Black Magic ----
+  "recurring.dark-orb": "Sferă Întunecată",
+  "recurring.dark-strike": "Lovitură Întunecată",
+  "recurring.flame-strike": "Lovitura Focului",
+  "recurring.flame-spirit": "Spiritul Flăcării",
+  "recurring.death-wave": "Val Ucigaş",
+  "recurring.dark-strike-boost": "Ajutor Lovitură Întunecată",
+  "recurring.lethal-wave": "Val Letal", // ?
+
+  // ---- Shaman / Dragon ----
+  "recurring.dragon-s-roar": "Răgetul Dragonului",
+  "recurring.shooting-dragon": "Aruncarea Dragonului",
+  "recurring.flying-talisman": "Talisman Zburător",
+  "recurring.dragon-s-aid": "Ajutorul Dragonului",
+  "recurring.blessing": "Binecuvântare",
+  "recurring.reflect": "Reflexie",
+  "recurring.shooting-dragon-boost": "Ajutor Aruncarea Dragonului",
+  "recurring.meteor": "Meteorit",
+
+  // ---- Shaman / Healing ----
+  "recurring.cure": "Leac",
+  "recurring.swiftness": "Accelerare",
+  "recurring.attack-up": "Atac Forţat",
+  "recurring.lightning-claw": "Gheara Fulgerului",
+  "recurring.lightning-throw": "Aruncarea Fulgerului",
+  "recurring.summon-lightning": "Chemarea Fulgerului",
+  "recurring.summon-lightning-boost": "Ajutor Chemarea Fulgerului",
+  "recurring.ethereal-shield": "Scut Eteric", // ?
+
+  // ---- Lycan / Instinct ----
+  "recurring.crimson-wolf-soul": "Sufletul Lupului Roşu",
+  "recurring.indigo-wolf-soul": "Sufletul Lupului Indigo",
+  "recurring.shred": "Sfâşie",
+  "recurring.wolf-s-breath": "Suflul Lupului",
+  "recurring.wolf-s-claw": "Dinţii Lupului",
+  "recurring.wolf-pounce": "Săritura Lupului",
+  "recurring.wolf-s-breath-boost": "Ajutor Suflul Lupului",
+  "recurring.cicatrix": "Cicatrix",
+
+  // ---- Empires ----
+  "empire.shinsoo": "Shinsoo",
+  "empire.chunjo": "Chunjo",
+  "empire.jinno": "Jinno",
+
+  // ---- Races ----
+  "race.warrior": "Războinic",
+  "race.ninja": "Ninja",
+  "race.sura": "Sura",
+  "race.shaman": "Şaman",
+  "race.lycan": "Lycan",
+
+  // ---- Builds (schools) ----
+  "build.body": "Corp", // ?
+  "build.mental": "Mental", // ?
+  "build.blade-fight": "Luptă cu Sabia", // ?
+  "build.archery": "Tir cu Arcul", // ?
+  "build.weaponry": "Arme Magice", // ?
+  "build.black-magic": "Magie Neagră", // ?
+  "build.dragon": "Dragon", // ?
+  "build.healing": "Vindecare", // ?
+  "build.instinct": "Instinct", // ?
+
+  // ---- Biologist consignment items ----
+  "biologist.orc-tooth": "Dinte de Orc", // ?
+  "biologist.curse-book": "Carte de Blesteme", // ?
+  "biologist.demon-s-keepsake": "Amintire de Demon", // ?
+  "biologist.ice-marble": "Bilă de Gheață", // ?
+  "biologist.zelkova-branch": "Ramură de Zelkova", // ?
+  "biologist.tugyi-s-tablet": "Tăblița lui Tugyi", // ?
+  "biologist.red-ghost-tree-branch": "Ram. Copac Fant. Roșu", // ?
+  "biologist.leaders-notes": "Notele Liderului", // ?
+  "biologist.malevolence-jewel": "Bijuteria Răutății", // ?
+  "biologist.wisdom-jewel": "Bijuteria Înțelepciunii", // ?
+};
+
+// ---- Portuguese content table (#99) ----
+// 71 class skills seeded from the metin2alerts dump (names.pt); 5 races from locale/pt.json
+// JOB_*; proper nouns (empires, Tempestus/Infernus/Cicatrix, verbatim bosses) kept as-is. The
+// `// ?` keys are hand-translated best-effort (no dump for bosses/builds/biologist/app-chores)
+// and await a native Portuguese cross-check. Every seededContentKeys() key is present
+// (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
+const PT: Record<string, string> = {
+  // ---- Cooldowns (bosses) ----
+  "cooldown.hydra": "Hidra", // pt-wiki "Hidra" (Cofre da Hidra / Defesa do Navio)
+  "cooldown.razador": "Razador",
+  "cooldown.nemere": "Nemere",
+  "cooldown.meley": "Meley",
+  "cooldown.balathor": "Balathor",
+  "cooldown.northwind-war-chief": "Chefe Guerra do Abrigo", // pt-wiki "Chefe Guerra do Abrigo" (mob 6895, ice; element suffix dropped)
+
+  // ---- Recurring seed (deadline items) ----
+  "recurring.alastor-pet": "Alastor Pet",
+  "recurring.white-navy-uniform-costume": "White Navy Uniform Costume",
+  "recurring.battle-horse": "Cavalo de Batalha", // ?
+
+  // ---- Recurring seed (gate chores — universals) ----
+  "recurring.skill-books": "Livros de Habilidades", // ?
+  "recurring.transformation": "Transformação", // ?
+  "recurring.inspiration": "Inspiração",
+  "recurring.charisma": "Carisma",
+  "recurring.mining": "Garimpar",
+  "recurring.leadership": "Liderança",
+  "recurring.jinno-language": "Língua Jinno", // ?
+  "recurring.chunjo-language": "Língua Chunjo", // ?
+  "recurring.shinsoo-language": "Língua Shinsoo", // ?
+  "recurring.biologist": "Biólogo", // ?
+
+  // ---- Per-school Ward (7th) — generic, shared across every school's list (#57) ----
+  "recurring.ward": "Contra-ataque", // ?
+
+  // ---- Warrior / Body ----
+  "recurring.aura-of-the-sword": "Aura da Espada",
+  "recurring.berserk": "Raiva",
+  "recurring.dash": "Investida",
+  "recurring.sword-spin": "Espada Rotativa",
+  "recurring.three-way-cut": "Ataque Triplo",
+  "recurring.life-force": "Força Vital",
+  "recurring.sword-spin-boost": "Reforço da Espada Rotativa",
+  "recurring.earthquake": "Terramoto",
+
+  // ---- Warrior / Mental ----
+  "recurring.bash": "Ataque Destrutivo",
+  "recurring.stump": "Terramoto",
+  "recurring.sword-strike": "Ataque de Espada",
+  "recurring.sword-orb": "Orbe da Espada",
+  "recurring.spirit-strike": "Golpe Espiritual", // ?
+  "recurring.strong-body": "Corpo Forte",
+  "recurring.spirit-strike-boost": "Reforço do Ataque Espiritual",
+
+  // ---- Ninja / Blade-Fight ----
+  "recurring.ambush": "Emboscar",
+  "recurring.fast-attack": "Ataque Rápido",
+  "recurring.rolling-dagger": "Adaga Rotativa",
+  "recurring.poisonous-cloud": "Nuvem Venenosa",
+  "recurring.insidious-poison": "Veneno Insidioso",
+  "recurring.stealth": "Modo Furtivo",
+  "recurring.ambush-boost": "Reforço da Emboscada",
+  "recurring.astral-light": "Luz Astral",
+
+  // ---- Ninja / Archery ----
+  "recurring.repetitive-shot": "Tiro Duplo",
+  "recurring.arrow-shower": "Chuva de Setas",
+  "recurring.fire-arrow": "Seta de Fogo",
+  "recurring.poison-arrow": "Seta Envenenada",
+  "recurring.spark": "Faísca",
+  "recurring.feather-walk": "Flutuar",
+  "recurring.fire-arrow-boost": "Reforço da Flecha de Fogo",
+  "recurring.tempestus": "Tempestus",
+
+  // ---- Sura / Weaponry ----
+  "recurring.finger-strike": "Ataque do Dedo",
+  "recurring.hell-strike": "Golpe Infernal",
+  "recurring.dragon-swirl": "Espiral do Dragão",
+  "recurring.enchanted-blade": "Lâmina Encantada",
+  "recurring.fear": "Receio",
+  "recurring.dispel": "Remover Efeito",
+  "recurring.finger-strike-boost": "Reforço do Ataque do Dedo",
+  "recurring.infernus": "Infernus",
+
+  // ---- Sura / Black Magic ----
+  "recurring.dark-orb": "Bola da Escuridão",
+  "recurring.dark-strike": "Ataque Obscuro",
+  "recurring.flame-strike": "Ataque Chama",
+  "recurring.flame-spirit": "Espírito Chama",
+  "recurring.death-wave": "Onda de Morte",
+  "recurring.dark-strike-boost": "Reforço do Ataque Obscuro",
+  "recurring.lethal-wave": "Onda Letal", // ?
+
+  // ---- Shaman / Dragon ----
+  "recurring.dragon-s-roar": "Rugido do Dragão",
+  "recurring.shooting-dragon": "Ataque do Dragão",
+  "recurring.flying-talisman": "Talismã Voador",
+  "recurring.dragon-s-aid": "Ajuda do Dragão",
+  "recurring.blessing": "Bênção",
+  "recurring.reflect": "Poder Reflectivo",
+  "recurring.shooting-dragon-boost": "Reforço do Ataque do Dragão",
+  "recurring.meteor": "Meteoro",
+
+  // ---- Shaman / Healing ----
+  "recurring.cure": "Curar",
+  "recurring.swiftness": "Rapidez",
+  "recurring.attack-up": "Energia",
+  "recurring.lightning-claw": "Garra de Raios",
+  "recurring.lightning-throw": "Atirar Raio",
+  "recurring.summon-lightning": "Invocar Raio",
+  "recurring.summon-lightning-boost": "Reforço de Invocar Raio",
+  "recurring.ethereal-shield": "Escudo Etéreo", // ?
+
+  // ---- Lycan / Instinct ----
+  "recurring.crimson-wolf-soul": "Alma do Lobo Rubro",
+  "recurring.indigo-wolf-soul": "Alma do Lobo Anil",
+  "recurring.shred": "Retalho",
+  "recurring.wolf-s-breath": "Sopro do Lobo",
+  "recurring.wolf-s-claw": "Garra do Lobo",
+  "recurring.wolf-pounce": "Salto do Lobo",
+  "recurring.wolf-s-breath-boost": "Reforço do Sopro do Lobo",
+  "recurring.cicatrix": "Cicatrix",
+
+  // ---- Empires ----
+  "empire.shinsoo": "Shinsoo",
+  "empire.chunjo": "Chunjo",
+  "empire.jinno": "Jinno",
+
+  // ---- Races ----
+  "race.warrior": "Guerreiro",
+  "race.ninja": "Ninja",
+  "race.sura": "Sura",
+  "race.shaman": "Xamã",
+  "race.lycan": "Lycan",
+
+  // ---- Builds (schools) ----
+  "build.body": "Corpo", // ?
+  "build.mental": "Mental", // ?
+  "build.blade-fight": "Combate com Espada", // ?
+  "build.archery": "Arco", // ?
+  "build.weaponry": "Armas Mágicas", // ?
+  "build.black-magic": "Magia Negra", // ?
+  "build.dragon": "Dragão", // ?
+  "build.healing": "Cura", // ?
+  "build.instinct": "Instinto", // ?
+
+  // ---- Biologist consignment items ----
+  "biologist.orc-tooth": "Dente de Orc", // ?
+  "biologist.curse-book": "Livro de Maldições", // ?
+  "biologist.demon-s-keepsake": "Recordação de Demónio", // ?
+  "biologist.ice-marble": "Bola de Gelo", // ?
+  "biologist.zelkova-branch": "Ramo de Zelkova", // ?
+  "biologist.tugyi-s-tablet": "Tábua de Tugyi", // ?
+  "biologist.red-ghost-tree-branch": "Ramo Árvore Fant. Vermelho", // ?
+  "biologist.leaders-notes": "Notas do Líder", // ?
+  "biologist.malevolence-jewel": "Joia da Malevolência", // ?
+  "biologist.wisdom-jewel": "Joia da Sabedoria", // ?
+};
+
 const TABLES: Record<Locale, Record<string, string>> = {
   en: EN,
   de: DE,
   it: IT,
+  pt: PT,
+  ro: RO,
   tr: TR,
   pl: PL,
   fr: FR,

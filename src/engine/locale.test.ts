@@ -61,11 +61,20 @@ describe("pickLocale", () => {
     expect(pickLocale("tr-TR")).toBe("tr");
   });
 
+  it("maps ro/pt to themselves (the #118 follow-up languages; region variants resolve)", () => {
+    expect(pickLocale("ro")).toBe("ro");
+    expect(pickLocale("ro-RO")).toBe("ro");
+    expect(pickLocale("ro-MD")).toBe("ro"); // Moldovan Romanian → ro
+    expect(pickLocale("pt")).toBe("pt");
+    expect(pickLocale("pt-PT")).toBe("pt");
+    expect(pickLocale("pt-BR")).toBe("pt"); // Brazilian Portuguese → pt
+  });
+
   it("falls back to English for an unsupported language", () => {
-    // zh/ja/pt are not shipped; they must fall back to English.
+    // zh/ja/ru are not shipped; they must fall back to English.
     expect(pickLocale("zh-CN")).toBe("en");
     expect(pickLocale("ja-JP")).toBe("en");
-    expect(pickLocale("pt-PT")).toBe("en");
+    expect(pickLocale("ru-RU")).toBe("en");
   });
 
   it("falls back to English for a completely garbage string", () => {
