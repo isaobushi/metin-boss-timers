@@ -50,9 +50,10 @@ const EN = buildEnglish();
 // disagreed the user picked the wiki spelling. Every key from seededContentKeys() is listed
 // explicitly — the strict key-set guard in contentCatalog.test.ts fails CI on a missing or
 // orphaned key — and a human can vet each row.
-// TODO(#85): two values still await client transcription and are EXPLICIT entries carrying the
-// English spelling for now (not omitted-with-fallback — the strict guard requires every key):
-// recurring.alastor-pet and recurring.white-navy-uniform-costume (seed swap of 2026-06-11).
+// NOTE(#85): two values intentionally keep their English spelling — recurring.alastor-pet and
+// recurring.white-navy-uniform-costume (the 2026-06-11 seed swap). Kept as-is by HITL decision
+// rather than transcribed; they stay EXPLICIT entries (not omitted-with-fallback) because the
+// strict guard requires every key present.
 const DE: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
   "cooldown.hydra":             "Hydra",
