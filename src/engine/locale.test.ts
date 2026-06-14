@@ -42,7 +42,14 @@ describe("pickLocale", () => {
     expect(pickLocale("de-AT")).toBe("de");
   });
 
+  it('maps "it" to "it" (Italian — #99 slice 1; region + prefix variants resolve)', () => {
+    expect(pickLocale("it")).toBe("it");
+    expect(pickLocale("it-IT")).toBe("it");
+    expect(pickLocale("it-CH")).toBe("it"); // Italian-speaking Switzerland → it
+  });
+
   it("falls back to English for an unsupported language", () => {
+    // fr/zh are not yet shipped (fr lands in a later #99 slice); they must fall back to English.
     expect(pickLocale("fr-FR")).toBe("en");
     expect(pickLocale("zh-CN")).toBe("en");
   });

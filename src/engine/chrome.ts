@@ -513,6 +513,249 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
   "backup.invalid":  "Diese Datei ist kein gültiges Backup — nichts wurde geändert.",
 };
 
+// ---- Italian chrome table (#99 slice 1) ----
+// Free-translated IT strings, informal "tu" register (Metin2 IT client convention). Unlike the DE
+// partial, this is authored COMPLETE (the maintainer reads Italian) — every ChromeKey is present —
+// but it stays typed `Partial<ChromeTable>` like the others, so the English fallback still covers
+// any key removed later. Chrome is UI, FREE-translated; game terms live in contentCatalog.ts and are
+// transcribed, never routed through here. Section comments mirror the EN table for review.
+const IT_PARTIAL: Partial<ChromeTable> = {
+  // ---- DockBar ----
+  "dock.drag":            "trascina per spostare",
+  "dock.skills":          "abilità",
+  "dock.cooldowns":       "cooldown dungeon",
+  "dock.expiring":        "oggetti in scadenza",
+  "dock.routine":         "allenamento",
+  "dock.settings":        "impostazioni",
+  "dock.quit":            "esci da Dragon's Aid",
+
+  // ---- TimerScreen ----
+  "timer.noSkills":       "nessuna abilità — aggiungine in ⚙ impostazioni",
+  "timer.back":           "torna ai dungeon",
+  "timer.hintLeftClick":  "clic sinistro",
+  "timer.hintStopStart":  "stop / avvio",
+  "timer.hintRightClick": "clic destro",
+  "timer.hintReset":      "azzera",
+
+  // ---- BossSelect ----
+  "bossSelect.title":     "SELEZIONA DUNGEON",
+
+  // ---- SequenceScreen ----
+  "sequence.back":                  "torna alla selezione boss",
+  "sequence.switchToColumns":       "Passa a Colonne (Fase 2)",
+  "sequence.switchToElements":      "Passa a Elementi (Fase 1)",
+  "sequence.switchToColumnsTitle":  "passa a colonne (Fase 2)",
+  "sequence.switchToElementsTitle": "passa a elementi (Fase 1)",
+  "sequence.columnsLabel":          "Colonne",
+  "sequence.elementsLabel":         "Elementi",
+  "sequence.undo":                  "annulla",
+  "sequence.clear":                 "svuota",
+  "sequence.queenShift":            "Spostamento regina",
+  "sequence.queenShiftTitle":       "regina: sposta l'ordine di una posizione (1·2·3·4 → 4·1·2·3)",
+  "sequence.empty":                 "tocca sopra per registrare l'ordine — tocca un chip per spuntarlo",
+  "sequence.chipTitle":             "tocca quando distrutto / aperto",
+  "sequence.titleElements":         "TEMPLUM · ELEMENTI",
+  "sequence.titleColumns":          "TEMPLUM · COLONNE",
+
+  // ---- BossSettings ----
+  "boss.bossNamePlaceholder": "nome boss",
+  "boss.deleteBoss":          "elimina boss",
+  "boss.colSkill":            "ABILITÀ",
+  "boss.colSec":              "SEC",
+  "boss.colSound":            "SUONO",
+  "boss.colHotkey":           "TASTO",
+  "boss.skillNamePlaceholder": "nome",
+  "boss.durationTitle":       "durata (secondi)",
+  "boss.soundTitle":          "suono riprodotto sugli avvisi di questa abilità",
+  "boss.previewSound":        "ascolta questo suono",
+  "boss.hotkeyTitle":         "tasto per azzerare questo timer — clicca, poi premi un tasto (Esc cancella)",
+  "boss.removeSkill":         "rimuovi abilità",
+  "boss.noSkills":            "ancora nessuna abilità",
+  "boss.addSkill":            "+ AGGIUNGI ABILITÀ",
+
+  // ---- CooldownSettings ----
+  "cooldown.title":           "COOLDOWN",
+  "cooldown.colName":         "NOME",
+  "cooldown.colTag":          "TAG",
+  "cooldown.colDuration":     "DURATA",
+  "cooldown.namePlaceholder": "nome",
+  "cooldown.tagPlaceholder":  "tag",
+  "cooldown.tagTitle":        "etichetta breve mostrata nella barra (derivata dal nome; modificabile)",
+  "cooldown.durationTitle":   "durata (ore / minuti)",
+  "cooldown.removeCooldown":  "rimuovi cooldown",
+  "cooldown.noCooldowns":     "ancora nessun cooldown",
+  "cooldown.addCooldown":     "+ AGGIUNGI COOLDOWN",
+
+  // ---- RecurringSettings ----
+  "recurring.colName":        "NOME",
+  "recurring.colDuration":    "DURATA",
+  "recurring.colRank":        "GRADO",
+  "recurring.namePlaceholder": "nome",
+  "recurring.durationTitle":  "durata (giorni / ore / minuti)",
+  "recurring.removeItem":     "rimuovi oggetto",
+  "recurring.titleItems":     "OGGETTI IN SCADENZA",
+  "recurring.titleRoutine":   "ALLENAMENTO",
+  "recurring.addItem":        "+ AGGIUNGI OGGETTO",
+  "recurring.addRoutine":     "+ AGGIUNGI ALLENAMENTO",
+  "recurring.noItems":        "ancora nessun oggetto in scadenza",
+  "recurring.noRoutine":      "ancora nessun allenamento",
+  "recurring.markMaxed":      "al massimo — ritira dall'allenamento (reversibile)",
+  "recurring.restoreMaxed":   "al massimo — clicca per ripristinare nell'allenamento",
+  "recurring.customTraining": "+ ALLENAMENTO PERSONALIZZATO",
+  "recurring.pickerFilter":   "filtra allenamenti…",
+  "recurring.alreadyAdded":   "già aggiunto",
+
+  // ---- CooldownPicker ----
+  "picker.startCooldown":     "avvia un cooldown",
+  "picker.hint":              "scorri per cambiare il tempo",
+  "picker.itemTitle":         "clicca per avviare · scorri per regolare la durata",
+
+  // ---- CooldownStrip ----
+  "cooldownStrip.pillHint":   "clic sinistro riavvia · clic destro cancella",
+
+  // ---- ExpiringAccordion ----
+  "expiring.empty":           "ancora nessun oggetto in scadenza",
+  "expiring.refresh":         "rinnova — ristampa un ciclo intero da adesso",
+  "expiring.start":           "avvia — stampa un ciclo intero da adesso",
+
+  // ---- RoutineAccordion ----
+  "routine.empty":            "ancora nessun allenamento",
+  "routine.sectionBooks":     "Libri delle abilità",
+  "routine.sectionLanguages": "Lingue",
+  "routine.sectionChores":    "Utilità",
+  "routine.readSuccessReady": "lettura riuscita — avanza di grado e ristampa il gate di 24h",
+  "routine.readSuccessEarly": "letto ora (cooldown saltato) — avanza di grado e ristampa da adesso",
+  "routine.readFailReady":    "lettura fallita — libro bruciato, nessun avanzamento; ristampa il gate di 24h",
+  "routine.readFailEarly":    "letto ora (cooldown saltato) ma fallito — libro bruciato, nessun avanzamento; ristampa da adesso",
+  "routine.markDoneReady":    "segna come fatto — ristampa un ciclo intero da adesso",
+  "routine.markDoneEarly":    "fatto in anticipo — ristampa da adesso (rinunci all'attesa)",
+  "routine.skipCooldown":     "usa lo scorrimento per saltare il cooldown e leggere in anticipo (oggetto usato)",
+
+  // ---- RungCurtain ----
+  "rung.triggerTitle":        "imposta il grado attuale",
+  "rung.filterPlaceholder":   "filtra gradi…",
+  "rung.filterAriaLabel":     "filtra gradi",
+  "rung.noMatch":             "nessun risultato",
+
+  // ---- CharacterSwitcher ----
+  "char.activeCharacterTitle":  "personaggio attivo",
+  "char.frozenTitle":           "Congelato — riabbonati per usare questo personaggio",
+  "char.editTitle":             "modifica / classifica",
+  "char.editFrozenTitle":       "congelato — riabbonati per modificare",
+  "char.deleteTitle":           "elimina",
+  "char.deleteFrozenTitle":     "congelato — riabbonati per gestire",
+  "char.deleteOnlyTitle":       "l'unico personaggio non può essere eliminato",
+  "char.newCharacter":          "+ Nuovo personaggio",
+  "char.addWithPro":            "✦ Aggiungi personaggi con Pro",
+
+  // ---- CharacterWizard ----
+  "wizard.newCharacter":    "NUOVO PERSONAGGIO",
+  "wizard.editCharacter":   "MODIFICA PERSONAGGIO",
+  "wizard.cancel":          "annulla",
+  "wizard.namePlaceholder": "nome personaggio…",
+  "wizard.nameAriaLabel":   "nome personaggio",
+  "wizard.back":            "← Indietro",
+  "wizard.next":            "Avanti →",
+  "wizard.save":            "Salva",
+  "wizard.create":          "Crea",
+
+  // ---- TourCard ----
+  "tour.welcomeTitle":   "BENVENUTO",
+  "tour.welcomeBody":    "Questa barra galleggia sopra il tuo gioco — ogni simbolo qui sotto è uno strumento. Segue un breve tour di ogni sezione; puoi saltarlo quando vuoi.",
+  "tour.dockTitle":      "LA BARRA",
+  "tour.dockBody":       "La barra resta sopra la finestra di gioco. Trascinala dalla maniglia dove vuoi; ogni strumento si apre proprio sotto.",
+  "tour.characterTitle": "IL TUO PERSONAGGIO",
+  "tour.characterBody":  "Chi giochi? Nome, regno, classe — l'Allenamento adatta il suo menu di attività esattamente a quello. Altri personaggi possono aggiungersi dopo dal chip a sinistra della barra.",
+  "tour.skillsTitle":    "DUNGEON",
+  "tour.skillsBody":     "⚔ apre i tuoi Dungeon: scegli il boss che stai affrontando e ogni abilità diventa un chip che si scarica con segnali sonori negli ultimi secondi, azzerabile con tasti globali durante lo scontro.",
+  "tour.cooldownsTitle": "COOLDOWN",
+  "tour.cooldownsBody":  "⏱ avvia conti alla rovescia singoli verso un momento fisso — rientro nel dungeon, uno spawn che stai aspettando. Seguono l'orologio e sopravvivono ai riavvii.",
+  "tour.itemsTitle":     "OGGETTI IN SCADENZA",
+  "tour.itemsBody":      "⧗ tiene d'occhio ciò che scade — pet, costume, cavalcatura. Ognuno mostra i giorni rimasti; ↻ ristampa un ciclo nuovo quando nutri o rinnovi.",
+  "tour.routineTitle":   "ALLENAMENTO",
+  "tour.routineBody":    "✓ è un menu di attività ricorrenti — letture di libri abilità, consegne al Biologo. Non sei indietro: scegli ciò che si adatta al tuo personaggio, e ✓ lo ristampa alla sua prossima finestra.",
+  "tour.settingsTitle":  "IMPOSTAZIONI",
+  "tour.settingsBody":   "⚙ apre la finestra delle impostazioni — boss, tasti, suoni, lingua e backup stanno lì. Non serve entrarci ora.",
+  "tour.doneTitle":      "TUTTO PRONTO",
+  "tour.doneBody":       "Questa è la barra. Ritrovi questo tour in ⚙ → Fammi fare un giro. Buona caccia!",
+  "tour.next":           "Avanti →",
+  "tour.back":           "← Indietro",
+  "tour.finish":         "Capito",
+  "tour.skip":           "✕ Salta il tour",
+  "tour.makeItYours":    "⚙ Personalizzala →",
+
+  // ---- SubscribeScreen ----
+  "subscribe.title":                "DRAGONSAID PRO",
+  "subscribe.planAriaLabel":        "Piano di abbonamento",
+  "subscribe.bestValue":            "MIGLIOR PREZZO",
+  "subscribe.planAnnual":           "Annuale",
+  "subscribe.planMonthly":          "Mensile",
+  "subscribe.startTrial":           "Inizia la prova gratuita di 7 giorni",
+  "subscribe.done":                 "Fatto",
+  "subscribe.notNow":               "Non ora",
+  "subscribe.ledeTrial":            "Stai provando Pro gratis. Confermalo per mantenere la tua scuderia quando la prova finisce.",
+  "subscribe.ledeLapsed":           "Bentornato. Riabbonati per scongelare subito la tua scuderia — non si è perso nulla.",
+  "subscribe.ledeSubscribed":       "Sei Pro. Grazie per far crescere l'app.",
+  "subscribe.ledeDefault":          "L'app Pro mantenuta e in crescita — conoscenza dei dungeon curata, per tutta la tua scuderia.",
+  "subscribe.unlock1":              "Sequenze di dungeon predefinite — Templum Serpens e altre",
+  "subscribe.unlock2":              "Tutta la tua scuderia — profili personaggio illimitati",
+  "subscribe.unlock3":              "Catalogo abilità compilato automaticamente per classe e regno",
+  "subscribe.unlock4":              "Scale per abilità — conteggio libri rimanenti M1→G1",
+  "subscribe.unlock5":              "Ogni limite rimosso — boss, promemoria, personaggi",
+  "subscribe.resubscribe":          "Riabbonati",
+  "subscribe.subscribe":            "Abbonati",
+  "subscribe.orSubscribeNow":       "oppure abbonati ora",
+  "subscribe.error":                "Lo Store non ha potuto completare l'acquisto — non è stato modificato nulla. Riprova tra un momento.",
+
+  // ---- UpgradeBanner ----
+  "banner.trialLabel":          "✦ Prova Pro attiva",
+  "banner.trialCta":            "Mantieni Pro",
+  "banner.lapsedLabel":         "✦ Pro in pausa — la tua scuderia è congelata",
+  "banner.lapsedCta":           "Riabbonati",
+  "banner.neverLabel":          "✦ Sblocca Dragon's Aid Pro",
+  "banner.neverCta":            "Aggiorna",
+
+  // ---- CapNudge ----
+  "cap.addBoss":        "Lite include 1 boss personalizzato. Pro rimuove ogni limite — crea tutte le sequenze di boss che vuoi.",
+  "cap.addCharacter":   "Lite è un singolo personaggio. Pro sblocca tutta la tua scuderia — profili illimitati.",
+  "cap.addReminder":    "Lite include 3 promemoria. Pro rimuove il limite così puoi tracciare ogni attività.",
+  "cap.seePro":         "Scopri Pro",
+  "cap.dismiss":        "Ignora",
+
+  // ---- SettingsApp ----
+  "settings.title":             "IMPOSTAZIONI",
+  "settings.resetToDefaults":   "ripristina questa sezione ai valori predefiniti",
+  "settings.resetConfirm":      "Ripristinare questa sezione ai valori predefiniti? Le altre sezioni non cambieranno.",
+  "settings.close":             "chiudi",
+  "settings.tabDungeons":       "Dungeon",
+  "settings.tabCooldowns":      "Cooldown",
+  "settings.tabItems":          "Oggetti",
+  "settings.tabRoutine":        "Allenamento",
+  "settings.tabLanguage":       "Lingua",
+  "settings.addBoss":           "+ AGGIUNGI BOSS",
+  "settings.closeTitle":        "chiudi impostazioni",
+  "settings.explainDungeons":   "Dungeon — i tuoi boss e i loro chip abilità: nomi, durate, suoni e tasti globali.",
+  "settings.explainCooldowns":  "Cooldown — respawn singoli dei dungeon; imposta qui la durata di ciascuno.",
+  "settings.explainItems":      "Oggetti in scadenza — pet, costume, cavalcatura; imposta quanto dura ogni ciclo.",
+  "settings.explainRoutine":    "Allenamento — il menu delle attività ricorrenti; aggiungi voci e regola la finestra di ciascuna.",
+  "settings.showAround":        "FAMMI FARE UN GIRO",
+  "settings.showAroundHint":    "Riproduci il breve tour della barra e dei suoi strumenti.",
+
+  // ---- LocaleSettings ----
+  "locale.title":   "LINGUA",
+  "locale.hint":    "I nomi dei contenuti sono mostrati nella lingua selezionata. I nomi liberi che hai scritto tu non vengono mai cambiati.",
+  "locale.filterPlaceholder": "filtra lingue…",
+  "locale.filterAriaLabel":   "filtra lingue",
+
+  // ---- BackupSection ----
+  "backup.export":    "ESPORTA BACKUP",
+  "backup.import":    "IMPORTA BACKUP",
+  "backup.hint":      "Una copia portabile di tutti i tuoi dungeon, cooldown, personaggi e allenamenti. Importare un backup Pro in Lite mantiene tutto — ciò che supera i limiti resta congelato finché non ti riabboni.",
+  "backup.exported":  "Backup esportato.",
+  "backup.imported":  "Backup importato.",
+  "backup.invalid":   "Questo file non è un backup valido — non è stato modificato nulla.",
+};
+
 /**
  * Per-locale tables: `en` is complete; every other locale is `Partial` with English fallback.
  * Keyed by `Locale` (not `string`) so adding a locale to the union without a chrome table — or
@@ -522,6 +765,7 @@ const DE_PARTIAL: Partial<Record<ChromeKey, string>> = {
 const TABLES: Record<Locale, Partial<ChromeTable>> & { en: ChromeTable } = {
   en: EN,
   de: DE_PARTIAL,
+  it: IT_PARTIAL,
 };
 
 /**
