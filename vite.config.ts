@@ -9,5 +9,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Don't watch the Rust build tree: on Windows cargo locks artifacts under
+    // src-tauri/target while compiling, and Vite's watcher throws EBUSY and dies,
+    // taking `tauri dev` down with it (it's the beforeDevCommand). Per the Tauri template.
+    watch: {
+      ignored: ["**/src-tauri/**"],
+    },
   },
 })
