@@ -401,12 +401,12 @@ const IT: Record<string, string> = {
 // (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
 const ES: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
-  "cooldown.hydra": "Hidra", // ?
+  // cooldown.hydra + cooldown.northwind-war-chief omitted → English fallback
+  // (no confirmed ES-client name; see INTENTIONAL_EN_FALLBACK).
   "cooldown.razador": "Razador",
   "cooldown.nemere": "Nemere",
   "cooldown.meley": "Meley",
   "cooldown.balathor": "Balathor",
-  "cooldown.northwind-war-chief": "Jefe de Guerra del Viento del Norte", // ?
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet": "Alastor Pet",
@@ -560,7 +560,7 @@ const ES: Record<string, string> = {
 // (strict guard). See [[prelaunch-languages]] — seed-from-dump + spot-check house rule.
 const FR: Record<string, string> = {
   // ---- Cooldowns (bosses) ----
-  "cooldown.hydra": "Hydra", // ?
+  // cooldown.hydra omitted → English fallback (no confirmed FR-client name; fr-wiki has no page).
   "cooldown.razador": "Razador",
   "cooldown.nemere": "Nemere",
   "cooldown.meley": "Meley",
@@ -724,7 +724,7 @@ const PL: Record<string, string> = {
   "cooldown.nemere": "Nemere",
   "cooldown.meley": "Meley",
   "cooldown.balathor": "Balathor",
-  "cooldown.northwind-war-chief": "Wódz Wojenny Wiatru Północnego", // ? field-boss page absent; "Wódz Wojenny"=War Chief confirmed
+  // cooldown.northwind-war-chief omitted → English fallback (field-boss page absent on pl-wiki).
 
   // ---- Recurring seed (deadline items) ----
   "recurring.alastor-pet": "Alastor Pet",
@@ -1073,6 +1073,18 @@ export function seededContentKeys(): string[] {
 export function localeContentKeys(locale: Locale): string[] {
   return Object.keys(TABLES[locale]);
 }
+
+/**
+ * Keys a locale INTENTIONALLY omits — no confirmed official-client name yet, so the locale inherits
+ * the English string via displayName's fallback rather than shipping a guess (#99). The completeness
+ * guard subtracts these per locale, so an *accidental* gap still fails CI while a documented one does
+ * not. Keep this list short; remove an entry the moment a native- or wiki-confirmed name lands.
+ */
+export const INTENTIONAL_EN_FALLBACK: Partial<Record<Locale, readonly string[]>> = {
+  es: ["cooldown.hydra", "cooldown.northwind-war-chief"],
+  fr: ["cooldown.hydra"],
+  pl: ["cooldown.northwind-war-chief"],
+};
 
 /**
  * Name → catalogKey reverse lookup over one kind's namespace, derived FROM the English table itself
