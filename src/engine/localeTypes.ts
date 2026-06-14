@@ -13,13 +13,13 @@
  * `dk`=Danish (not da), `ae`=Arabic (not ar). Those four do not affect the five #99 launch
  * languages, but do NOT "correct" them to ISO when looking up the dump or the lookup breaks.
  */
-export type Locale = "en" | "de" | "it" | "es" | "fr" | "pl" | "tr";
+export type Locale = "en" | "de" | "it" | "es" | "fr" | "pl" | "tr" | "ro" | "pt";
 
 /** The fallback locale: every seeded key is guaranteed to resolve here. */
 export const DEFAULT_LOCALE: Locale = "en";
 
 /** Every locale currently shipped with a content table. The completeness guard holds for each. */
-export const SUPPORTED_LOCALES: Locale[] = ["en", "de", "it", "es", "fr", "pl", "tr"];
+export const SUPPORTED_LOCALES: Locale[] = ["en", "de", "it", "es", "fr", "pl", "tr", "ro", "pt"];
 
 /**
  * Human-readable label per locale (the Settings picker). Exhaustive by construction — adding a
@@ -35,4 +35,6 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   fr: "Français",
   pl: "Polski",
   tr: "Türkçe",
+  ro: "Română",
+  pt: "Português",
 };

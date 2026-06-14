@@ -1634,10 +1634,448 @@ const TR_PARTIAL: Partial<ChromeTable> = {
   "backup.invalid": "Bu dosya geçerli bir yedek değil — hiçbir şey değiştirilmedi.",
 };
 
+// ---- Romanian chrome table (#99) ----
+// Free-translated UI strings (informal register). 171 keys supplied; the rest fall back to
+// English (same partial pattern as DE). Best-effort, pending a native Romanian review.
+const RO_PARTIAL: Partial<ChromeTable> = {
+  // ---- DockBar ----
+  "dock.drag": "trage pentru a muta",
+  "dock.skills": "abilități",
+  "dock.cooldowns": "cooldown temniță",
+  "dock.expiring": "obiecte expirate",
+  "dock.routine": "antrenament",
+  "dock.settings": "setări",
+  "dock.quit": "ieși din Dragon's Aid",
+
+  // ---- TimerScreen ----
+  "timer.noSkills": "fără abilități — adaugă câteva în ⚙ setări",
+  "timer.back": "înapoi la temnițe",
+  "timer.hintLeftClick": "clic stânga",
+  "timer.hintStopStart": "oprește / pornește",
+  "timer.hintRightClick": "clic dreapta",
+  "timer.hintReset": "resetează",
+
+  // ---- BossSelect ----
+  "bossSelect.title": "ALEGE TEMNIȚA",
+
+  // ---- SequenceScreen ----
+  "sequence.back": "înapoi la selecția boss-ului",
+  "sequence.switchToColumns": "Comută la Coloane (Faza 2)",
+  "sequence.switchToElements": "Comută la Elemente (Faza 1)",
+  "sequence.switchToColumnsTitle": "comută la coloane (Faza 2)",
+  "sequence.switchToElementsTitle": "comută la elemente (Faza 1)",
+  "sequence.columnsLabel": "Coloane",
+  "sequence.elementsLabel": "Elemente",
+  "sequence.undo": "anulează ultimul",
+  "sequence.clear": "șterge",
+  "sequence.queenShift": "Tura reginei",
+  "sequence.queenShiftTitle": "regina: deplasează ordinea cu o poziție (1·2·3·4 → 4·1·2·3)",
+  "sequence.empty": "atinge sus pentru a înregistra ordinea — atinge un chip pentru a-l marca",
+  "sequence.chipTitle": "atinge când e distrus / deschis",
+  "sequence.titleElements": "TEMPLUM · ELEMENTE",
+  "sequence.titleColumns": "TEMPLUM · COLOANE",
+
+  // ---- BossSettings ----
+  "boss.bossNamePlaceholder": "numele boss-ului",
+  "boss.deleteBoss": "șterge boss-ul",
+  "boss.colSkill": "ABILITATE",
+  "boss.colSec": "SEC",
+  "boss.colSound": "SUNET",
+  "boss.colHotkey": "TASTĂ",
+  "boss.skillNamePlaceholder": "nume",
+  "boss.durationTitle": "durată (secunde)",
+  "boss.soundTitle": "sunetul redat la alertele acestei abilități",
+  "boss.previewSound": "previzualizează acest sunet",
+  "boss.hotkeyTitle": "tastă pentru a reseta acest cronometru — fă clic, apoi apasă o tastă (Esc pentru a șterge)",
+  "boss.removeSkill": "șterge abilitatea",
+  "boss.noSkills": "încă fără abilități",
+  "boss.addSkill": "+ ADAUGĂ ABILITATE",
+
+  // ---- CooldownSettings ----
+  "cooldown.title": "COOLDOWN-URI",
+  "cooldown.colName": "NUME",
+  "cooldown.colTag": "ETICHETĂ",
+  "cooldown.colDuration": "DURATĂ",
+  "cooldown.namePlaceholder": "nume",
+  "cooldown.tagPlaceholder": "etichetă",
+  "cooldown.tagTitle": "etichetă scurtă afișată în bară (derivată din nume; editabilă)",
+  "cooldown.durationTitle": "durată (ore / minute)",
+  "cooldown.removeCooldown": "șterge cooldown-ul",
+  "cooldown.noCooldowns": "încă fără cooldown-uri",
+  "cooldown.addCooldown": "+ ADAUGĂ COOLDOWN",
+
+  // ---- RecurringSettings ----
+  "recurring.colName": "NUME",
+  "recurring.colDuration": "DURATĂ",
+  "recurring.colRank": "RANG",
+  "recurring.namePlaceholder": "nume",
+  "recurring.durationTitle": "durată (zile / ore / minute)",
+  "recurring.removeItem": "șterge obiectul",
+  "recurring.titleItems": "OBIECTE EXPIRATE",
+  "recurring.titleRoutine": "ANTRENAMENT",
+  "recurring.addItem": "+ ADAUGĂ OBIECT",
+  "recurring.addRoutine": "+ ADAUGĂ ANTRENAMENT",
+  "recurring.noItems": "încă fără obiecte expirate",
+  "recurring.noRoutine": "încă fără antrenamente",
+  "recurring.markMaxed": "la maxim — scoate din antrenament (reversibil)",
+  "recurring.restoreMaxed": "la maxim — fă clic pentru a restabili în antrenament",
+  "recurring.customTraining": "+ ANTRENAMENT PERSONALIZAT",
+  "recurring.pickerFilter": "filtrează antrenamente…",
+  "recurring.alreadyAdded": "deja adăugat",
+
+  // ---- CooldownPicker ----
+  "picker.startCooldown": "pornește un cooldown",
+  "picker.hint": "derulează pentru a schimba timpul",
+  "picker.itemTitle": "fă clic pentru a porni · derulează pentru a ajusta durata",
+
+  // ---- CooldownStrip ----
+  "cooldownStrip.pillHint": "clic stânga resetează · clic dreapta șterge",
+
+  // ---- ExpiringAccordion ----
+  "expiring.empty": "încă fără obiecte expirate",
+  "expiring.refresh": "reînnoiește — re-marchează un ciclu complet de acum",
+  "expiring.start": "pornește — marchează un ciclu complet de acum",
+
+  // ---- RoutineAccordion ----
+  "routine.empty": "încă fără antrenamente",
+  "routine.sectionBooks": "Cărți de Abilități",
+  "routine.sectionLanguages": "Limbi",
+  "routine.sectionChores": "Utilitare",
+  "routine.readSuccessReady": "citire reușită — avansează un rang și re-marchează fereastra de 24h",
+  "routine.readSuccessEarly": "citit acum (cooldown omis) — avansează un rang și re-marchează de acum",
+  "routine.readFailReady": "citire eșuată — carte arsă, fără avansare; re-marchează fereastra de 24h",
+  "routine.readFailEarly": "citit acum (cooldown omis) dar eșuat — carte arsă, fără avansare; re-marchează de acum",
+  "routine.markDoneReady": "marchează ca finalizat — re-marchează un ciclu complet de acum",
+  "routine.markDoneEarly": "finalizat mai devreme — re-marchează de acum (renunți la așteptare)",
+  "routine.skipCooldown": "folosește scroll-ul pentru a omite cooldown-ul și a citi mai devreme (obiect consumat)",
+
+  // ---- RungCurtain ----
+  "rung.triggerTitle": "setează rangul curent",
+  "rung.filterPlaceholder": "filtrează ranguri…",
+  "rung.filterAriaLabel": "filtrează ranguri",
+  "rung.noMatch": "niciun rezultat",
+
+  // ---- CharacterSwitcher ----
+  "char.activeCharacterTitle": "personaj activ",
+  "char.frozenTitle": "Înghețat — reînnoiește abonamentul pentru a folosi acest personaj",
+  "char.editTitle": "editează / clasifică",
+  "char.editFrozenTitle": "înghețat — reînnoiește abonamentul pentru a edita",
+  "char.deleteTitle": "șterge",
+  "char.deleteFrozenTitle": "înghețat — reînnoiește abonamentul pentru a gestiona",
+  "char.deleteOnlyTitle": "singurul personaj nu poate fi șters",
+  "char.newCharacter": "+ Personaj nou",
+  "char.addWithPro": "✦ Adaugă personaje cu Pro",
+
+  // ---- CharacterWizard ----
+  "wizard.newCharacter": "PERSONAJ NOU",
+  "wizard.editCharacter": "EDITEAZĂ PERSONAJUL",
+  "wizard.cancel": "anulează",
+  "wizard.namePlaceholder": "numele personajului…",
+  "wizard.nameAriaLabel": "numele personajului",
+  "wizard.back": "← Înapoi",
+  "wizard.next": "Următorul →",
+  "wizard.save": "Salvează",
+  "wizard.create": "Creează",
+
+  // ---- TourCard ----
+  "tour.welcomeTitle": "BUN VENIT",
+  "tour.dockTitle": "BARA",
+  "tour.characterTitle": "PERSONAJUL TĂU",
+  "tour.skillsTitle": "TEMNIȚE",
+  "tour.cooldownsTitle": "COOLDOWN-URI",
+  "tour.itemsTitle": "OBIECTE EXPIRATE",
+  "tour.routineTitle": "ANTRENAMENT",
+  "tour.settingsTitle": "SETĂRI",
+  "tour.doneTitle": "GATA",
+  "tour.next": "Următorul →",
+  "tour.back": "← Înapoi",
+  "tour.finish": "Am înțeles",
+  "tour.skip": "✕ Sari peste tur",
+  "tour.makeItYours": "⚙ Personalizează →",
+
+  // ---- SubscribeScreen ----
+  "subscribe.title": "DRAGONSAID PRO",
+  "subscribe.planAriaLabel": "Plan de abonament",
+  "subscribe.bestValue": "CEA MAI BUNĂ OFERTĂ",
+  "subscribe.planAnnual": "Anual",
+  "subscribe.planMonthly": "Lunar",
+  "subscribe.startTrial": "Începe perioada de probă gratuită de 7 zile",
+  "subscribe.done": "Gata",
+  "subscribe.notNow": "Nu acum",
+  "subscribe.resubscribe": "Reabonează-te",
+  "subscribe.subscribe": "Abonează-te",
+  "subscribe.orSubscribeNow": "sau abonează-te acum",
+  "subscribe.error": "Magazinul nu a putut finaliza achiziția — nimic nu a fost modificat. Încearcă din nou într-un moment.",
+
+  // ---- UpgradeBanner ----
+  "banner.trialLabel": "✦ Probă Pro activă",
+  "banner.trialCta": "Păstrează Pro",
+  "banner.lapsedLabel": "✦ Pro în pauză — grajdul tău este înghețat",
+  "banner.lapsedCta": "Reabonează-te",
+  "banner.neverLabel": "✦ Deblochează Dragon's Aid Pro",
+  "banner.neverCta": "Obține Pro",
+
+  // ---- CapNudge ----
+  "cap.seePro": "Vezi Pro",
+  "cap.dismiss": "Închide",
+
+  // ---- SettingsApp ----
+  "settings.title": "SETĂRI",
+  "settings.resetToDefaults": "resetează această secțiune la valorile implicite",
+  "settings.resetConfirm": "Resetezi această secțiune la valorile implicite? Celelalte secțiuni nu se vor modifica.",
+  "settings.close": "închide",
+  "settings.tabDungeons": "Temnițe",
+  "settings.tabCooldowns": "Cooldown-uri",
+  "settings.tabItems": "Obiecte",
+  "settings.tabRoutine": "Antrenament",
+  "settings.tabLanguage": "Limbă",
+  "settings.addBoss": "+ ADAUGĂ BOSS",
+  "settings.closeTitle": "închide setările",
+  "settings.explainDungeons": "Temnițe — boss-ii tăi și chip-urile lor de abilități: nume, durate, sunete și taste globale.",
+  "settings.explainCooldowns": "Cooldown-uri — respawn-uri unice de temnițe; setează aici durata fiecăruia.",
+  "settings.explainItems": "Obiecte expirate — pet, costum, montură; setează cât durează fiecare ciclu.",
+  "settings.explainRoutine": "Antrenament — meniul de sarcini recurente; adaugă intrări și ajustează fereastra fiecăreia.",
+  "settings.showAround": "ARATĂ-MI CUM",
+  "settings.showAroundHint": "Redă turul rapid al barei și al instrumentelor sale.",
+
+  // ---- LocaleSettings ----
+  "locale.title": "LIMBĂ",
+  "locale.hint": "Numele de conținut sunt afișate în limba selectată. Numele libere pe care le-ai scris tu nu sunt niciodată modificate.",
+  "locale.filterPlaceholder": "filtrează limbi…",
+  "locale.filterAriaLabel": "filtrează limbi",
+
+  // ---- BackupSection ----
+  "backup.export": "EXPORTĂ COPIE DE REZERVĂ",
+  "backup.import": "IMPORTĂ COPIE DE REZERVĂ",
+  "backup.exported": "Copie de rezervă exportată.",
+  "backup.imported": "Copie de rezervă importată.",
+  "backup.invalid": "Acest fișier nu este o copie de rezervă validă — nimic nu a fost modificat.",
+};
+
+// ---- Portuguese chrome table (#99) ----
+// Free-translated UI strings (informal register). 171 keys supplied; the rest fall back to
+// English (same partial pattern as DE). Best-effort, pending a native Portuguese review.
+const PT_PARTIAL: Partial<ChromeTable> = {
+  // ---- DockBar ----
+  "dock.drag": "arrasta para mover",
+  "dock.skills": "habilidades",
+  "dock.cooldowns": "cooldown masmorra",
+  "dock.expiring": "objetos expirados",
+  "dock.routine": "treino",
+  "dock.settings": "definições",
+  "dock.quit": "sair do Dragon's Aid",
+
+  // ---- TimerScreen ----
+  "timer.noSkills": "sem habilidades — adiciona algumas em ⚙ definições",
+  "timer.back": "voltar às masmorras",
+  "timer.hintLeftClick": "clique esquerdo",
+  "timer.hintStopStart": "parar / iniciar",
+  "timer.hintRightClick": "clique direito",
+  "timer.hintReset": "reiniciar",
+
+  // ---- BossSelect ----
+  "bossSelect.title": "SELECIONA MASMORRA",
+
+  // ---- SequenceScreen ----
+  "sequence.back": "voltar à seleção de boss",
+  "sequence.switchToColumns": "Mudar para Colunas (Fase 2)",
+  "sequence.switchToElements": "Mudar para Elementos (Fase 1)",
+  "sequence.switchToColumnsTitle": "mudar para colunas (Fase 2)",
+  "sequence.switchToElementsTitle": "mudar para elementos (Fase 1)",
+  "sequence.columnsLabel": "Colunas",
+  "sequence.elementsLabel": "Elementos",
+  "sequence.undo": "anular último",
+  "sequence.clear": "limpar",
+  "sequence.queenShift": "Turno da rainha",
+  "sequence.queenShiftTitle": "rainha: desloca a ordem uma posição (1·2·3·4 → 4·1·2·3)",
+  "sequence.empty": "toca em cima para registar a ordem — toca num chip para marcá-lo",
+  "sequence.chipTitle": "toca quando estiver destruído / aberto",
+  "sequence.titleElements": "TEMPLUM · ELEMENTOS",
+  "sequence.titleColumns": "TEMPLUM · COLUNAS",
+
+  // ---- BossSettings ----
+  "boss.bossNamePlaceholder": "nome do boss",
+  "boss.deleteBoss": "eliminar boss",
+  "boss.colSkill": "HABILIDADE",
+  "boss.colSec": "SEG",
+  "boss.colSound": "SOM",
+  "boss.colHotkey": "TECLA",
+  "boss.skillNamePlaceholder": "nome",
+  "boss.durationTitle": "duração (segundos)",
+  "boss.soundTitle": "som reproduzido nos avisos desta habilidade",
+  "boss.previewSound": "pré-visualizar este som",
+  "boss.hotkeyTitle": "tecla para reiniciar este temporizador — clica e depois prime uma tecla (Esc para apagar)",
+  "boss.removeSkill": "eliminar habilidade",
+  "boss.noSkills": "ainda sem habilidades",
+  "boss.addSkill": "+ ADICIONAR HABILIDADE",
+
+  // ---- CooldownSettings ----
+  "cooldown.title": "COOLDOWNS",
+  "cooldown.colName": "NOME",
+  "cooldown.colTag": "TAG",
+  "cooldown.colDuration": "DURAÇÃO",
+  "cooldown.namePlaceholder": "nome",
+  "cooldown.tagPlaceholder": "tag",
+  "cooldown.tagTitle": "etiqueta curta mostrada na barra (derivada do nome; editável)",
+  "cooldown.durationTitle": "duração (horas / minutos)",
+  "cooldown.removeCooldown": "eliminar cooldown",
+  "cooldown.noCooldowns": "ainda sem cooldowns",
+  "cooldown.addCooldown": "+ ADICIONAR COOLDOWN",
+
+  // ---- RecurringSettings ----
+  "recurring.colName": "NOME",
+  "recurring.colDuration": "DURAÇÃO",
+  "recurring.colRank": "NÍVEL",
+  "recurring.namePlaceholder": "nome",
+  "recurring.durationTitle": "duração (dias / horas / minutos)",
+  "recurring.removeItem": "eliminar objeto",
+  "recurring.titleItems": "OBJETOS EXPIRADOS",
+  "recurring.titleRoutine": "TREINO",
+  "recurring.addItem": "+ ADICIONAR OBJETO",
+  "recurring.addRoutine": "+ ADICIONAR TREINO",
+  "recurring.noItems": "ainda sem objetos expirados",
+  "recurring.noRoutine": "ainda sem treinos",
+  "recurring.markMaxed": "no máximo — retirar do treino (reversível)",
+  "recurring.restoreMaxed": "no máximo — clica para restaurar no treino",
+  "recurring.customTraining": "+ TREINO PERSONALIZADO",
+  "recurring.pickerFilter": "filtrar treinos…",
+  "recurring.alreadyAdded": "já adicionado",
+
+  // ---- CooldownPicker ----
+  "picker.startCooldown": "iniciar um cooldown",
+  "picker.hint": "desliza para mudar o tempo",
+  "picker.itemTitle": "clica para iniciar · desliza para ajustar a duração",
+
+  // ---- CooldownStrip ----
+  "cooldownStrip.pillHint": "clique esquerdo reinicia · clique direito apaga",
+
+  // ---- ExpiringAccordion ----
+  "expiring.empty": "ainda sem objetos expirados",
+  "expiring.refresh": "renovar — recarimbar um ciclo completo a partir de agora",
+  "expiring.start": "iniciar — carimbar um ciclo completo a partir de agora",
+
+  // ---- RoutineAccordion ----
+  "routine.empty": "ainda sem treinos",
+  "routine.sectionBooks": "Livros de Habilidades",
+  "routine.sectionLanguages": "Línguas",
+  "routine.sectionChores": "Utilidades",
+  "routine.readSuccessReady": "leitura bem-sucedida — avança um nível e recarimba a janela de 24h",
+  "routine.readSuccessEarly": "lido agora (cooldown ignorado) — avança um nível e recarimba a partir de agora",
+  "routine.readFailReady": "leitura falhada — livro queimado, sem avanço; recarimba a janela de 24h",
+  "routine.readFailEarly": "lido agora (cooldown ignorado) mas falhou — livro queimado, sem avanço; recarimba a partir de agora",
+  "routine.markDoneReady": "marcar como feito — recarimbar um ciclo completo a partir de agora",
+  "routine.markDoneEarly": "feito antes — recarimbar a partir de agora (renuncias à espera)",
+  "routine.skipCooldown": "usa o scroll para ignorar o cooldown e ler antes (objeto usado)",
+
+  // ---- RungCurtain ----
+  "rung.triggerTitle": "definir nível atual",
+  "rung.filterPlaceholder": "filtrar níveis…",
+  "rung.filterAriaLabel": "filtrar níveis",
+  "rung.noMatch": "sem resultados",
+
+  // ---- CharacterSwitcher ----
+  "char.activeCharacterTitle": "personagem ativa",
+  "char.frozenTitle": "Congelada — renova a subscrição para usar esta personagem",
+  "char.editTitle": "editar / classificar",
+  "char.editFrozenTitle": "congelada — renova a subscrição para editar",
+  "char.deleteTitle": "eliminar",
+  "char.deleteFrozenTitle": "congelada — renova a subscrição para gerir",
+  "char.deleteOnlyTitle": "a única personagem não pode ser eliminada",
+  "char.newCharacter": "+ Nova personagem",
+  "char.addWithPro": "✦ Adiciona personagens com Pro",
+
+  // ---- CharacterWizard ----
+  "wizard.newCharacter": "NOVA PERSONAGEM",
+  "wizard.editCharacter": "EDITAR PERSONAGEM",
+  "wizard.cancel": "cancelar",
+  "wizard.namePlaceholder": "nome da personagem…",
+  "wizard.nameAriaLabel": "nome da personagem",
+  "wizard.back": "← Voltar",
+  "wizard.next": "Seguinte →",
+  "wizard.save": "Guardar",
+  "wizard.create": "Criar",
+
+  // ---- TourCard ----
+  "tour.welcomeTitle": "BEM-VINDO",
+  "tour.dockTitle": "A BARRA",
+  "tour.characterTitle": "A TUA PERSONAGEM",
+  "tour.skillsTitle": "MASMORRAS",
+  "tour.cooldownsTitle": "COOLDOWNS",
+  "tour.itemsTitle": "OBJETOS EXPIRADOS",
+  "tour.routineTitle": "TREINO",
+  "tour.settingsTitle": "DEFINIÇÕES",
+  "tour.doneTitle": "TUDO PRONTO",
+  "tour.next": "Seguinte →",
+  "tour.back": "← Voltar",
+  "tour.finish": "Entendido",
+  "tour.skip": "✕ Saltar tour",
+  "tour.makeItYours": "⚙ Personaliza →",
+
+  // ---- SubscribeScreen ----
+  "subscribe.title": "DRAGONSAID PRO",
+  "subscribe.planAriaLabel": "Plano de subscrição",
+  "subscribe.bestValue": "MELHOR VALOR",
+  "subscribe.planAnnual": "Anual",
+  "subscribe.planMonthly": "Mensal",
+  "subscribe.startTrial": "Começa a avaliação gratuita de 7 dias",
+  "subscribe.done": "Feito",
+  "subscribe.notNow": "Agora não",
+  "subscribe.resubscribe": "Voltar a subscrever",
+  "subscribe.subscribe": "Subscrever",
+  "subscribe.orSubscribeNow": "ou subscreve agora",
+  "subscribe.error": "A Loja não conseguiu concluir a compra — nada foi alterado. Tenta novamente dentro de momentos.",
+
+  // ---- UpgradeBanner ----
+  "banner.trialLabel": "✦ Avaliação Pro ativa",
+  "banner.trialCta": "Manter Pro",
+  "banner.lapsedLabel": "✦ Pro em pausa — o teu estábulo está congelado",
+  "banner.lapsedCta": "Voltar a subscrever",
+  "banner.neverLabel": "✦ Desbloqueia o Dragon's Aid Pro",
+  "banner.neverCta": "Obter Pro",
+
+  // ---- CapNudge ----
+  "cap.seePro": "Ver Pro",
+  "cap.dismiss": "Dispensar",
+
+  // ---- SettingsApp ----
+  "settings.title": "DEFINIÇÕES",
+  "settings.resetToDefaults": "repor esta secção nos valores predefinidos",
+  "settings.resetConfirm": "Repor esta secção nos valores predefinidos? As outras secções não serão alteradas.",
+  "settings.close": "fechar",
+  "settings.tabDungeons": "Masmorras",
+  "settings.tabCooldowns": "Cooldowns",
+  "settings.tabItems": "Objetos",
+  "settings.tabRoutine": "Treino",
+  "settings.tabLanguage": "Idioma",
+  "settings.addBoss": "+ ADICIONAR BOSS",
+  "settings.closeTitle": "fechar definições",
+  "settings.explainDungeons": "Masmorras — os teus bosses e os seus chips de habilidade: nomes, durações, sons e teclas globais.",
+  "settings.explainCooldowns": "Cooldowns — respawns únicos de masmorras; define aqui a duração de cada um.",
+  "settings.explainItems": "Objetos expirados — pet, disfarce, montada; define quanto dura cada ciclo.",
+  "settings.explainRoutine": "Treino — o menu de tarefas recorrentes; adiciona entradas e ajusta a janela de cada uma.",
+  "settings.showAround": "ENSINA-ME A USAR",
+  "settings.showAroundHint": "Reproduz o tour rápido da barra e das suas ferramentas.",
+
+  // ---- LocaleSettings ----
+  "locale.title": "IDIOMA",
+  "locale.hint": "Os nomes de conteúdo são mostrados no idioma selecionado. Os nomes livres que escreveste nunca são alterados.",
+  "locale.filterPlaceholder": "filtrar idiomas…",
+  "locale.filterAriaLabel": "filtrar idiomas",
+
+  // ---- BackupSection ----
+  "backup.export": "EXPORTAR CÓPIA DE SEGURANÇA",
+  "backup.import": "IMPORTAR CÓPIA DE SEGURANÇA",
+  "backup.exported": "Cópia de segurança exportada.",
+  "backup.imported": "Cópia de segurança importada.",
+  "backup.invalid": "Este ficheiro não é uma cópia de segurança válida — nada foi alterado.",
+};
+
 const TABLES: Record<Locale, Partial<ChromeTable>> & { en: ChromeTable } = {
   en: EN,
   de: DE_PARTIAL,
   it: IT_PARTIAL,
+  pt: PT_PARTIAL,
+  ro: RO_PARTIAL,
   tr: TR_PARTIAL,
   pl: PL_PARTIAL,
   fr: FR_PARTIAL,

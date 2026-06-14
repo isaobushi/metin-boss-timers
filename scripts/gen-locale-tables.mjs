@@ -9,8 +9,8 @@
 // Run AFTER the per-locale translation JSONs exist: node scripts/gen-locale-tables.mjs
 import fs from "node:fs";
 
-const LOCALES = ["es", "fr", "pl", "tr"];
-const LOCALE_NAME = { es: "Spanish", fr: "French", pl: "Polish", tr: "Turkish" };
+const LOCALES = ["ro", "pt"];
+const LOCALE_NAME = { ro: "Romanian", pt: "Portuguese" };
 const JOB = {
   "race.warrior": "JOB_WARRIOR",
   "race.ninja": "JOB_ASSASSIN",
