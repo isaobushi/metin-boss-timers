@@ -48,10 +48,24 @@ describe("pickLocale", () => {
     expect(pickLocale("it-CH")).toBe("it"); // Italian-speaking Switzerland → it
   });
 
+  it("maps es/fr/pl/tr to themselves (the #99 pre-launch languages; region variants resolve)", () => {
+    expect(pickLocale("es")).toBe("es");
+    expect(pickLocale("es-ES")).toBe("es");
+    expect(pickLocale("es-MX")).toBe("es"); // Latin-American Spanish → es
+    expect(pickLocale("fr")).toBe("fr");
+    expect(pickLocale("fr-FR")).toBe("fr");
+    expect(pickLocale("fr-CA")).toBe("fr"); // Canadian French → fr
+    expect(pickLocale("pl")).toBe("pl");
+    expect(pickLocale("pl-PL")).toBe("pl");
+    expect(pickLocale("tr")).toBe("tr");
+    expect(pickLocale("tr-TR")).toBe("tr");
+  });
+
   it("falls back to English for an unsupported language", () => {
-    // fr/zh are not yet shipped (fr lands in a later #99 slice); they must fall back to English.
-    expect(pickLocale("fr-FR")).toBe("en");
+    // zh/ja/pt are not shipped; they must fall back to English.
     expect(pickLocale("zh-CN")).toBe("en");
+    expect(pickLocale("ja-JP")).toBe("en");
+    expect(pickLocale("pt-PT")).toBe("en");
   });
 
   it("falls back to English for a completely garbage string", () => {
