@@ -3,6 +3,7 @@ import {
   DEFAULT_LOCALE,
   SEEDED_COOLDOWN_KEY_BY_NAME,
   SEEDED_RECURRING_KEY_BY_NAME,
+  INTENTIONAL_EN_FALLBACK,
   SUPPORTED_LOCALES,
   displayName,
   localeContentKeys,
@@ -57,13 +58,19 @@ describe("completeness guard", () => {
     }
   });
 
-  it("every shipped locale's table carries EXACTLY the seeded key set (no gaps, no orphans)", () => {
+  it("every shipped locale's table carries EXACTLY its seeded key set minus documented EN-fallbacks", () => {
     // The resolve-time English fallback makes a missing key invisible above (displayName still
     // returns a truthy non-key string), so this is the assertion that actually pins completeness:
     // a forgotten key after a seed addition, or a mis-slugged orphan, fails here — not on a player.
-    const expected = seededContentKeys().sort();
+    // A locale MAY deliberately omit keys (no confirmed official-client name yet); those are listed
+    // in INTENTIONAL_EN_FALLBACK and subtracted here, so only *undocumented* gaps fail CI.
+    const all = seededContentKeys();
     for (const locale of SUPPORTED_LOCALES) {
+      const omitted = new Set(INTENTIONAL_EN_FALLBACK[locale] ?? []);
+      const expected = all.filter((k) => !omitted.has(k)).sort();
       expect(localeContentKeys(locale).sort(), `key set @ ${locale}`).toEqual(expected);
+      // Each omitted key must still be a real seeded key — catches a stale/typo'd fallback entry.
+      for (const k of omitted) expect(all, `stale EN-fallback "${k}" @ ${locale}`).toContain(k);
     }
   });
 });
